@@ -4,8 +4,9 @@
 
 ----
 
-* `dsigma` is a pure-python galaxy-galaxy lensing pipeline designed for the Hyper-Suprime Cam survey. It should be flexible enough to work with other surveys after adapting the same data format. 
-* Please see Speagle, Leauthaud, Huang et al. (in prep.) and Huang et al. (in prep.) for scientific background and applications of `dsigma`. 
+* `dsigma` is a pure-python galaxy-galaxy lensing pipeline designed for the [Hyper-Suprime Cam survey](https://hsc.mtk.nao.ac.jp/ssp/). It should be flexible enough to work with other surveys after adapting the same data format. 
+* Please see Speagle, Leauthaud, Huang et al. (in prep.) and Huang et al. (in prep.) for scientific background and applications of `dsigma`.
+* Please see [Mandelbaum et al. (2018)](http://adsabs.harvard.edu/abs/2018PASJ...70S..25M) for details about the 1st year catalog of HSC weak lensing measurements, and see [Mandelbaum et al. (2019)](http://adsabs.harvard.edu/abs/2018MNRAS.481.3170M) for details about the calibration of shear measurements. 
 
 
 ![dsig_example](https://github.com/dr-guangtou/dsigma/blob/master/doc/dsigma_example.png)
