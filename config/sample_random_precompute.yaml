@@ -1,0 +1,33 @@
+source_catalog: "Data/HSC_source_catalog.npy"
+lens_catalog: "testData/random_50.npy"
+version: "s16a"
+outfile: "Data/random_ds.npz"
+comoving: True
+photoz:
+    field: "frankenz_photoz_best"
+    error_field: "frankenz_photoz_err68_min"
+    lens_source_z_separation: 0.1
+    z_err_cut: True
+    global_photo_z_cuts: "basic"
+    specinfo_photo_z_cuts: "none"
+lens:
+    ra: 'ra'
+    dec: 'dec'
+    z: 'z'
+    weight: "weight"
+    field: "field"
+photoz_calib:
+    calib: False
+    catalog: "data/cosmos_photoz_calibration.npy"
+    z_true: 'z_true'
+    z_weight: "z_weight"
+cosmology:
+    H0: 100
+    omega_m: 0.3
+    omega_l: 0.7
+binning:
+    nbins: 15
+    rmin_mpc: 0.1
+    rmax_mpc: 40
+selection:
+    n_hist: 100
