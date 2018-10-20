@@ -1,13 +1,25 @@
 # `dsigma`: A simple pure-python galaxy-galaxy lensing pipeline
 
+* Song Huang, Alexie Leauthaud, Christopher Bradshaw, Felipe Ardila (UCSC), Josh Speagle (Harvard University).
 
+----
+
+* `dsigma` is a pure-python galaxy-galaxy lensing pipeline designed for the Hyper-Suprime Cam survey. It should be flexible enough to work with other surveys after adapting the same data format. 
+* Please see Speagle, Leauthaud, Huang et al. (in prep.) and Huang et al. (in prep.) for scientific background and applications of `dsigma`. 
+
+
+![dsig_example](https://github.com/dr-guangtou/dsigma/blob/master/doc/dsigma_example.png)
+
+
+----
 
 # Setup
 
 ```
-git clone git@github.com:alexieleauthaud/DeltaSigmaPipelineHSC.git
+git clone git@github.com:dr-guangtou/dsigma.git
 make install_deps
 ```
+
 Also make sure that you have the [data](#data) in the correct format.
 
 ----
