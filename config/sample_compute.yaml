@@ -1,3 +1,6 @@
+# This is an example configuration file for forming the final
+# DeltaSigma profiles.
+
 # The pre-compute results for lens
 ds_lenses: "lens_ds.npz"
 # The pre-compute results for random
@@ -32,8 +35,12 @@ same_weight_random: True
 # Number of the jackknife fields
 njackknife_fields: 40
 # Whether to include the correction for m_selection bias
-selection_bias: False
+# This should be True for HSC by default.
+# The effect of this bias is very small, typicall < 1%
+selection_bias: True
 # Whether to include the correction for boost factor
+#   We always compute the boost factor when random catalog is available.
+#   This flag determines whether we apply it to the final signal.
 boost_factor: False
 
 # Notice: If second set of inputs are provided, we will compare the ratio of its
@@ -58,8 +65,12 @@ covariance:
     trunc: 0.2
     n_boots: 5000
 # About measuring the average ratio between two DeltaSigma profiles
+#   By default, the procedure will try to fit an average offset between
+#   r1 and r2, r1 and r3, and also r2 and r3.
 ratios:
     diff: False
+    # By default, the code will fit the ratio between the two profiles, but
+    # it can also fit the average difference.
     r1: 0.1
     r2: 1.0
     r3: 10.0
