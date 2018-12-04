@@ -18,8 +18,8 @@ def _load_catalogs(args):
     """Read in the lens and random catalogs.
     """
     # Read in the lens and random catalogs
-    lens_prefix, lens_type = os.path.splitext(args.cat_lens)
-    rand_prefix, rand_type = os.path.splitext(args.cat_rand)
+    _, lens_type = os.path.splitext(args.cat_lens)
+    _, rand_type = os.path.splitext(args.cat_rand)
 
     if lens_type == '.fits':
         lens_data = Table.read(args.cat_lens, format='fits')
@@ -126,8 +126,8 @@ def prepare_lens_random(args):
         4. Make sure the redshift range is matched with the lens catalog.
         5. Has the option to match the redshift distribution.
     """
-    lens_prefix, lens_type = os.path.splitext(args.cat_lens)
-    rand_prefix, rand_type = os.path.splitext(args.cat_rand)
+    lens_prefix, _ = os.path.splitext(args.cat_lens)
+    rand_prefix, _ = os.path.splitext(args.cat_rand)
 
     # Read in the data
     lens_data, rand_data = _load_catalogs(args)
@@ -146,11 +146,19 @@ def prepare_lens_random(args):
 
     # Add weight to the data
     # Right now, we only add uniform weight
-    lens_data = _add_weight(lens_data, args)
-    rand_data = _add_weight(rand_data, args)
+    if not args.no_weight:
+        lens_data = _add_weight(lens_data, args)
+        rand_data = _add_weight(rand_data, args)
+    else:
+        # Do not change the weight in lens and random catalog
+        print("# Do not add weight to lens and random")
 
     # Assign redshift to random
-    rand_data = _assign_redshift(lens_data, rand_data, args)
+    if not args.no_redshift:
+        rand_data = _assign_redshift(lens_data, rand_data, args)
+    else:
+        # Do not add redshift to random
+        print("# Do not add redshift to randoms")
 
     print(lens_data.colnames)
     print(rand_data.colnames)
@@ -194,6 +202,12 @@ if __name__ == '__main__':
                         help="Column or key name for Dec",
                         default='weight')
     parser.add_argument('-f', '--fits', dest='save_fits',
+                        action="store_true",
+                        default=False)
+    parser.add_argument('--no-weight', dest='no_weight',
+                        action="store_true",
+                        default=False)
+    parser.add_argument('--no-redshift', dest='no_redshift',
                         action="store_true",
                         default=False)
     args = parser.parse_args()
