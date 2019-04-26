@@ -276,21 +276,21 @@ def plot_r_delta_sigma(dsigma_output,
 
     # Simple Error
     err_1 = dsigma_output['dsigma_err_1']
-    ax1.errorbar(r_mpc * (1.07 ** 0.0), r_mpc * delta_sigma, yerr=err_1,
+    ax1.errorbar(r_mpc * (1.07 ** 0.0), r_mpc * delta_sigma, yerr=(r_mpc * err_1),
                  ecolor=np.asarray(Dark2(0.0)), color=np.asarray(Dark2(0.0)),
                  fmt='o', capsize=2, capthick=1.5, elinewidth=1.5,
                  markersize=8, alpha=0.9, label=r'$\mathrm{Simple\ err}$')
 
     # GGLens Error
     err_2 = dsigma_output['dsigma_err_2']
-    ax1.errorbar(r_mpc * (1.07 ** 1.0), r_mpc * delta_sigma, yerr=err_2,
+    ax1.errorbar(r_mpc * (1.07 ** 1.0), r_mpc * delta_sigma, yerr=(r_mpc * err_2),
                  ecolor=np.asarray(Dark2(0.1)), color=np.asarray(Dark2(0.1)),
                  fmt='h', capsize=2, capthick=1.5, elinewidth=1.5,
                  markersize=8, alpha=0.9, label=r'$\mathrm{GGlens\ err}$')
 
     # Jackknife Error
     err_3 = dsigma_output['dsigma_err_jk']
-    ax1.errorbar(r_mpc * (1.07 ** 2.0), r_mpc * delta_sigma, yerr=err_3,
+    ax1.errorbar(r_mpc * (1.07 ** 2.0), r_mpc * delta_sigma, yerr=(r_mpc * err_3),
                  ecolor=np.asarray(Dark2(0.2)), color=np.asarray(Dark2(0.2)),
                  fmt='h', capsize=2, capthick=1.5, elinewidth=1.5,
                  markersize=8, alpha=0.8, label=r'$\mathrm{Jackknife\ err}$')
