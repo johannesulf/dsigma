@@ -1,4 +1,4 @@
-# This is an example configuration file for pre-computing lensing 
+# This is an example configuration file for pre-computing lensing
 # signals around lenses.
 
 # Name of the source catalog; in `.npz` format.
@@ -21,6 +21,13 @@ photoz:
     # Notice that this is the lower 1-Sigma limit of the photo-z PDF
     # Not the actual error
     error_field: "frankenz_photoz_err95_min"
+    # Type of the photo-z error:
+    #   "z_low": lower boundary of the photo-z PDF.
+    #   "sigma": uncertainty of photo-z
+    error_type: "z_low"
+    # Factor to convert "sigma" error to "z_low"
+    #    `z_low = z_photo - sigma / factor`
+    sigma_to_zlow: 2
     # Lens-source redshift separation
     lens_source_z_separation: 0.1
     # Whether to make the z_1sigma_low > z_lens cut
