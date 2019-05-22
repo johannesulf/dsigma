@@ -240,21 +240,31 @@ def lens_source_z_cuts(lens, sources, cfg):
     for photometric redshift and error of photo-z.
     User has access to them here using:
         - `sf['z']`: photometric redshift.
-        - `sf['z_low']`: lower confident bound of the redshift distribution.
+        - `sf['z_err']`: error of photo-z; could be sigma or lower boundary
+        - `sf['z_err_type']`: type of the photo-z error: "sigma" or "z_low"
+        - `sf['z_err_factor']`: how to convert "sigma" into "z_low".
 
-    Photo-z separation cuts:
-        zs > zl + 0.1 AND zs_lower_68_bound > zl
+    If error type is `z_low`:
+        zs > zl + z_sep AND z_low > zl
+    If error type is `sigma`:
+        zs > zl + z_sep AND (zs - sigma / factor) > zl
     """
     photoz_sep = float(cfg['photoz']["lens_source_z_separation"])
 
     # Useful fields from the source and lens catalog
     sf, lf = cfg['source_fields'], cfg['lens_fields']
 
+    # Deal with the photo-z error
+    if sf['z_err_type'] == 'z_low':
+        z_low = sources[sf['z_err']]
+    elif sf['z_err_type'] == 'sigma':
+        z_low = sources[sf['z']] - (sources[sf['z_err']] / sf['z_err_factor'])
+
     if photoz_sep >= 0.:
         # Use additional z_err selection when True.
         if cfg['photoz']['z_err_cut']:
             # Make sure that the z_low is the lower bound of the photo-z distribution
-            photoz_mask = ((sources[sf['z_low']] > lens[lf['z']]) &
+            photoz_mask = ((z_low > lens[lf['z']]) &
                            (sources[sf['z']] > (lens[lf['z']] + photoz_sep)))
         else:
             # Only use z_separation cut.

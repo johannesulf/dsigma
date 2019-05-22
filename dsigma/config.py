@@ -102,8 +102,25 @@ def config_precompute(config_file):
     if 'field' not in cfg['photoz']:
         cfg['photoz']['field'] = 'frankenz_photoz_best'
 
+    # Error of the photo-z
+    # Note: when using Frankenz or other HSC photo-z catalog this is often
+    #       the 1-sigma or 2-sigma lower boundary of the photo-z PDF.
+    #       Not the uncertainty of photo-z itself
+    #       Please make sure the `error_type` field reflects the nature
+    #       of the uncertainty.
     if 'error_field' not in cfg['photoz']:
         cfg['photoz']['error_field'] = 'frankenz_photoz_err68_min'
+
+    # Type of photo-z uncertainty
+    #   z_low: error will be treated as the lower boundary of the photo-z PDF
+    #   sigma: uncertainty of the photo-z
+    if 'error_type' not in cfg['photoz']:
+        cfg['photoz']['error_type'] = 'z_low'
+
+    # How to convert the sigma into z_low
+    #   z_low = z_photo - sigma / sigma_to_zlow
+    if 'sigma_to_zlow' not in cfg['photoz']:
+        cfg['photoz']['sigma_to_zlow'] = 2
 
     # Photometric redshift calibration
     if 'calib' not in cfg['photoz_calib']:
@@ -124,22 +141,32 @@ def config_precompute(config_file):
 
         # If no z_weight is provided, just don't use z_weight
         if (('z_weight' not in cfg['photoz_calib']) or
-            (cfg['photoz_calib']['z_weight'] == 'None') or
-            ((cfg['photoz_calib']['z_weight']).strip() == '')):
+                (cfg['photoz_calib']['z_weight'] == 'None') or
+                ((cfg['photoz_calib']['z_weight']).strip() == '')):
             cfg['photoz_calib']['z_weight'] = None
 
     # Update information about redshift
     source_fields['z'] = cfg['photoz']['field']
-    source_fields['z_low'] = cfg['photoz']['error_field']
+    source_fields['z_err'] = cfg['photoz']['error_field']
+    source_fields['z_err_type'] = cfg['photoz']['error_type']
+    source_fields['z_err_factor'] = cfg['photoz']['sigma_to_zlow']
 
     # Check that error field is valid
-    if source_fields['z_low'] == "":
-        source_fields['z_low'] = source_fields['z']
+    # Note: if no photo-z error field is provided, we will just treat the
+    #       photo-z itsefl as a "lower boundary".
+    #       In the photo-z cut later, this is basically: z_s > z_l
+    if source_fields['z_err'] == "":
+        source_fields['z_err_type'] = 'z_low'
+        source_fields['z_err'] = source_fields['z']
 
-    if source_fields['z_low'] != source_fields['z'] and \
-       source_fields['z_low'] != "frankenz_photoz_err68_min" and \
-       source_fields['z_low'] != "frankenz_photoz_err95_min":
-        raise Exception("Invalid z_err option {}".format(source_fields['z_low']))
+    if source_fields['z_err'] != source_fields['z'] and \
+       source_fields['z_err'] != "frankenz_photoz_err68_min" and \
+       source_fields['z_err'] != "frankenz_photoz_err95_min":
+        raise Exception("Invalid z_err option {}".format(source_fields['z_err']))
+
+    if source_fields['z_err_type'] != "z_low" and \
+       source_fields['z_err_type'] != "sigma":
+        raise Exception("Invalid z_err_type option {}".format(source_fields['z_err_type']))
 
     cfg['source_fields'] = source_fields
     cfg['lens_fields'] = lens_fields
@@ -268,7 +295,6 @@ def config_computeds(config_file):
     # Number of processors to run on, mostly for the Jackknife error
     if 'n_jobs' not in ds_cfg:
         ds_cfg['n_jobs'] = 1
-        diff: False
 
     # For estimating the covariance matrix of the DeltaSigma profile
     if 'covariance' not in ds_cfg:

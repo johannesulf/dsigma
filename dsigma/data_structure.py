@@ -28,7 +28,6 @@ def get_source_fields(version):
             'field': 'field',
             'z': '',      # Redshift; see config file
             'z_err': '',  # Uncertaintiy of the redshift; see config file
-            'z_low': '',  # Lower bound of the distribution function of redshift; see config file
             'e1': 'ishape_hsm_regauss_e1',
             'e2': 'ishape_hsm_regauss_e2',
             'weight': 'ishape_hsm_regauss_derived_shape_weight',
