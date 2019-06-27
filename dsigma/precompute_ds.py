@@ -32,7 +32,7 @@ def prepare_photoz_calib(cfg):
         Catalog for photo-z calibration sources.
     """
     if cfg['photoz_calib']['calib']:
-        calib = np.load(cfg['photoz_calib']['catalog'])
+        calib = np.load(cfg['photoz_calib']['catalog'], allow_pickle=True)
         calib_use, _ = photo_z_selection(calib, cfg)
     else:
         calib_use = None

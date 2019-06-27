@@ -248,12 +248,12 @@ def load_data_delta_sigma(cfg, lens_key='ds_lenses', rand_key='ds_randoms',
     rand_data : numpy array
         Catalog of random objects.
     """
-    lens_ds = np.load(cfg[lens_key])
-    lens_data = np.load(cfg[lens_cat])
+    lens_ds = np.load(cfg[lens_key], allow_pickle=True)
+    lens_data = np.load(cfg[lens_cat], allow_pickle=True)
 
     if rand_key in cfg.keys():
-        rand_ds = np.load(cfg[rand_key])
-        rand_data = np.load(cfg[rand_cat])
+        rand_ds = np.load(cfg[rand_key], allow_pickle=True)
+        rand_data = np.load(cfg[rand_cat], allow_pickle=True)
     else:
         rand_ds, rand_data = None, None
 
@@ -352,7 +352,7 @@ def mask_lens_delta_sigma(lens_ds, lens_data, cfg,
 
     if ext_mask in cfg:
         if (cfg[ext_mask] != 'None') and (cfg[ext_mask] != ''):
-            ext_mask = np.load(cfg[ext_mask])
+            ext_mask = np.load(cfg[ext_mask], allow_pickle=True)
             assert len(ext_mask) == len(lens_data)
 
             lens_mask = (lens_mask & np.asarray(ext_mask, dtype=bool))
