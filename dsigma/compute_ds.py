@@ -23,7 +23,8 @@ __all__ = ['assert_lens_rand_consistent',
            'get_delta_sigma_error_simple', 'get_delta_sigma_error_gglens',
            'get_delta_sigma_error_jackknife', 'get_delta_sigma_errors',
            'qa_delta_sigma', 'prepare_compute_ds', 'get_ds_ratio_two_weights',
-           'prepare_compute_ds_second', 'get_delta_sigma_ratio_jackknife']
+           'prepare_compute_ds_second', 'get_delta_sigma_ratio_jackknife',
+           'effective_redshift']
 
 
 def prepare_compute_ds(cfg, lens_key='ds_lenses', rand_key='ds_randoms',
@@ -95,6 +96,15 @@ def prepare_compute_ds(cfg, lens_key='ds_lenses', rand_key='ds_randoms',
     else:
         lens_ds, rand_ds = lens_ds["delta_sigma"], None
 
+    # Show the effective redshift of the lens
+    lens_z_eff = effective_redshift(lens_ds)
+    print("# The effective redshift of the lenses: %8.6f" % lens_z_eff)
+
+    # Show the effective redshift of the rando (if available)
+    if rand_ds is not None:
+        rand_z_eff = effective_redshift(rand_ds)
+        print("# The effective redshift of the randoms: %8.6f" % rand_z_eff)
+
     # Assign the jackknife regions if necessary
     # TODO: Need to have a threshold: when N_lens < N_threshold
     # stop doing Jackknife resampling, using bootstrap instead
@@ -146,6 +156,15 @@ def prepare_compute_ds_second(cfg, lens_ds, rand_ds, radial_bins, cosmology):
         if not np.all(radial_bins == radial_bins_2):
             raise ValueError("Different radial bins for the two "
                              "pre-compute results")
+
+        # Show the effective redshift of the lens
+        lens_z_eff = effective_redshift(lens_ds_2)
+        print("# The effective redshift of the lenses: %8.6f" % lens_z_eff)
+
+        # Show the effective redshift of the rando (if available)
+        if rand_ds is not None:
+            rand_z_eff = effective_redshift(rand_ds_2)
+            print("# The effective redshift of the randoms: %8.6f" % rand_z_eff)
 
         # Make sure these two results share the same jackknife fields
         if (rand_ds is None) and (rand_ds_2 is None):
@@ -1369,3 +1388,17 @@ def qa_delta_sigma(dsigma_output, prefix=None, random=False,
 
     boost_prefix = prefix + '_qa_boost_profile' if prefix is not None else 'qa_boost_profile'
     plots.plot_r_boost_factor(dsigma_output, qa_prefix=boost_prefix)
+
+
+def effective_redshift(ds_pre):
+    """Compute the effective redshift for lens or random.
+
+    Parameters
+    ----------
+    ds_pre : ndarray
+        Pre-computed DS results.
+    """
+    w_ls = np.sum(ds_pre['radial_bins']['sum_den'], axis=1)
+
+    return np.sum(
+        ds_pre['z'] * ds_pre['weight'] * w_ls) / np.sum(ds_pre['weight'] * w_ls)
