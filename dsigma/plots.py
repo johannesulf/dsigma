@@ -536,9 +536,10 @@ def show_delta_sigma_profiles(list_prof, list_label=None,
                          label='__no_label__')
 
     ax1.grid(linestyle='--', alpha=0.4, linewidth=2)
-    ax1.legend(loc=1, fontsize=legend_size)
+    ax1.legend(loc='best', fontsize=legend_size)
 
-    ax1.set_ylim(ymin * 0.8, ymax * 2.0)
+    ax1.set_xlim(radial_bins.min() * 0.6, radial_bins.max() * 1.5)
+    ax1.set_ylim(ymin * 0.5, ymax * 2.0)
 
     for tick in ax1.xaxis.get_major_ticks():
         tick.label.set_fontsize(25)
@@ -623,9 +624,10 @@ def show_r_delta_sigma(list_prof, list_label=None, ax=None,
                          label='__no_label__')
 
     ax1.grid(linestyle='--', alpha=0.4, linewidth=2)
-    ax1.legend(loc=1, fontsize=legend_size)
+    ax1.legend(loc='best', fontsize=legend_size)
 
-    ax1.set_ylim(ymin * 0.8, ymax * 1.1)
+    ax1.set_xlim(radial_bins.min() * 0.6, radial_bins.max() * 1.5)
+    ax1.set_ylim(ymin * 0.8, ymax * 1.4)
 
     for tick in ax1.xaxis.get_major_ticks():
         tick.label.set_fontsize(25)
@@ -634,7 +636,7 @@ def show_r_delta_sigma(list_prof, list_label=None, ax=None,
 
     ax1.set_xlabel(r'$R\ [\mathrm{Mpc}]$', fontsize=label_size)
     ax1.set_ylabel(r'$R \times \Delta\Sigma\ (M_{\odot}/\mathrm{pc}^2)$',
-                   fontsize=25)
+                   fontsize=label_size)
 
     if ax is None:
         return fig
