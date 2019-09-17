@@ -52,7 +52,7 @@ def run(config_file, mask_file, pickle_output='dsigma_stack'):
         mask_arr = [mask_arr]
 
     results = batch_delta_sigma(
-        lens_pre, lens_data, mask_arr, 
+        lens_pre, lens_data, mask_arr,
         rand_pre=rand_pre, rand_data=rand_data,
         njackknife_fields=ds_cfg['njackknife_fields'],
         boost_factor=ds_cfg['boost_factor'],

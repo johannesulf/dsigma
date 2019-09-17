@@ -471,7 +471,8 @@ def plot_corr_matrix(log_rmpc, corr_matrix, qa_prefix=None):
 def show_delta_sigma_profiles(list_prof, list_label=None,
                               ax=None, m_list=None, c_list=None,
                               s_list=None, a_list=None,
-                              label_size=25, legend_size=10):
+                              label_size=25, legend_size=10,
+                              ymin_force=None, ymax_force=None):
     """Show a list of delta sigma profiles."""
     if m_list is None:
         m_list = ['o', 's', 'D', 'P', 'h', '8', 'p', '<', '>', 'v']
@@ -539,6 +540,12 @@ def show_delta_sigma_profiles(list_prof, list_label=None,
     ax1.legend(loc='best', fontsize=legend_size)
 
     ax1.set_xlim(radial_bins.min() * 0.6, radial_bins.max() * 1.5)
+
+    if ymin_force is not None:
+        ymin = ymin_force
+    if ymax_force is not None:
+        ymax = ymax_force
+
     ax1.set_ylim(ymin * 0.5, ymax * 2.0)
 
     for tick in ax1.xaxis.get_major_ticks():
