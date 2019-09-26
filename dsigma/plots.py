@@ -620,7 +620,7 @@ def show_r_delta_sigma(list_prof, list_label=None, ax=None,
         if errors is not None:
             ax1.errorbar(radial_bins * x_offset,
                          radial_bins * delta_sigma,
-                         yerr=errors,
+                         yerr=errors * radial_bins,
                          color=c_list[ii],
                          ecolor=c_list[ii],
                          fmt=m_list[ii],
