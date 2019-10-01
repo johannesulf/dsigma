@@ -225,7 +225,7 @@ def batch_delta_sigma(lens_pre, lens_data, mask_list,
                       rand_pre=None, rand_data=None, pickle_output=None,
                       njackknife_fields=31, boost_factor=False, selection_bias=False,
                       weight_field='weight', rand_zweight_nbins=10, same_weight_rand=True,
-                      save=False, qa=False, output_prefix='dsigma'):
+                      save=False, qa=False, output_prefix='dsigma', risk=False):
     """Stacked Delta Sigma signals using pre-compute result.
 
     Parameters
@@ -257,8 +257,9 @@ def batch_delta_sigma(lens_pre, lens_data, mask_list,
         Stacked DeltaSigma results for each selection of lens.
     """
     # Make sure the pre-compute results and the lens catalog are consistent
-    # TODO: this step takes long time
-    ds.assert_precompute_catalog_consistent(lens_pre, lens_data)
+    if not risk:
+        # this step takes long time
+        ds.assert_precompute_catalog_consistent(lens_pre, lens_data)
 
     # Get the pre-compute deltaSigma data, radial bins
     lens_ds, radial_bins = lens_pre['delta_sigma'], lens_pre['radial_bins']
@@ -304,7 +305,7 @@ def batch_dsig_cov(lens_pre, lens_data, mask_list,
                    rand_pre=None, rand_data=None, pickle_output=None,
                    njackknife_fields=31, boost_factor=False, selection_bias=False,
                    weight_field='weight', rand_zweight_nbins=10, same_weight_rand=True,
-                   n_jobs=4, n_boots=1000, boxsize=1, trunc=0.2):
+                   n_jobs=4, n_boots=1000, boxsize=1, trunc=0.2, risk=False):
     """Stacked Delta Sigma signals using pre-compute result.
 
     Parameters
@@ -336,8 +337,9 @@ def batch_dsig_cov(lens_pre, lens_data, mask_list,
         Stacked DeltaSigma results for each selection of lens.
     """
     # Make sure the pre-compute results and the lens catalog are consistent
-    # TODO: this step takes long time
-    ds.assert_precompute_catalog_consistent(lens_pre, lens_data)
+    if not risk:
+        # This step takes long time
+        ds.assert_precompute_catalog_consistent(lens_pre, lens_data)
 
     # Get the pre-compute deltaSigma data, radial bins
     lens_ds = lens_pre['delta_sigma']
