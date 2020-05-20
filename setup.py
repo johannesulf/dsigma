@@ -1,37 +1,15 @@
-# -*- coding: utf-8 -*-
-
-'''This sets up the package.
-Stolen from http://python-packaging.readthedocs.io/en/latest/everything.html and
-modified by me.
-'''
-__version__ = '0.1.0'
-
 from setuptools import setup, find_packages
 
-def readme():
-    """Load the README file."""
-    with open('README.md') as f:
-        return f.read()
-
-# let's be lazy and put requirements in one place
-# what could possibly go wrong?
-with open('requirements.txt') as infd:
-    INSTALL_REQUIRES = [x.strip('\n') for x in infd.readlines()]
-
-
-###############
-## RUN SETUP ##
-###############
+with open('README.md', 'r') as fstream:
+    long_description = fstream.read()
 
 setup(
     name='dsigma',
-    version=__version__,
-    description=('Pure-python g-g lensing framework'),
-    long_description=readme(),
+    version="0.2.0",
+    description=('A Galaxy-Galaxy Lensing Pipeline'),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: MIT License',
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Operating System :: OS Independent",
@@ -42,12 +20,10 @@ setup(
     ],
     keywords='astronomy, weak-lensing',
     url='https://github.com/dr-guangtou/dsigma',
-    author='Song Huang',
-    author_email='shuang89@ucsc.edu',
-    license='MIT',
+    author='Johannes Lange, Song Huang',
+    author_email='jolange@ucsc.edu',
     packages=find_packages(),
-    install_requires=INSTALL_REQUIRES,
-    include_package_data=True,
-    zip_safe=False,
+    install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
+                      'matplotlib'],
     python_requires='>=3.4',
 )

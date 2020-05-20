@@ -1,9 +1,4 @@
-ds_computation.key
-.DS_Store
-.ipynb_checkpoints
 __pycache__
-restats
 *.pyc
-*~
-swot/old_test/catalogs/*
-.#*
+_build
+

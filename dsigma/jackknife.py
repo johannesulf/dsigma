@@ -1,378 +1,350 @@
 """Jackknife resampling functions."""
-import math
 
 import numpy as np
-from numpy.lib.recfunctions import append_fields
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+from sklearn.cluster import AgglomerativeClustering, MiniBatchKMeans
+from scipy.spatial import cKDTree
+from astropy.table import Table
+from scipy.ndimage.filters import gaussian_filter
 
-import kmeans_radec
-
-
-__all__ = ["angular_distance", "closest_point", "get_field_id",
-           "get_jk_regions_per_field", "add_jackknife_both",
-           "add_jackknife_field"]
-
-D2R = math.pi / 180.0
-R2D = 180.0 / math.pi
-
-def angular_distance(ra_1, dec_1, ra_arr_2, dec_arr_2, radian=False):
-    """Angular distance between coordinates.
-
-    Based on calcDistanceAngle from gglens_dsigma_pz_hsc.py by Hironao Miyatake
-
-    Parameters
-    ----------
-    ra_1, dec_1 : float, float
-        RA, Dec of the first sets of coordinates; can be array.
-    ra_arr_2, dec_arr_2 : numpy array, numpy array
-        RA, Dec of the second sets of coordinates; can be array
-    radian: boolen, option
-        Whether the input and output are in radian unit. Default=False
-
-    Return
-    ------
-        Angular distance in unit of arcsec
-    """
-    # Convert everything into radian if necessary, and make everything
-    # float64 array
-    if not radian:
-        ra_1 = np.array(ra_1 * D2R, dtype=np.float64)
-        dec_1 = np.array(dec_1 * D2R, dtype=np.float64)
-        ra_2 = np.array(ra_arr_2 * D2R, dtype=np.float64)
-        dec_2 = np.array(dec_arr_2 * D2R, dtype=np.float64)
-    else:
-        ra_1 = np.array(ra_1, dtype=np.float64)
-        dec_1 = np.array(dec_1, dtype=np.float64)
-        ra_2 = np.array(ra_arr_2, dtype=np.float64)
-        dec_2 = np.array(dec_arr_2, dtype=np.float64)
-
-    if radian:
-        return np.arccos(
-            np.cos(dec_1) * np.cos(dec_2) * np.cos(ra_1 - ra_2) +
-            np.sin(dec_1) * np.sin(dec_2))
-
-    return np.arccos(
-        np.cos(dec_1) * np.cos(dec_2) * np.cos(ra_1 - ra_2) +
-        np.sin(dec_1) * np.sin(dec_2)) * R2D * 3600.0
+from .helpers import spherical_to_cartesian
 
 
-def closest_point(ra, dec, ra_arr, dec_arr):
-    """Find the closest point.
+__all__ = ['add_continous_fields', 'transfer_continous_fields',
+           'jackknife_field_centers', 'add_jackknife_fields',
+           'compress_jackknife_fields', 'smooth_correlation_matrix',
+           'jackknife_resampling']
 
-    Returns index of closest point to (ra, dec) from array of coordinates
+
+def add_continous_fields(table, n_samples=10000, distance_threshold=1):
+    """Many surveys target specific patches of the sky that are not connected.
+    For assigning jackknife regions, it is often useful to know which objects
+    belong to which continous field. If this is not given in the input catalog,
+    then this function uses agglomerative clustering algorithm to link nearby
+    objects and estimate the fields from the data itself. The resulting labels
+    are assigned to the 'field' column.
 
     Parameters
     ----------
-    ra, dec : float, float
-        Coordinate of an object.
-    ra_arr, dec_arr : numpy array, numpy array
-        Arrays of coordinates.
+    table : astropy.table.Table
+        Catalog containing objects. The catalog needs to have coordinates.
+    n_samples : int, optional
+        How many points of the original sample to use in the clustering. Note
+        that the clustering algorithm can use large amounts of memory for
+        n_samples being larger than a few thousand. Use with caution!
+    distance_threshold : astropy.units.quantity.Quantity
+        The angular separation used to link points. If no unit is given, it is
+        interpreted in degrees.
 
-    Return
-    ------
-        Index of object from the coordinate array with the closest distance.
+    Returns
+    -------
+    table : astropy.table.Table
+        Catalog with the continous fields written to the column ``field``.
+
     """
-    return np.argmin(angular_distance(ra, dec, ra_arr, dec_arr))
+
+    if not isinstance(distance_threshold, u.quantity.Quantity):
+        distance_threshold *= u.deg
+
+    mask = np.random.random(size=len(table)) < n_samples / len(table)
+    x, y, z = spherical_to_cartesian(table['ra'][mask], table['dec'][mask])
+    distance_threshold = np.sqrt(
+        2 - 2 * np.cos(distance_threshold.to(u.rad).value))
+    table['field'] = np.repeat(-1, len(table))
+    table['field'][mask] = AgglomerativeClustering(
+        distance_threshold=distance_threshold, n_clusters=None,
+        linkage='single').fit_predict(np.vstack((x, y, z)).T)
+    table = transfer_continous_fields(table[mask], table)
+
+    return table
 
 
-def get_field_id(catalog):
-    """Get field IDs.
-
-    Get the number of fields available in the catalog.
+def transfer_continous_fields(table_1, table_2):
+    """Transfer the field names from one table to another by looking for
+    closest neighbors. The field names are stored in the 'field' column.
 
     Parameters
     ----------
-    catalog : numpy array
-        Catalog for lenses or random objects.
+    table_1 : astropy.table.Table
+        Catalog containing the fields to be transferred. The catalog needs to
+        have coordinates and field IDs.
+    table_2 : astropy.table.Table
+        Catalog to which fields will be transferred. The catalog needs to have
+        coordinates.
 
-    Return
-    ------
-        Unique IDs for different fields.
+    Returns
+    -------
+    table_2 : astropy.table.Table
+        Catalog with the continous fields written to the column ``field``.
     """
-    return np.unique(catalog['field'])
+
+    coord_1 = SkyCoord(table_1['ra'], table_1['dec'], unit='deg')
+    coord_2 = SkyCoord(table_2['ra'], table_2['dec'], unit='deg')
+
+    idx = coord_2.match_to_catalog_sky(coord_1)[0]
+    table_2['field'] = table_1['field'][idx]
+
+    return table_2
 
 
-def get_jk_regions_per_field(catalog, njackfields):
-    """Assign jackknife region ID in each field.
+def _jackknife_fields_per_field(table, n_jk):
+    """Compute the number of jackknife fields per field in a table.
 
     Parameters
     ----------
-    catalog : numpy array
-        Catalog for lenses or random objects.
-    njackfields : int
-        Number of Jackknife fields.
+    table : astropy.table.Table
+        Catalog containing objects. The catalog needs to have field IDs.
+    n_jk : int
+        Total number of jackknife fields.
 
-    Return
-    ------
+    Returns
+    -------
+    unique_fields : numpy array
+        The unique field IDs in the input table.
+    n_jk_per_field : numpy array
+        The number of jackknife regions in each of the fields. Has the same
+        shape as unique_fields.
     """
-    # Field IDs
-    fields = get_field_id(catalog)
 
-    # Fractions of objects in each fields
-    fractions = np.zeros(len(fields))
-    for i, field in enumerate(fields):
-        objects = catalog[catalog['field'] == field]
-        fractions[i] = len(objects) / len(catalog)
+    unique_fields, counts = np.unique(table['field'], return_counts=True)
+    if n_jk < len(unique_fields):
+        raise RuntimeError('The number of jackknife regions cannot be ' +
+                           'smaller than the number of fields.')
 
-    # Perturb the ideal number of jk fields so that no two are identical,
-    # unless it is 0
-    # Use a constant seed (else np wil pull from /dev/urandom) so this is
-    # deterministic
-    np.random.seed(0)
-    perturbation = ((np.random.random_sample(len(fields)) /
-                     len(catalog)) *
-                    (fractions != 0)).astype(int)
-    float_jk_fields = (fractions * njackfields) + perturbation
+    # Assign the number of jackknife fields according to the total number of
+    # objects in each field.
+    n_jk_per_field = np.diff(np.rint(
+        np.cumsum(counts) / np.sum(counts) * n_jk).astype(np.int), prepend=0)
 
-    # we should never have to look more than 0.2 around (I think),
-    # and this should converge relatively quickly...
-    factor, step, max_iterations = 1, 0.2, 20
-    for i in range(max_iterations):
-        cur_fields = np.ceil(float_jk_fields * factor).astype(int)
-        if sum(cur_fields) == njackfields:
-            return cur_fields
-        elif sum(cur_fields) < njackfields:
-            factor += step
+    # It can happen that one field is assigned 0 jackknife fields. In this
+    # case, we will assign 1.
+    while np.any(n_jk_per_field == 0):
+        n_jk_per_field[np.argmin(n_jk_per_field)] += 1
+        n_jk_per_field[np.argmax(n_jk_per_field)] -= 1
+
+    return unique_fields, n_jk_per_field
+
+
+def jackknife_field_centers(table, n_jk, optimize=False):
+    """Compute the centers (in cartesian coordinates on a unit sphere) for
+    jackknife regions.
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Catalog containing objects. The catalog needs to have coordinates and
+        field IDs.
+    n_jk : int
+        Total number of jackknife fields.
+    optimize : boolean, optional
+        If True, the centers are optimized to yield roughly the same number
+        of members, i.e. roughly equal size. This is not optimized and might
+        take a while.
+
+    Returns
+    -------
+    centers : numpy array
+        The coordinates of the centers of the jackknife regions. The array has
+        shape (n_jk, 3).
+    """
+
+    unique_fields, n_jk_per_field = _jackknife_fields_per_field(table, n_jk)
+
+    centers = None
+
+    for field, n in zip(unique_fields, n_jk_per_field):
+        mask = table['field'] == field
+        kmeans = MiniBatchKMeans(n_clusters=n)
+        x, y, z = spherical_to_cartesian(table['ra'][mask], table['dec'][mask])
+        kmeans.fit(np.vstack((x, y, z)).T)
+
+        if centers is None:
+            centers = kmeans.cluster_centers_
         else:
-            factor -= step
-        step /= 2
+            centers = np.concatenate([centers, kmeans.cluster_centers_])
 
-    return cur_fields
+    if optimize:
+        x, y, z = spherical_to_cartesian(table['ra'], table['dec'])
+        pos = np.vstack((x, y, z)).T
+        labels = kmeans.predict(pos)
+        counts = np.bincount(labels, minlength=n_jk)
+        scale = np.ones(n_jk)
+        step = 0.01
+        std = np.std(counts)
+        n_fail = 0
 
+        while step > 1e-6:
 
-def add_jackknife_both(lens_ds, rand_ds, njack,
-                       lens_ds_2=None, rand_ds_2=None):
-    """Assign jackknife regions to random and lens catalogs.
+            scale -= np.where(counts > len(table) / n_jk, step, 0)
+            scale += np.where(counts < len(table) / n_jk, step, 0)
+            scale = np.minimum(scale, np.ones(n_jk))
+            scale = np.maximum(scale, np.ones(n_jk) * 0.5)
+            kmeans.cluster_centers_ = centers * scale[:, None]
+            labels = kmeans.predict(pos)
+            counts = np.bincount(labels, minlength=n_jk)
 
-    Parameters
-    ----------
-    lens_ds : numpy array
-        Pre-compute results for lenses
-    rand_ds : numpy array
-        Pre-compute results for randoms
-    njack : int
-        Number of required jackknife fields
-    lens_ds_2 : numpy array, optional
-        Second pre-compute results for lenses. Default: None
-    rand_ds_2 : numpy array, optional
-        Second pre-compute results for randoms. Default: None
+            if std > np.std(counts):
+                std = np.std(counts)
+                n_fail = 0
+            else:
+                n_fail += 1
 
-    Return
-    ------
-        Updated lens and random catalogs with `jk_field` information.
-    """
-    # Get field ID
-    fields = get_field_id(lens_ds)
+            if n_fail > 100:
+                n_fail = 0
+                step /= 2
 
-    # Make sure that `jk_field` key is available. If not, add one.
-    try:
-        lens_ds['jk_field']
-    except ValueError:
-        lens_ds = append_fields(lens_ds, 'jk_field',
-                                np.zeros(len(lens_ds), int),
-                                usemask=False)
-    # The same for the random catalog.
-    try:
-        rand_ds['jk_field']
-    except ValueError:
-        rand_ds = append_fields(rand_ds, 'jk_field',
-                                np.zeros(len(rand_ds), int),
-                                usemask=False)
+        centers = centers * scale[:, None]
 
-    # If njackfields = 1, just add 1 to everything, although that is
-    # bad idea for resampling...print out a warning.
-    if njack == 1:
-        lens_ds['jk_field'] = 1
-        rand_ds['jk_field'] = 1
-        print("# Only one Jackknife field? Seriously?")
-        return lens_ds, rand_ds
-
-    if (lens_ds_2 is not None) and (rand_ds_2 is not None):
-        try:
-            lens_ds_2['jk_field']
-        except ValueError:
-            lens_ds_2 = append_fields(lens_ds_2, 'jk_field',
-                                      np.zeros(len(lens_ds_2), int),
-                                      usemask=False)
-        try:
-            rand_ds_2['jk_field']
-        except ValueError:
-            rand_ds_2 = append_fields(rand_ds_2, 'jk_field',
-                                      np.zeros(len(rand_ds_2), int),
-                                      usemask=False)
-
-        if njack == 1:
-            lens_ds['jk_field'] = 1
-            rand_ds['jk_field'] = 1
-            lens_ds_2['jk_field'] = 1
-            rand_ds_2['jk_field'] = 1
-            print("# Only one Jackknife field? Seriously?")
-            return lens_ds, rand_ds, lens_ds_2, rand_ds_2
-
-    # Use the results with more objects as reference
-    # In principle, the random catalog should have many more objects than the lenses
-    # TODO: Still, when the number of lens is smaller than a threshold,
-    # We should do something else
-    if len(rand_ds) > len(lens_ds):
-        jk_fields_per_field = get_jk_regions_per_field(rand_ds, njack)
-    else:
-        jk_fields_per_field = get_jk_regions_per_field(lens_ds, njack)
-
-    jk_next = 0
-
-    if (lens_ds_2 is not None) and (rand_ds_2 is not None):
-        # Make sure both pre-compute results share the same jackknife fields
-        for i, field in enumerate(fields):
-            rand_mask = rand_ds['field'] == field
-            lens_mask = lens_ds['field'] == field
-
-            rand_mask_2 = rand_ds_2['field'] == field
-            lens_mask_2 = lens_ds_2['field'] == field
-
-            if sum(rand_mask) == 0:
-                continue
-
-            rand_field = rand_ds[rand_mask]
-            lens_field = lens_ds[lens_mask]
-
-            rand_field_2 = rand_ds_2[rand_mask_2]
-            lens_field_2 = lens_ds_2[lens_mask_2]
-
-            # perform kmeans
-            radec = np.column_stack((rand_field['ra'], rand_field['dec']))
-            km = kmeans_radec.kmeans_sample(
-                radec, jk_fields_per_field[i], maxiter=100,
-                tol=1.0e-5, verbose=False)
-
-            # assign jk_field, shifting up by jk_next as labels are 0-n
-            rand_field['jk_field'] = km.labels + jk_next
-
-            # kmeans centers
-            ra_centers = np.array([k[0] for k in km.centers])
-            dec_centers = np.array([k[1] for k in km.centers])
-
-            # assign jackknife field in lens catalog based on nearest kmeans center
-            for lens in lens_field:
-                closest_jk = closest_point(lens['ra'], lens['dec'],
-                                           ra_centers, dec_centers)
-                lens['jk_field'] = closest_jk + jk_next
-
-            for lens in lens_field_2:
-                closest_jk = closest_point(lens['ra'], lens['dec'],
-                                           ra_centers, dec_centers)
-                lens['jk_field'] = closest_jk + jk_next
-
-            for rand in rand_field_2:
-                closest_jk = closest_point(rand['ra'], rand['dec'],
-                                           ra_centers, dec_centers)
-                rand['jk_field'] = closest_jk + jk_next
-
-            # increment jk_next so that next field has higher jk numbers
-            jk_next += jk_fields_per_field[i]
-
-            # write back to the catalog.
-            # Do this rather than recreating so that order is preserved
-            rand_ds['jk_field'][rand_mask] = rand_field['jk_field']
-            lens_ds['jk_field'][lens_mask] = lens_field['jk_field']
-
-            rand_ds_2['jk_field'][rand_mask_2] = rand_field_2['jk_field']
-            lens_ds_2['jk_field'][lens_mask_2] = lens_field_2['jk_field']
-
-        return lens_ds, rand_ds, lens_ds_2, rand_ds_2
-    else:
-        for i, field in enumerate(fields):
-            rand_mask = rand_ds['field'] == field
-            lens_mask = lens_ds['field'] == field
-
-            if sum(rand_mask) == 0 and sum(lens_mask) == 0:
-                continue
-
-            rand_field = rand_ds[rand_mask]
-            lens_field = lens_ds[lens_mask]
-
-            # perform kmeans
-            radec = np.column_stack((rand_field['ra'], rand_field['dec']))
-            km = kmeans_radec.kmeans_sample(
-                radec, jk_fields_per_field[i], maxiter=100,
-                tol=1.0e-5, verbose=False)
-
-            # assign jk_field, shifting up by jk_next as labels are 0-n
-            rand_field['jk_field'] = km.labels + jk_next
-
-            # kmeans centers
-            ra_centers = np.array([k[0] for k in km.centers])
-            dec_centers = np.array([k[1] for k in km.centers])
-
-            # assign jackknife field in lens catalog based on nearest kmeans center
-            for lens in lens_field:
-                closest_jk = closest_point(lens['ra'], lens['dec'],
-                                           ra_centers, dec_centers)
-                lens['jk_field'] = closest_jk + jk_next
-
-            # increment jk_next so that next field has higher jk numbers
-            jk_next += jk_fields_per_field[i]
-
-            # write back to the catalog.
-            # Do this rather than recreating so that order is preserved
-            rand_ds['jk_field'][rand_mask] = rand_field['jk_field']
-            lens_ds['jk_field'][lens_mask] = lens_field['jk_field']
-
-        return lens_ds, rand_ds
+    return centers
 
 
-def add_jackknife_field(catalog, njackfields):
-    """Assign jackknife regions to random or lens catalogs.
+def add_jackknife_fields(table, centers):
+    """Assign jackknife regions to all objects in the table. The jackknife
+    number is assigned to the column 'field_jk'.
 
     Parameters
     ----------
-    catalog : numpy array
-        Lens or random catalog.
-    njackfields : int
-        Number of Jackknife resampling fields.
+    table : astropy.table.Table
+        Catalog containing objects. The catalog needs to have coordinates.
+    centers : numpy array
+        The coordinates of the centers of the jackknife regions. The array has
+        shape (n_jk, 3).
 
-    Return
-    ------
-        Catalog with `jk_field` column.
+    Returns
+    -------
+    table : astropy.table.Table
+        Catalog with the jackknife fields written to the column ``field_jk``.
     """
-    # Get field ID
-    fields = get_field_id(catalog)
 
-    # Make sure that `jk_field` key is available. If not, add one.
-    try:
-        catalog['jk_field']
-    except ValueError:
-        catalog = append_fields(catalog, 'jk_field',
-                                np.zeros(len(catalog), int),
-                                usemask=False)
+    x, y, z = spherical_to_cartesian(table['ra'], table['dec'])
+    kdtree = cKDTree(centers)
+    table['field_jk'] = kdtree.query(np.vstack([x, y, z]).T)[1]
 
-    # If njackfields = 1, just add 1 to everything, although that is
-    # bad idea for resampling...print out a warning.
-    if njackfields == 1:
-        catalog['jk_field'] = 1
-        print("# Only one Jackknife field? Seriously?")
-        return catalog
+    return table
 
-    # Calculate the number of Jackknife regions per field
-    jk_fields_per_field = get_jk_regions_per_field(catalog, njackfields)
-    jk_next = 0
 
-    for i, field in enumerate(fields):
-        indexes = (catalog['field'] == field).nonzero()
-        new_catalog = catalog[indexes]
+def compress_jackknife_fields(table):
+    """After assigning jackknife fields, for most applications, we do not need
+    information on individual objects anymore. Compress the information in each
+    jackknife field by taking weighted averages. The only exception is the
+    weight column where the sum is taken.
 
-        # perform kmeans
-        radec = np.column_stack((new_catalog['ra'], new_catalog['dec']))
-        km = kmeans_radec.kmeans_sample(radec,
-                                        jk_fields_per_field[i], maxiter=100,
-                                        tol=1.0e-5, verbose=False)
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Catalog containing objects. The catalog needs to have been assigned
+        jackknife fields.
 
-        # assign jk_field, shifting up by jk_next as labels are 0-n
-        new_catalog['jk_field'] = km.labels + jk_next
+    Returns
+    -------
+    table_jk : astropy.table.Table
+        Catalog containing the information for each jackknife field. It has
+        exactly as many rows as there are jackknife fields.
+    """
 
-        # Write back to the catalog.
-        # Do this rather than recreating so that order is preserved
-        catalog['jk_field'][indexes] = new_catalog['jk_field']
+    all_field_jk = np.unique(table['field_jk'])
+    table_jk = Table(table[:len(all_field_jk)], copy=True)
 
-        # increment jk_next so that next field has higher jk numbers
-        jk_next += jk_fields_per_field[i]
+    for i, field_jk in enumerate(all_field_jk):
+        mask = table['field_jk'] == field_jk
+        for key in table.colnames:
+            if key in ['field', 'field_jk']:
+                table_jk[i][key] = table[key][mask][0]
+            elif key in ['w_sys', 'n_s']:
+                table_jk[i][key] = np.sum(table[key][mask])
+            else:
+                table_jk[i][key] = np.average(
+                    table[key][mask], weights=table['w_sys'][mask], axis=0)
 
-    return catalog
+    return table_jk
+
+
+def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
+    """Apply a simple gaussian filter on a correlation matrix.
+
+    Parameters
+    ----------
+    cor : numpy array
+        Correlation matrix.
+    sigma : int, optional
+        Scale of the gaussian filter.
+    exclude_diagonal : boolean, optional
+        Whether to exclude the diagonal from the smoothing. That is what should
+        be done generally because the diagonal is 1 by definition.
+
+    Returns
+    -------
+    cor_new : numpy array
+        Smoothed correlation matrix.
+    """
+
+    n_dim = len(np.diag(cor))
+    cor_new = np.copy(cor)
+
+    if exclude_diagonal:
+        cor_new[0, 0] = 0.5 * (cor[0, 1] + cor[1, 0])
+        cor_new[n_dim - 1, n_dim - 1] = 0.5 * (cor[n_dim - 1, n_dim - 2] +
+                                               cor[n_dim - 2, n_dim - 1])
+
+        for i in range(1, n_dim - 1):
+            cor_new[i, i] = 0.25 * (cor[i, i - 1] + cor[i, i + 1] +
+                                    cor[i - 1, i] + cor[i + 1, i])
+
+    cor_new = gaussian_filter(cor_new, sigma, mode='nearest')
+
+    if exclude_diagonal:
+        for i in range(n_dim):
+            cor_new[i, i] = cor[i, i]
+
+    return cor_new
+
+
+def jackknife_resampling(function, table_l, table_r=None, table_l_2=None,
+                         table_r_2=None, **kwargs):
+    """Compute the covariance of the output of a function from jackknife
+    re-sampling.
+
+    Parameters
+    ----------
+    function :
+        Function that returns a result for which we want to have uncertainties.
+        The function must take exactly one positional argument, the lens table.
+        Additionally, it can have several additional keyword arguments.
+    table_l : astropy.table.Table
+        Precompute results for the lenses. The catalog must have jackknife
+        regions assigned to it.
+    table_r : optional, astropy.table.Table, optional
+        Precompute results for random lenses. The input function must accept
+        the random lens table via the 'table_r' keyword argument.
+    table_l_2 : optional, astropy.table.Table
+        Precompute results for a second set of lenses.The input function must
+        accept the second lens table via the 'table_l_2' keyword argument.
+    table_r_2 : optional, astropy.table.Table, optional
+        Precompute results for a second set of random lenses. The input
+        function must accept the second random lens table via the 'table_r_2'
+        keyword argument.
+    kwargs : dict
+        Additional keyword arguments to be passed to the function.
+
+    Returns
+    -------
+    cov : numpy array
+        Covariance matrix of the result derived from jackknife re-sampling.
+    """
+
+    samples = []
+
+    for field_jk in np.unique(table_l['field_jk']):
+
+        mask_l = table_l['field_jk'] != field_jk
+
+        for name, table in zip(['table_r', 'table_l_2', 'table_r_2'],
+                               [table_r, table_l_2, table_r_2]):
+            if table is not None:
+                kwargs[name] = table[table['field_jk'] != field_jk]
+
+        samples.append(function(table_l[mask_l], **kwargs))
+
+    return ((len(np.unique(table_l['field_jk'])) - 1) *
+            np.cov(np.array(samples), rowvar=False, ddof=0))
