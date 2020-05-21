@@ -18,4 +18,4 @@ documentation can be found at dsigma.readthedocs.io.
 
 #### License
 
-`dsigma` is licensed under TBD.
+`dsigma` is licensed under the MIT License.
