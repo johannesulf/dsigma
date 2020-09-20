@@ -3,13 +3,7 @@ Installation
 
 Currently, there is no stable version of ``dsigma``. Thus, you need to install
 the package directly from github. Fortunately, doing so is rather
-straightforward.
+straightforward. The following command should suffice. ::
 
-First, clone the repository. ::
+    python -m pip install git+https://github.com/johannesulf/dsigma.git@dsigma_dev
 
-    git clone https://github.com/johannesulf/dsigma.git
-    cd dsigma
-
-Then, we can use ``pip`` to install the package and all its dependencies. ::
-
-    pip install ./

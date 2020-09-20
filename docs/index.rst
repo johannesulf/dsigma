@@ -28,6 +28,12 @@ Authors
    resampling
 
 .. toctree::
+   :caption: Applications
+
+   application_boss
+   application_hsc
+
+.. toctree::
    :caption: API Documentation
 
    api/helpers
@@ -36,3 +42,4 @@ Authors
    api/precompute
    api/stacking
    api/surveys
+

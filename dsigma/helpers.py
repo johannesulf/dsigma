@@ -1,5 +1,6 @@
 """Convenience functions for the dsigma pipeline."""
 
+import numbers
 import numpy as np
 from astropy.table import Table
 
@@ -8,8 +9,8 @@ from . import surveys
 __all__ = ['dsigma_table', 'spherical_to_cartesian']
 
 
-def dsigma_table(table, table_type, survey=None, copy=False, verbose=True,
-                 **kwargs):
+def dsigma_table(table, table_type, survey=None, version=None, copy=False,
+                 verbose=True, e_2_convention=None, **kwargs):
     """Convenience function to convert a table into an astropy table that is
     easily parsed by ``dsigma``. Specifically, this table will have all
     necessary columns for ``dsigma`` to work.
@@ -24,22 +25,31 @@ def dsigma_table(table, table_type, survey=None, copy=False, verbose=True,
         String describing the table type. Valid choices are 'lens', 'source'
         or 'calibration'.
     survey : string, optional
-        String describing the specific survey. The general format is
-        '<Survey>:<Version>', i.e. 'HSC:S16A'. Providing the survey makes the
+        String describing the specific survey. Providing the survey makes the
         function look for specific keys in the input table.
+    version : string, optional
+        If a survey is provided, one can specify the version or data release
+        of the survey.
     copy : boolean, optional
         Whether the output table shares memory with the input table. Setting to
         False can save memory. However, data will be corupted if the original
         input table is manipulated.
     verbose : boolean, optional
         Whether to output information about the assignments.
+    e_2_convention : string, optional
+        Whether to switch the sign of e_2 in the input catalog. If 'standard',
+        e_2 is not changed. On the other hand, if 'flipped', the sign of e_2
+        will be changed. If None, it defaults to 'standard' unless overwritten
+        by the specific survey.
     **kwargs : dict, optional
         This function has a set of default keys for columns in the input table
         that it associates with certain data. These default choices might be
         overwritten by survey-specific keys. If that does not work
         sufficiently, keys can be overwritten by the user with this argument.
         For example, ``ra='R.A.'`` would associate the right ascensions with
-        the ``R.A.`` key in the input table.
+        the ``R.A.`` key in the input table. Alternatively, one can also
+        provide numbers that will be applied to all entries. This only really
+        makes sense for weights that one wants to ignore, i.e. ``w_sys=1``.
 
     Returns
     -------
@@ -55,13 +65,18 @@ def dsigma_table(table, table_type, survey=None, copy=False, verbose=True,
 
     if table_type not in ['lens', 'source', 'calibration']:
         raise Exception(
-            "The catalog+type argument must be 'lens', 'source' or " +
+            "The table_type argument must be 'lens', 'source' or " +
             "'calibration' but received '{}'.".format(table_type))
 
     if (survey is not None and survey.lower().split(':')[0] not in
             surveys.__all__):
         raise Exception('Unknown survey. The known surveys are: {}.'.format(
                         ', '.join(surveys.__all__)))
+
+    if (e_2_convention is not None and e_2_convention not in
+            ['standard', 'flipped']):
+        raise Exception("e_2_convention must be None, 'standard' or " +
+                        "flipped but received '{}'".format(e_2_convention))
 
     # Set the generic keys.
     keys = {'z': 'z'}
@@ -82,19 +97,26 @@ def dsigma_table(table, table_type, survey=None, copy=False, verbose=True,
     # Overwrite with survey-specific keys.
     if survey is not None:
         table.meta['survey'] = survey
-        if survey.split(':')[0].lower() == 'hsc':
-            keys.update(surveys.hsc.column_keys())
-        else:
-            raise Exception("Unknown survey!")
+
+        if version is None:
+            version = getattr(surveys, survey.lower()).default_version
+        table.meta['version'] = version
+        keys.update(getattr(surveys, survey.lower()).default_column_keys(
+            version=version))
+        if table_type == 'calibration':
+            del keys['ra']
+            del keys['dec']
+            del keys['e_1']
+            del keys['e_2']
+            del keys['w']
+            del keys['m']
+            keys.pop('sigma_rms', None)
+            keys.pop('R_2', None)
+        if e_2_convention is None:
+            e_2_convention = getattr(surveys, survey.lower()).e_2_convention
 
     # Finally, update with user-specified keys.
     keys.update(**kwargs)
-
-    try:
-        assert len(np.unique(list(keys.values()))) == len(keys)
-    except AssertionError:
-        raise Exception("Every column in the input table can correspond to " +
-                        "at most one column in the output table.")
 
     if verbose:
         print("Assignment for {} table...".format(table_type))
@@ -104,15 +126,30 @@ def dsigma_table(table, table_type, survey=None, copy=False, verbose=True,
     # Assert columns exist, re-name them and drop unnecessary columns.
     for input_key in keys.values():
         try:
-            assert input_key in table.colnames
+            assert input_key in table.colnames or isinstance(input_key,
+                                                             numbers.Number)
         except AssertionError:
             raise Exception("Key '{}' must be present in ".format(input_key) +
                             "the input table.")
 
-    table.keep_columns(list(keys.values()))
+    # Keep only those columns with relevant data.
+    keep_columns = []
+    for input_key in keys.values():
+        if not isinstance(input_key, numbers.Number):
+            keep_columns.append(input_key)
+
+    table.keep_columns(keep_columns)
 
     for output_key, input_key in keys.items():
-        table.rename_column(input_key, output_key)
+        if isinstance(input_key, numbers.Number):
+            table[output_key] = input_key
+        else:
+            table.rename_column(input_key, output_key)
+
+    if e_2_convention == 'flipped':
+        table['e_2'] = - table['e_2']
+        if verbose:
+            print("Info: Flipping sign of e_2 component.")
 
     return table
 

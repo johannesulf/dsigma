@@ -34,9 +34,9 @@ shapes.
 Correction Factors
 ------------------
 
-Unfortunately, is virtually all surveys, the above estimate is biased. Thus,
-we need to apply a variety of multiplicative correction terms to correction
-terms to get an unbiased estimate of :math:`\Delta\Sigma`.
+Unfortunately, for virtually all lensing surveys, the above estimate is biased.
+Thus, we need to apply a variety of correction terms to correction terms to get
+an unbiased estimate of :math:`\Delta\Sigma`.
 
 Photo-z Dilution
 ^^^^^^^^^^^^^^^^
@@ -62,7 +62,7 @@ factor. It's defined via
 
 To apply the correction, we multiply the raw lensing signal by
 :math:`f_{\rm bias}`. In order to run the photo-z dilution correction, you must
-have passen a calibration catalog during the pre-compuation phase.
+have passed a calibration catalog during the pre-compuation phase.
 
 Boost Factor
 ^^^^^^^^^^^^
@@ -93,14 +93,53 @@ random points. Generally :math:`b \geq 1`. To apply the correction, we multiply
 the raw lensing signal by the radially dependent boost factor :math:`b(R)`. In
 order to run this correction, you need a random catalog.
 
-Shear Bias
-^^^^^^^^^^
+Multiplicative Shear Bias
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Individual ellipticies of galaxies can be biased. Thus, we need to correct for
+this in the galaxy-galaxy lensing estimator. Typically, lensing surveys provide
+a bias estimate :math:`m` for every object or group of objects. In order to
+correct for this bias, one first calculates the average shear bias via
+
+.. math::
+
+    \bar{m}(R) =
+        \frac{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}} w_{\mathrm{sys, l}}
+              \sum_{\mathrm{ls}} w_{\mathrm{ls}} m_s
+              }{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}}
+              w_{\mathrm{sys, l}} \sum_{\mathrm{ls}} w_{\mathrm{ls}}} \, .
+
+To apply the correction, we simply divide the raw lensing signal by
+:math:`1 + \bar{m}(R)` in each radial bin.
 
 Shear Responsivity
 ^^^^^^^^^^^^^^^^^^
 
+The shear responsivity correction is necessary for some lensing surveys. For
+this we need to calculate the shear responsivity :math:`\mathcal{R}` which
+represents the response of the distortion to a small shear. :code:`dsigma`
+calculates it via
+
+.. math::
+
+    \mathcal{R} = 1 -
+        \frac{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}} w_{\mathrm{sys, l}}
+              \sum_{\mathrm{ls}} w_{\mathrm{ls}} e_{{\rm rms}, s}^2
+              }{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}}
+              w_{\mathrm{sys, l}} \sum_{\mathrm{ls}} w_{\mathrm{ls}}} \, .
+
+Here, :math:`e_{{\rm rms}, s}^2`  is the intrinsic shape dispersion per
+component for a source galaxy. To apply the shear responsivity correction, we
+need to divide the final lensing signal by :math:`2\mathcal{R}`. This
+correction is somewhat large but not applied to all surveys. For example, it
+is applied to HSC and SDSS data, but not CFHTLenS or KiDS.
+
 HSC Selection Bias
 ^^^^^^^^^^^^^^^^^^
+
+As the name suggests, this correction is only applied to HSC lensing data.
+Details can be found in section 5.6.2 of `Mandelbaum et al. (2018)
+<https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_.
 
 Random Subtraction
 ^^^^^^^^^^^^^^^^^^

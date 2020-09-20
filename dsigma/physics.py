@@ -123,8 +123,8 @@ def critical_surface_density(z_l, z_s,
         d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
 
     dist_term = (1e-6 * (d_s / (1 + z_s)) / (d_l / (1 + z_l)) /
-                 (np.where(z_s > z_l, d_s - d_l, 1) / (1 + z_s)))
-    dist_term[z_s <= z_l] = np.inf
+                 (np.where(d_s > d_l, d_s - d_l, 1) / (1 + z_s)))
+    dist_term[d_s <= d_l] = np.inf
 
     if comoving:
         dist_term /= (1.0 + z_l)**2

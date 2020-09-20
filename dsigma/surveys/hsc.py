@@ -1,16 +1,20 @@
 import numpy as np
 
-__all__ = ['column_keys', 'apply_photo_z_quality_cut',
-           'precompute_multiplicative_selection_bias',
-           'multiplicative_selection_bias']
+__all__ = ['default_version', 'known_versions', 'e_2_convention',
+           'default_column_keys', 'apply_photo_z_quality_cut',
+           'precompute_selection_bias_factor', 'selection_bias_factor']
+
+default_version = 'PDR2'
+known_versions = ['PDR2', ]
+e_2_convention = 'standard'
 
 
-def column_keys():
+def default_column_keys(version=None):
     keys = {
         'ra': 'ira',
         'dec': 'idec',
-        'z': 'frankenz_photoz_best',
-        'z_low': 'frankenz_photoz_err68_min',
+        'z': 'photoz_best',
+        'z_low': 'photoz_err68_min',
         'e_1': 'ishape_hsm_regauss_e1',
         'e_2': 'ishape_hsm_regauss_e2',
         'w': 'ishape_hsm_regauss_derived_shape_weight',

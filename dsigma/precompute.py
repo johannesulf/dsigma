@@ -7,12 +7,15 @@ from scipy.spatial import cKDTree
 from astropy.table import Table, vstack
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 from .physics import mpc_per_degree, critical_surface_density, projection_angle
 from .helpers import spherical_to_cartesian
 from . import surveys
 
-__all__ = ["add_maximum_lens_redshift", "precompute_catalog"]
+__all__ = ["add_maximum_lens_redshift", "precompute_catalog",
+           "merge_precompute_catalogs"]
 
 
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
@@ -55,35 +58,33 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
     return idx[mask], theta[mask]
 
 
-def _photo_z_dilution_factor(lens, table_c):
+def _photo_z_dilution_factor(z_l, d_l, table_c):
     """Calculate the inverse of the photo-z bias factor.
 
     Parameters
     ----------
-    lens : astropy.table.row.Row
-        Information about a single lens.
+    z_l : float
+        Redshift of the lens.
+    d_l : float
+        Comoving distance to the lens.
     table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog.
+        Photometric redshift calibration catalog.
 
     Returns
     -------
-        The inverse of the photo-z bias factor, `f_bias^{-1}`.
+        The denominator and numberator of the photo-z bias factor, `f_bias`.
     """
 
     sigma_crit_phot = critical_surface_density(
-        lens['z'], table_c['z'], d_l=lens['d_com'], d_s=table_c['d_com'])
+        z_l, table_c['z'], d_l=d_l, d_s=table_c['d_com'])
     sigma_crit_true = critical_surface_density(
-        lens['z'], table_c['z_true'], d_l=lens['d_com'],
-        d_s=table_c['d_com_true'])
+        z_l, table_c['z_true'], d_l=d_l, d_s=table_c['d_com_true'])
+    mask = z_l < table_c['z_l_max']
 
-    # The denominator
-    zp_bias_den = np.sum(table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
-                         sigma_crit_true)
-
-    # The numerator
-    zp_bias_num = np.sum(table_c['w_sys'] * table_c['w'] / sigma_crit_phot**2)
-
-    return zp_bias_num, zp_bias_den
+    return (np.sum((table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
+                    sigma_crit_true)[mask]),
+            np.sum((table_c['w_sys'] * table_c['w'] /
+                    sigma_crit_phot**2)[mask]))
 
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
@@ -133,7 +134,7 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
     return table_s
 
 
-def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
+def _precompute_core(lens, table_s, rp, rp_bins, comoving=True):
     """Perform the precomputation for a single lens and all the sources
     specified in the source catalog. For this function to work correctly, all
     sources in the source catalog must be within the bins in projected
@@ -149,8 +150,8 @@ def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
         Projected distances of all sources in Mpc.
     rp_bins : numpy array
         Bins in projected radius (in Mpc) to use for the stacking.
-    table_c : astropy.table.Table
-        Additional photometric redshift calibration catalog.
+    comoving : boolean
+        Whether to use comoving coordinates.
 
     Returns
     -------
@@ -159,12 +160,6 @@ def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
     """
 
     result = {}
-
-    # If necessary, estimate the photo-z bias factor.
-    if table_c is not None:
-        (result['calib: sum w_ls w_c'],
-         result['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t']) = (
-            _photo_z_dilution_factor(lens, table_c))
 
     # Calculate the critical surface density.
     sigma_crit = critical_surface_density(
@@ -186,6 +181,10 @@ def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
 
     rp_binned = np.digitize(rp, rp_bins) - 1
     sum_s = partial(np.bincount, rp_binned, minlength=len(rp_bins) - 1)
+
+    result['sum w_s e_t'] = sum_s(weights=e_t * table_s['w'])
+    result['sum w_s e_x'] = sum_s(weights=e_x * table_s['w'])
+    result['sum w_s'] = sum_s(weights=table_s['w'])
 
     result['sum w_ls e_t sigma_crit'] = sum_s(weights=e_t * sigma_crit_w_ls)
     result['sum w_ls e_x sigma_crit'] = sum_s(weights=e_x * sigma_crit_w_ls)
@@ -211,7 +210,7 @@ def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
     result['sum w_s e_x^2'] = sum_s(weights=e_x**2 * table_s['w'])
 
     # Number of pairs in each radial bin.
-    result['n_s'] = sum_s()
+    result['sum 1'] = sum_s()
 
     # Calculate the sum of lens-source distance in each bin.
     result['sum r_p'] = sum_s(weights=rp)
@@ -221,10 +220,14 @@ def _precompute_core(lens, table_s, rp, rp_bins, table_c=None, comoving=True):
         result.update(surveys.hsc.precompute_selection_bias_factor(
             table_s['R_2'], w_ls, rp_binned, len(rp_bins) - 1))
 
+    # METACALIBRATION response.
+    if 'R_MCAL' in table_s.colnames:
+        result['sum w_ls R_MCAL'] = sum_s(weights=w_ls * table_s['R_MCAL'])
+
     return result
 
 
-def _precompute_single(lens, table_s, kdtree_s, rp_bins, table_c=None,
+def _precompute_single(lens, table_s, kdtree_s, rp_bins,
                        cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
                        comoving=True):
     """Perform the precomputation for a single lens and all the sources in the
@@ -240,8 +243,6 @@ def _precompute_single(lens, table_s, kdtree_s, rp_bins, table_c=None,
         KDTree of the cartesian coordinates of all sources.
     rp_bins : numpy array
         Bins in projected radius (in Mpc) to use for the stacking.
-    table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog.
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations.
     comoving : boolean, optional
@@ -251,10 +252,6 @@ def _precompute_single(lens, table_s, kdtree_s, rp_bins, table_c=None,
     -------
         Precompute result for single lens.
     """
-
-    # Apply the same photo-z cuts to the calibration catalog.
-    if table_c is not None:
-        table_c = table_c[lens['z'] < table_c['z_l_max']]
 
     # Compute the conversion from angles to physical scales.
     mpc_deg = mpc_per_degree(cosmology, lens['z'], comoving=comoving)
@@ -271,13 +268,13 @@ def _precompute_single(lens, table_s, kdtree_s, rp_bins, table_c=None,
     table_s = table_s[mask]
     rp = rp[mask]
 
-    return _precompute_core(lens, table_s, rp, rp_bins, table_c=table_c,
-                            comoving=comoving)
+    return _precompute_core(lens, table_s, rp, rp_bins, comoving=comoving)
 
 
 def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
                        cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                       comoving=True, n_jobs=1):
+                       comoving=True, n_jobs=1, table_s_chunk_size=10000000,
+                       trim=True):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -297,12 +294,21 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
         Whether to use comoving or physical quantities.
     n_jobs : int, optional
         Number of jobs to run at the same time.
+    table_s_chunk_size : int, optional
+        Maximum number of sources to be processed simultaneously. This is only
+        used when more than one job is run at the same time. Larger numbers
+        might result in shorter runtime but more memory use when running in
+        parralel. Also, the program might crash if the number is too large
+        due to limitations of the multiprocessing library.
+    trim : boolean, optional
+        If set to true, the output table will omit lenses that do not have any
+        nearby sources.
 
     Returns
     -------
     table_p : astropy.table.Table
         Results of the precomputation. The table has the same ordering as the
-        lens catalog.
+        lens catalog if trim is set to false.
     """
 
     try:
@@ -311,10 +317,26 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
         raise Exception('Currently, dsigma does not support non-flat ' +
                         'cosmologies.')
 
+    try:
+        assert np.all(table_l['z'] > 0)
+    except AssertionError:
+        raise Exception('The redshifts of all lens galaxies must be positive.')
+    if not isinstance(n_jobs, int) or n_jobs < 1:
+        raise Exception('Illegal number of jobs. Expected positive integer ' +
+                        'but received {}.'.format(n_jobs))
+
+    if not isinstance(table_s_chunk_size, int) or table_s_chunk_size < 0:
+        raise Exception('Illegal maximum number of sources to be processed ' +
+                        'at the same time. Expected positive integer ' +
+                        'but received {}.'.format(table_s_chunk_size))
+
     for table in [table_l, table_s, table_c]:
         if table is not None and 'd_com' not in table.colnames:
             table['d_com'] = cosmology.comoving_transverse_distance(
                 table['z']).to(u.Mpc).value
+
+    if np.any(table_l['z'] < 0):
+        raise Exception('Input lens redshifts must all be non-negative.')
 
     if table_c is not None:
         if 'd_com_true' not in table_c.colnames:
@@ -331,10 +353,20 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
         if table is not None:
             if 'z_l_max' not in table.colnames:
                 print("Warning: Could not find a lens-source separation cut." +
-                      "Thus, only z_l < z_s is required. Consider running " +
-                      "`add_maximum_lens_redshift` to define a lens-source" +
+                      " Thus, only z_l < z_s is required. Consider running " +
+                      "`add_maximum_lens_redshift` to define a lens-source " +
                       "separation cut.")
                 table['z_l_max'] = table['z']
+
+    if trim:
+        coord_s = SkyCoord(ra=table_s['ra'], dec=table_s['dec'], unit='deg')
+        coord_l = SkyCoord(ra=table_l['ra'], dec=table_l['dec'], unit='deg')
+
+        idx, d2d, d3d = coord_l.match_to_catalog_sky(coord_s)
+        alpha_max = np.amax(rp_bins) / table_l['d_com'] * u.rad
+        if not comoving:
+            alpha_max *= (1 + table_l['z'])
+        table_l = table_l[d2d < alpha_max]
 
     # If we only use one thread, we do not need to split the lens table.
     if n_jobs == 1:
@@ -346,8 +378,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
 
         for lens in table_l:
             results.append(_precompute_single(
-                lens, table_s, kdtree_s, rp_bins, table_c=table_c,
-                cosmology=cosmology, comoving=comoving))
+                lens, table_s, kdtree_s, rp_bins, cosmology=cosmology,
+                comoving=comoving))
 
         # Convert the list of results into a table.
         table_r = Table(rows=results)
@@ -359,37 +391,101 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
         table_l.meta['Ok0'] = cosmology.Ok0
         table_l.meta['Om0'] = cosmology.Om0
 
+        # If necessary, estimate the photo-z bias factor.
+        if table_c is not None:
+            f_bias = np.array([_photo_z_dilution_factor(z_l, d_l, table_c) for
+                               z_l, d_l in zip(table_l['z'], table_l['d_com'])])
+            table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'] = f_bias[:, 0]
+            table_l['calib: sum w_ls w_c'] = f_bias[:, 1]
+
         return table_l
 
     # If running more than one thread, simply split up the lens table into
     # equal parts.
-    if n_jobs > 1 and isinstance(n_jobs, int):
+    else:
 
-        # Prepare jobs to be submitted to individual single threads.
-        precompute_catalog_partial = partial(
-            precompute_catalog, table_s=table_s, table_c=table_c,
-            rp_bins=rp_bins, cosmology=cosmology, comoving=comoving, n_jobs=1)
+        # If the source table is too large in size, the multiprocessing
+        # module might crash because the arguments are not pickable. In this
+        # case, let's split up the source table and merge the precompute
+        # tables.
+        if len(table_s) > table_s_chunk_size:
+            table_p_1 = precompute_catalog(
+                table_l, table_s[0::2], rp_bins, table_c=table_c,
+                cosmology=cosmology, comoving=comoving, n_jobs=n_jobs,
+                table_s_chunk_size=table_s_chunk_size, trim=False)
+            table_p_2 = precompute_catalog(
+                table_l, table_s[1::2], rp_bins, table_c=table_c,
+                cosmology=cosmology, comoving=comoving, n_jobs=n_jobs,
+                table_s_chunk_size=table_s_chunk_size, trim=False)
+            return merge_precompute_catalogs(table_p_1, table_p_2)
 
-        # Create a random split of the lens catalog. A non-random split might
-        # lead to uneven load distribution in case the lens table is sorted
-        # by properties that correlate with the compuational time for each
-        # lens, e.g. redshift.
-        idx = np.random.choice(np.arange(len(table_l)), size=len(table_l),
-                               replace=False)
-        table_l_chunks = []
-        for i in range(n_jobs):
-            table_l_chunks.append(table_l[np.array_split(idx, n_jobs)[i]])
+        else:
+            # Prepare jobs to be submitted to individual single threads.
+            precompute_catalog_partial = partial(
+                precompute_catalog, table_s=table_s, table_c=table_c,
+                rp_bins=rp_bins, cosmology=cosmology, comoving=comoving,
+                n_jobs=1, trim=False)
 
-        with Pool(processes=n_jobs) as pool:
-            table_p = vstack(pool.map(precompute_catalog_partial,
-                                      table_l_chunks))
+            # Create a random split of the lens catalog. A non-random split
+            # might lead to uneven load distribution in case the lens table is
+            # sorted by properties that correlate with the compuational time
+            # for each lens, e.g. redshift.
+            idx = np.random.choice(np.arange(len(table_l)), size=len(table_l),
+                                   replace=False)
+            table_l_chunks = []
+            for i in range(n_jobs):
+                table_l_chunks.append(table_l[np.array_split(idx, n_jobs)[i]])
 
-        # vstack joins arrays in the meta-data from different tables together.
-        # Revert this change.
-        table_p.meta['rp_bins'] = rp_bins
+            with Pool(processes=n_jobs) as pool:
+                table_p = vstack(pool.map(precompute_catalog_partial,
+                                          table_l_chunks))
 
-        # Undo the random split and shuffling when returning the result table.
-        return table_p[np.argsort(idx)]
+            # vstack joins arrays in the meta-data from different tables
+            # together. Revert this change.
+            table_p.meta['rp_bins'] = rp_bins
 
-    raise Exception("Illegal number of jobs. Expected positive integer but " +
-                    "received {}.".format(n_jobs))
+            # Undo the random split and shuffling when returning the result
+            # table.
+            return table_p[np.argsort(idx)]
+
+
+def merge_precompute_catalogs(table_p_1, table_p_2):
+    """Merge precompute results for the same lenses and different sources.
+
+    Parameters
+    ----------
+    table_p_1 : astropy.table.Table
+        First catalog of precompute results.
+    table_p_2 : astropy.table.Table
+        Second catalog of precompute results. Is assumed to have the same
+        ordering as first table.
+
+    Returns
+    -------
+    table_p : astropy.table.Table
+        Merged catalog of precompute results.
+    """
+
+    table_p = Table()
+    table_p.meta = table_p_1.meta
+
+    for key in ['rp_bins', 'comoving', 'H0', 'Ok0', 'Om0']:
+        if not np.all(table_p_1.meta[key] == table_p_2.meta[key]):
+            raise RuntimeError(
+                'Inconsistent meta-data for key {}.'.format(key))
+
+    for key in table_p_1.colnames:
+
+        if key not in table_p_2.colnames:
+            raise RuntimeError('Key {} present in table 1 but '.format(key) +
+                               'not in table_2.')
+
+        if 'sum' not in key:
+            if np.any(table_p_1[key] != table_p_2[key]):
+                raise RuntimeError('Mismatch between table 1 and 2 for key' +
+                                   '{}'.format(key))
+            table_p[key] = table_p_1[key]
+        else:
+            table_p[key] = table_p_1[key] + table_p_2[key]
+
+    return table_p

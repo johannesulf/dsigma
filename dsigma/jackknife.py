@@ -48,7 +48,8 @@ def add_continous_fields(table, n_samples=10000, distance_threshold=1):
         distance_threshold *= u.deg
 
     mask = np.random.random(size=len(table)) < n_samples / len(table)
-    x, y, z = spherical_to_cartesian(table['ra'][mask], table['dec'][mask])
+    x, y, z = spherical_to_cartesian(table['ra'][mask].data,
+                                     table['dec'][mask].data)
     distance_threshold = np.sqrt(
         2 - 2 * np.cos(distance_threshold.to(u.rad).value))
     table['field'] = np.repeat(-1, len(table))
@@ -126,7 +127,7 @@ def _jackknife_fields_per_field(table, n_jk):
     return unique_fields, n_jk_per_field
 
 
-def jackknife_field_centers(table, n_jk, optimize=False):
+def jackknife_field_centers(table, n_jk, optimize=False, weight=None):
     """Compute the centers (in cartesian coordinates on a unit sphere) for
     jackknife regions.
 
@@ -137,10 +138,9 @@ def jackknife_field_centers(table, n_jk, optimize=False):
         field IDs.
     n_jk : int
         Total number of jackknife fields.
-    optimize : boolean, optional
-        If True, the centers are optimized to yield roughly the same number
-        of members, i.e. roughly equal size. This is not optimized and might
-        take a while.
+    weight : string, optional
+        Name of the column to be used as weight when calculating jackknife
+        field centers.
 
     Returns
     -------
@@ -156,45 +156,16 @@ def jackknife_field_centers(table, n_jk, optimize=False):
     for field, n in zip(unique_fields, n_jk_per_field):
         mask = table['field'] == field
         kmeans = MiniBatchKMeans(n_clusters=n)
-        x, y, z = spherical_to_cartesian(table['ra'][mask], table['dec'][mask])
-        kmeans.fit(np.vstack((x, y, z)).T)
+        x, y, z = spherical_to_cartesian(table['ra'][mask].data,
+                                         table['dec'][mask].data)
+        kmeans.fit(np.vstack((x, y, z)).T,
+                   sample_weight=None if weight is None else
+                   table[weight][mask])
 
         if centers is None:
             centers = kmeans.cluster_centers_
         else:
             centers = np.concatenate([centers, kmeans.cluster_centers_])
-
-    if optimize:
-        x, y, z = spherical_to_cartesian(table['ra'], table['dec'])
-        pos = np.vstack((x, y, z)).T
-        labels = kmeans.predict(pos)
-        counts = np.bincount(labels, minlength=n_jk)
-        scale = np.ones(n_jk)
-        step = 0.01
-        std = np.std(counts)
-        n_fail = 0
-
-        while step > 1e-6:
-
-            scale -= np.where(counts > len(table) / n_jk, step, 0)
-            scale += np.where(counts < len(table) / n_jk, step, 0)
-            scale = np.minimum(scale, np.ones(n_jk))
-            scale = np.maximum(scale, np.ones(n_jk) * 0.5)
-            kmeans.cluster_centers_ = centers * scale[:, None]
-            labels = kmeans.predict(pos)
-            counts = np.bincount(labels, minlength=n_jk)
-
-            if std > np.std(counts):
-                std = np.std(counts)
-                n_fail = 0
-            else:
-                n_fail += 1
-
-            if n_fail > 100:
-                n_fail = 0
-                step /= 2
-
-        centers = centers * scale[:, None]
 
     return centers
 
@@ -217,7 +188,7 @@ def add_jackknife_fields(table, centers):
         Catalog with the jackknife fields written to the column ``field_jk``.
     """
 
-    x, y, z = spherical_to_cartesian(table['ra'], table['dec'])
+    x, y, z = spherical_to_cartesian(table['ra'].data, table['dec'].data)
     kdtree = cKDTree(centers)
     table['field_jk'] = kdtree.query(np.vstack([x, y, z]).T)[1]
 
@@ -251,7 +222,7 @@ def compress_jackknife_fields(table):
         for key in table.colnames:
             if key in ['field', 'field_jk']:
                 table_jk[i][key] = table[key][mask][0]
-            elif key in ['w_sys', 'n_s']:
+            elif key in ['w_sys', 'sum 1']:
                 table_jk[i][key] = np.sum(table[key][mask])
             else:
                 table_jk[i][key] = np.average(

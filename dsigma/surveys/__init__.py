@@ -1,3 +1,3 @@
-from . import hsc
+from . import cfhtls, des, hsc, kids
 
-__all__ = ["hsc"]
+__all__ = ['cfhtls', 'des', 'hsc', 'kids']
