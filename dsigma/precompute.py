@@ -10,7 +10,8 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from .physics import mpc_per_degree, critical_surface_density, projection_angle
+from .physics import mpc_per_degree, critical_surface_density
+from .physics import projection_angle_sin_cos
 from .helpers import spherical_to_cartesian
 from . import surveys
 
@@ -44,12 +45,15 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
     rmax_3d = np.sqrt(2 - 2 * np.cos(np.deg2rad(rmax)))
 
     x, y, z = spherical_to_cartesian(ra, dec)
-    idx = np.array(kdtree.query_ball_point([x, y, z], rmax_3d))
+    idx = np.fromiter(kdtree.query_ball_point([x, y, z], rmax_3d),
+                      dtype=np.int64)
 
     # Convert 3D distance back into angular distances.
     if len(idx) != 0:
-        dist3d = np.sqrt(np.sum((np.array([x, y, z]) - kdtree.data[idx])**2,
-                                axis=1))
+        dx = x - kdtree.data[idx, 0]
+        dy = y - kdtree.data[idx, 1]
+        dz = z - kdtree.data[idx, 2]
+        dist3d = np.sqrt(dx**2 + dy**2 + dz**2)
     else:
         dist3d = np.zeros(0)
     theta = np.rad2deg(np.arcsin(dist3d * np.sqrt(1 - dist3d**2 / 4)))
@@ -144,7 +148,7 @@ def _precompute_core(lens, table_s, rp, rp_bins, comoving=True):
     ----------
     lens : astropy.table.row.Row
         Information about a single lens.
-    table_s : astropy.table.Table
+    table_s : dict
         Catalog of weak lensing sources.
     rp : numpy array
         Projected distances of all sources in Mpc.
@@ -167,8 +171,10 @@ def _precompute_core(lens, table_s, rp, rp_bins, comoving=True):
         d_s=table_s['d_com'])
 
     # Calculate the projection angle for each lens-source pair.
-    cos2phi, sin2phi = projection_angle(lens['ra'], lens['dec'], table_s['ra'],
-                                        table_s['dec'])
+    cos2phi, sin2phi = projection_angle_sin_cos(
+        lens['sin ra'], lens['cos ra'], lens['sin dec'], lens['cos dec'],
+        table_s['sin ra'], table_s['cos ra'], table_s['sin dec'],
+        table_s['cos dec'])
 
     # Calculate the tangential and cross shear terms.
     e_t = - table_s['e_1'] * cos2phi - table_s['e_2'] * sin2phi
@@ -197,11 +203,11 @@ def _precompute_core(lens, table_s, rp, rp_bins, comoving=True):
         weights=(e_x * sigma_crit_w_ls)**2)
 
     # Multiplicative bias m.
-    if 'm' in table_s.colnames:
+    if 'm' in table_s.keys():
         result['sum w_ls m'] = sum_s(weights=w_ls * table_s['m'])
 
     # Responsivity R.
-    if 'sigma_rms' in table_s.colnames:
+    if 'sigma_rms' in table_s.keys():
         result['sum w_ls (1 - sigma_rms^2)'] = sum_s(
             weights=w_ls * (1 - table_s['sigma_rms']**2))
 
@@ -216,12 +222,12 @@ def _precompute_core(lens, table_s, rp, rp_bins, comoving=True):
     result['sum r_p'] = sum_s(weights=rp)
 
     # Resolution selection bias.
-    if 'R_2' in table_s.colnames:
+    if 'R_2' in table_s.keys():
         result.update(surveys.hsc.precompute_selection_bias_factor(
             table_s['R_2'], w_ls, rp_binned, len(rp_bins) - 1))
 
     # METACALIBRATION response.
-    if 'R_MCAL' in table_s.colnames:
+    if 'R_MCAL' in table_s.keys():
         result['sum w_ls R_MCAL'] = sum_s(weights=w_ls * table_s['R_MCAL'])
 
     return result
@@ -260,15 +266,21 @@ def _precompute_single(lens, table_s, kdtree_s, rp_bins,
     rmax = np.amax(rp_bins) / mpc_deg
     idx, theta = _search_around_sky(lens['ra'], lens['dec'], kdtree_s, rmin,
                                     rmax)
-    table_s = table_s[idx]
-    rp = theta * mpc_deg
 
     # Apply additional photo-z cuts.
-    mask = lens['z'] < table_s['z_l_max']
-    table_s = table_s[mask]
-    rp = rp[mask]
+    mask = lens['z'] < table_s['z_l_max'][idx]
+    idx = idx[mask]
+    theta = theta[mask]
 
-    return _precompute_core(lens, table_s, rp, rp_bins, comoving=comoving)
+    table_s_part = {}
+    for col in table_s.colnames:
+        if col in ['sin ra', 'cos ra', 'sin dec', 'cos dec', 'z', 'd_com',
+                   'w', 'e_1', 'e_2', 'sigma_rms', 'm', 'R_2', 'R_MCAL']:
+            table_s_part[col] = table_s[col].data[idx]
+
+    rp = theta * mpc_deg
+
+    return _precompute_core(lens, table_s_part, rp, rp_bins, comoving=comoving)
 
 
 def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
@@ -368,11 +380,18 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None,
             alpha_max *= (1 + table_l['z'])
         table_l = table_l[d2d < alpha_max]
 
+    for f in [np.sin, np.cos]:
+        for table in [table_s, table_l]:
+            for angle in ['ra', 'dec']:
+                col = f.__name__ + ' ' + angle
+                if col not in table.colnames:
+                    table[col] = f(np.deg2rad(table[angle]))
+
     # If we only use one thread, we do not need to split the lens table.
     if n_jobs == 1:
 
         x, y, z = spherical_to_cartesian(table_s['ra'], table_s['dec'])
-        kdtree_s = cKDTree(np.column_stack([x, y, z]))
+        kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
 
         results = []
 

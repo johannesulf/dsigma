@@ -6,7 +6,8 @@ from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 
 
-__all__ = ['mpc_per_degree', 'projection_angle', 'critical_surface_density']
+__all__ = ['mpc_per_degree', 'projection_angle', 'projection_angle_sin_cos',
+           'critical_surface_density']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
@@ -46,7 +47,7 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
     ra_l, dec_l : float or numpy array
         Coordinates of the lens galaxies in degrees.
     ra_s, dec_s : float or numpy array
-        Coordinates of the sourc galaxies in degrees.
+        Coordinates of the source galaxies in degrees.
 
     Returns
     -------
@@ -78,6 +79,60 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
         tan_phi = (
             (np.cos(dec_l) * np.sin(dec_s) - np.sin(dec_l) * np.cos(dec_s) *
              np.cos(ra_s - ra_l)) / (np.cos(dec_s) * np.sin(ra_s - ra_l)))
+
+        cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
+        sin_2phi = (2.0 * tan_phi / (1.0 + tan_phi * tan_phi))
+    else:
+        cos_2phi = -1
+        sin_2phi = 0
+
+    return cos_2phi, sin_2phi
+
+
+def projection_angle_sin_cos(sin_ra_l, cos_ra_l, sin_dec_l, cos_dec_l,
+                             sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s):
+    """Calculate projection angle between lens and sources. This function is
+    similar to projection_angle but is much faster if sin and cos of the angles
+    have been computed before.
+
+    Parameters
+    ----------
+    sin_ra_l, cos_ra_l, sin_dec_l, cos_dec_l : float or numpy array
+        Coordinates of the lens galaxies.
+    sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s : float or numpy array
+        Coordinates of the source galaxies.
+
+    Returns
+    -------
+    cos_2phi, sin_2phi : float or numpy array
+        The :math:`\cos` and :math:`\sin` of :math:`2 \phi`, where
+        :math:`\phi` is the angle measured from right ascension direction to a
+        line connecting the lens and source galaxies.
+    """
+
+    # Use trigonometric identities.
+    sin_ra_s_minus_ra_l = sin_ra_s * cos_ra_l - cos_ra_s * sin_ra_l
+    cos_ra_s_minus_ra_l = cos_ra_s * cos_ra_l + sin_ra_s * sin_ra_l
+
+
+    # Calculate the tan(phi).
+    mask = cos_dec_s * sin_ra_s_minus_ra_l != 0
+
+    if hasattr(mask, "__len__"):
+        tan_phi = (
+            (cos_dec_l * sin_dec_s - sin_dec_l * cos_dec_s *
+             cos_ra_s_minus_ra_l)[mask] /
+            (cos_dec_s * sin_ra_s_minus_ra_l)[mask])
+
+        cos_2phi = np.repeat(-1.0, len(mask))
+        sin_2phi = np.repeat(0.0, len(mask))
+
+        cos_2phi[mask] = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
+        sin_2phi[mask] = 2.0 * tan_phi / (1.0 + tan_phi * tan_phi)
+    elif mask:
+        tan_phi = (
+            (cos_dec_l * sin_dec_s - sin_dec_l * cos_dec_s *
+             cos_ra_s_minus_ra_l) / (cos_dec_s * sin_ra_s_minus_ra_l))
 
         cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
         sin_2phi = (2.0 * tan_phi / (1.0 + tan_phi * tan_phi))
