@@ -41,6 +41,7 @@ Additionally, the following columns may be used in the analysis.
 * ``m``: multiplicative shear bias
 * ``sigma_rms``: root mean square ellipticity
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)
+* ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
 
 Calibration Catalog
 -------------------

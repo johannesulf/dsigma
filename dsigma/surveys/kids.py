@@ -8,7 +8,7 @@ known_versions = ['DR3', 'KV450']
 e_2_convention = 'flipped'
 
 
-def default_column_keys(version=None):
+def default_column_keys(version=default_version):
 
     if version == 'DR3':
         keys = {
@@ -37,7 +37,7 @@ def default_column_keys(version=None):
     return keys
 
 
-def multiplicative_shear_bias(z_s, version=None):
+def multiplicative_shear_bias(z_s, version=default_version):
 
     if version == 'DR3':
         raise RuntimeError('For DR3, the multiplicative shear bias is ' +
@@ -45,7 +45,8 @@ def multiplicative_shear_bias(z_s, version=None):
     elif version == 'KV450':
         m = np.array([-0.017, -0.008, -0.015, 0.010, 0.006])
 
-        z_bins = np.digitize(z_s, np.array([0.1, 0.3, 0.5, 0.7, 0.9, 1.2 + 1e-6])) - 1
+        z_bins = np.digitize(
+            z_s, np.array([0.1, 0.3, 0.5, 0.7, 0.9, 1.2 + 1e-6])) - 1
 
         if np.any(z_bins < 0) or np.any(z_bins > 4):
             raise RuntimeError(
@@ -57,5 +58,3 @@ def multiplicative_shear_bias(z_s, version=None):
                 known_versions))
 
     return m[z_bins]
-    
-    

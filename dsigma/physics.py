@@ -7,18 +7,19 @@ from astropy.cosmology import FlatLambdaCDM
 
 
 __all__ = ['mpc_per_degree', 'projection_angle', 'projection_angle_sin_cos',
-           'critical_surface_density']
+           'critical_surface_density', 'effective_critical_surface_density']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
 
-def mpc_per_degree(cosmology, z, comoving=False):
+def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
+                   comoving=False):
     """Estimate the angular scale in Mpc/degree at certain redshift.
 
     Parameters
     ----------
-    cosmo : cosmology.Cosmology object
-        Cosmology object from the `cosmology` package by Erin Sheldon.
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations.
     z : float or numpy array
         Redshift of the object.
     comoving : boolen
@@ -114,7 +115,6 @@ def projection_angle_sin_cos(sin_ra_l, cos_ra_l, sin_dec_l, cos_dec_l,
     sin_ra_s_minus_ra_l = sin_ra_s * cos_ra_l - cos_ra_s * sin_ra_l
     cos_ra_s_minus_ra_l = cos_ra_s * cos_ra_l + sin_ra_s * sin_ra_l
 
-
     # Calculate the tan(phi).
     mask = cos_dec_s * sin_ra_s_minus_ra_l != 0
 
@@ -154,10 +154,10 @@ def critical_surface_density(z_l, z_s,
         Redshift of lens.
     z_s : float or numpy array
         Redshift of source.
-    cosmos : cosmology.Cosmology object
-        Cosmology object from `cosmology` package by Erin Sheldon.
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations.
     comoving : boolean, optional
-        Flag for using comoving instead of physical unit.
+        Flag for using comoving instead of physical units.
     d_l : float or numpy array
         Comoving transverse distance to the lens. If not given, it is
         calculated from the redshift provided.
@@ -179,9 +179,58 @@ def critical_surface_density(z_l, z_s,
 
     dist_term = (1e-6 * (d_s / (1 + z_s)) / (d_l / (1 + z_l)) /
                  (np.where(d_s > d_l, d_s - d_l, 1) / (1 + z_s)))
-    dist_term[d_s <= d_l] = np.inf
+
+    if np.isscalar(dist_term):
+        if d_s <= d_l:
+            dist_term = np.inf
+    else:
+        dist_term[d_s <= d_l] = np.inf
 
     if comoving:
         dist_term /= (1.0 + z_l)**2
 
     return _sigma_crit_factor * dist_term
+
+
+def effective_critical_surface_density(
+        z_l, z_s, n_s, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
+        comoving=False):
+    """The effective critical surface density for a given lens redshift and
+    source redshift distribution.
+
+    Parameters
+    ----------
+    z_l : float or numpy array
+        Redshift of lens.
+    z_s : numpy array
+        Potential redshifts of sources.
+    n_s : numpy array
+        Fraction of source galaxies in each redshift bin. Does not need to be
+        normalized.
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations.
+    comoving : boolean, optional
+        Flag for using comoving instead of physical unit.
+
+    Returns
+    -------
+    float or numpy array
+        Effective critical surface density for the lens redshift given the
+        source redshift distribution.
+
+    """
+
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
+    d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
+
+    if not np.isscalar(z_l):
+        z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
+        d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
+        z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
+        n_s = np.tile(n_s, len(z_l)).reshape(z_l.shape)
+
+    sigma_crit = critical_surface_density(z_l, z_s, cosmology=cosmology,
+                                          comoving=comoving, d_l=d_l, d_s=d_s)
+
+    return np.average(sigma_crit**-1, axis=-1, weights=n_s)**-1

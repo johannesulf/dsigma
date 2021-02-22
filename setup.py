@@ -5,7 +5,7 @@ with open('README.md', 'r') as fstream:
 
 setup(
     name='dsigma',
-    version="0.3.0rc",
+    version="0.4.0",
     description=('A Galaxy-Galaxy Lensing Pipeline'),
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,11 +19,11 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     keywords='astronomy, weak-lensing',
-    url='https://github.com/dr-guangtou/dsigma',
+    url='https://github.com/johannesulf/dsigma',
     author='Johannes Lange, Song Huang',
     author_email='jolange@ucsc.edu',
     packages=find_packages(),
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
-                      'matplotlib'],
+                      'healpy'],
     python_requires='>=3.4',
 )

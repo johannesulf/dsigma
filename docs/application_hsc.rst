@@ -1,14 +1,17 @@
 Hyper Suprime-Cam (HSC)
 =======================
 
+In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
+shape catalogs from the HSC survey.
+
+Downloading the Data
+--------------------
+
 First, we need to download the necessary HSC data files. Head over to the
 `HSC data release site <https://hsc-release.mtk.nao.ac.jp/doc/>`_ and register
 for an account if you haven't done so already. As of September 2020, the only
 publicly available data set is part of the public data release 2 (PDR2) and
 goes back to the internal S16A release.
-
-Downloading the Data
---------------------
 
 The following SQL script will return all the necessary data from the
 `CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_. ::
@@ -40,14 +43,14 @@ is saved as :code:`hsc_sources.fits` in the working directory.
 
 In addition to the source catalog, we need a calibration catalog to correct
 for eventual biases stemming from using shallow photometric redshift point
-estimates. The relevant files can be downloaded
-`here <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
+estimates. The relevant files can be downloaded using the following links:
+`1 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
 cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/
 Afterburner_reweighted_COSMOS_photoz_FDFC.fits>`_,
-`here <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
+`2 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
 cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/
-ephor_ab/pdf-s17a_wide-9812.cat.fits>`_ and
-`here <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
+ephor_ab/pdf-s17a_wide-9812.cat.fits>`_,
+`3 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/
 cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/
 ephor_ab/pdf-s17a_wide-9813.cat.fits>`_.
 

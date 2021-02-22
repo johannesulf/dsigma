@@ -9,7 +9,7 @@ known_versions = ['PDR2', ]
 e_2_convention = 'standard'
 
 
-def default_column_keys(version=None):
+def default_column_keys(version=default_version):
     keys = {
         'ra': 'ira',
         'dec': 'idec',
@@ -89,15 +89,15 @@ def apply_photo_z_quality_cut(table_s, global_photo_z_cuts,
     return table_s[mask]
 
 
-def precompute_selection_bias_factor(r_2, w, i_bin, n_bins):
+def precompute_selection_bias_factor(r_2, w_ls, i_bin, n_bins):
     """Calculate precompute correction factors for the multiplicative selection
     bias.
 
     Parameters
     ----------
-    r2 : numpy array
-        HSC shape resolution (0=unresolved, 1=resolved).
-    w : numpy array
+    r_2 : numpy array
+        :math:`R_2` HSC shape resolution (0=unresolved, 1=resolved).
+    w_ls : numpy array
         Weight of the lens-source pair.
     i_bin : numpy array
         Bin indices for the precomputation.
@@ -120,7 +120,7 @@ def precompute_selection_bias_factor(r_2, w, i_bin, n_bins):
     r_2_max = 0.31
 
     return {"sum w_ls A p(R_2=0.3)": 0.00865 * (
-        np.bincount(i_bin, minlength=n_bins, weights=w * (r_2 <= r_2_max)) /
+        np.bincount(i_bin, minlength=n_bins, weights=w_ls * (r_2 <= r_2_max)) /
         (r_2_max - r_2_min))}
 
 

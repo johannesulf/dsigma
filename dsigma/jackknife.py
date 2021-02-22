@@ -223,7 +223,7 @@ def compress_jackknife_fields(table):
             if key in ['field', 'field_jk']:
                 table_jk[i][key] = table[key][mask][0]
             elif key in ['w_sys', 'sum 1']:
-                table_jk[i][key] = np.sum(table[key][mask])
+                table_jk[i][key] = np.sum(table[key][mask], axis=0)
             else:
                 table_jk[i][key] = np.average(
                     table[key][mask], weights=table['w_sys'][mask], axis=0)

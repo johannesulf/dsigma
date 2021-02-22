@@ -6,7 +6,7 @@ from astropy.table import Table
 
 from . import surveys
 
-__all__ = ['dsigma_table', 'spherical_to_cartesian']
+__all__ = ['dsigma_table', 'spherical_to_cartesian', 'cartesian_to_spherical']
 
 
 def dsigma_table(table, table_type, survey=None, version=None, copy=False,
@@ -173,3 +173,25 @@ def spherical_to_cartesian(ra, dec):
     y = np.sin(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
     z = np.sin(np.deg2rad(dec))
     return x, y, z
+
+
+def cartesian_to_spherical(x, y, z):
+    """Convert spherical coordinates into cartesian coordinates on a unit
+    sphere.
+
+    Parameters
+    ----------
+    ra, dec : float or numpy array
+        Spherical coordinates.
+
+    Returns
+    -------
+    x, y, z : float or numpy array
+        Cartesian coordinates.
+
+    """
+    r = np.sqrt(x**2 + y**2 + z**2)
+    ra = np.arctan2(y, x)
+    ra = np.where(ra < 0, ra + 2 * np.pi, ra)
+    dec = np.arcsin(z / r)
+    return np.rad2deg(ra), np.rad2deg(dec)

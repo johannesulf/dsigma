@@ -4,7 +4,8 @@ from . import surveys
 
 __all__ = ['raw_tangential_shear', 'raw_excess_surface_density',
            'photo_z_dilution_factor', 'boost_factor', 'shear_bias_factor',
-           'shear_responsivity_factor', 'excess_surface_density',
+           'shear_responsivity_factor', 'effective_lens_redshift',
+           'metacalibration_response_factor', 'excess_surface_density',
            'shape_noise_error']
 
 
@@ -19,7 +20,7 @@ def raw_tangential_shear(table_l, rotation=False):
     Returns
     -------
     delta_sigma : numpy array
-        The raw, uncorrected excess surface density in each radial bin.
+        The raw, uncorrected tangential shear in each radial bin.
     """
 
     gamma = 'x' if rotation else 't'
@@ -61,8 +62,8 @@ def photo_z_dilution_factor(table_l):
 
     Returns
     -------
-    f : float
-        Photometric redshift bias.
+    f_bias : float
+        Photometric redshift bias :math:`f_{\mathrm{bias}}`.
     """
 
     return (np.sum(table_l['calib: sum w_ls w_c'] *
@@ -133,6 +134,7 @@ def shear_responsivity_factor(table_l):
                table_l['w_sys'][:, None], axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
+
 def effective_lens_redshift(table_l):
     """Compute the weighted-average lens redshift.
 
@@ -168,7 +170,7 @@ def metacalibration_response_factor(table_l):
     """
 
     return (
-        np.sum(table_l['sum w_ls R_MCAL'] * table_l['w_sys'][:, None],
+        np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
                axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 

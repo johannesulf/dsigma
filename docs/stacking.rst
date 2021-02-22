@@ -10,14 +10,14 @@ systematics, it can be calculated as follows.
     
     \Delta\Sigma =
         \frac{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}} w_{\mathrm{sys, l}}
-              \sum_{\mathrm{ls}} w_{\mathrm{ls}} \Delta\Sigma_{\mathrm{crit}}
+              \sum_{\mathrm{ls}} w_{\mathrm{ls}} \Sigma_{\mathrm{crit}}
               e_{\mathrm{t}}}{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}}
               w_{\mathrm{sys, l}} \sum_{\mathrm{ls}} w_{\mathrm{ls}}}
 
 In the above expression, the first sum goes over all lenses and the second
 sum over all sources that can form a pair with the lens. Additionally,
-:math:`\Delta\Sigma_{\mathrm{crit}}` is the so-called critical surface density
-that depends on the lens and source redshift, :math:`e_t` the shear component
+:math:`\Sigma_{\mathrm{crit}}` is the so-called critical surface density that
+depends on the lens and source redshift, :math:`e_t` the shear component
 tangential to the lens and :math:`w_{\mathrm{sys}}` and
 :math:`w_{\mathrm{ls}}` systematic weights for lenses and lens-source pairs,
 respectively. The former is often used to correct for biases in the lens
@@ -26,7 +26,7 @@ calculated as
 
 .. math::
 
-    w_{\mathrm{ls}} = \frac{w_{\mathrm{s}}}{\Delta\Sigma_{\mathrm{crit}}^2}
+    w_{\mathrm{ls}} = \frac{w_{\mathrm{s}}}{\Sigma_{\mathrm{crit}}^2}
 
 where :math:`w_{\mathrm{s}}` is some weight associated to the noise of galaxy
 shapes.
@@ -42,11 +42,11 @@ Photo-z Dilution
 ^^^^^^^^^^^^^^^^
 
 When calculating the critical excess surface density
-:math:`\Delta\Sigma_{\mathrm{crit}}`, we need to know both lens and source
-redshift. However, in many lensing surveys, we only have very inaccurate and
-possibly biased photometric redshifts for sources. Even in case of just
-inaccurate redshifts, this can cause systematic biases in the calculation of
-:math:`\Delta\Sigma_{\mathrm{crit}}`. We can correct for this via the photo-z
+:math:`\Sigma_{\mathrm{crit}}`, we need to know both lens and source redshift.
+However, in many lensing surveys, we only have very inaccurate and possibly
+biased photometric redshifts for sources. Even in case of just inaccurate
+redshifts, this can cause systematic biases in the calculation of
+:math:`\Sigma_{\mathrm{crit}}`. We can correct for this via the photo-z
 dilution correction, commonly described via :math:`f_{\rm bias}`. We refer the
 reader to Leauthaud et al. (in prep) for a derivation of this correction
 factor. It's defined via
@@ -73,10 +73,10 @@ lenses there is an over-abundance of physically associated sources. As a
 result, close to real lenses, a larger fraction of sources have true redshifts
 :math:`z_{\rm l} \approx z_{\rm s}` than what was going into the calculation
 of :math:`f_{\rm bias}`. For those physically associated sources
-:math:`\Delta\Sigma_{\mathrm{crit}} \approx \infty`, i.e. they do not induce
-any shear. Not taking this effect into account can lead to an underestimate of
-the true lensing amplitue. To correct for this effect, we calculate the
-so-called boost factor :math:`b` via
+:math:`\Sigma_{\mathrm{crit}} \approx \infty`, i.e. they do not induce any
+shear. Not taking this effect into account can lead to an underestimate of the
+true lensing amplitue. To correct for this effect, we calculate the so-called
+boost factor :math:`b` via
 
 .. math::
 

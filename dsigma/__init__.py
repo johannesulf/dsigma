@@ -1,4 +1,4 @@
-"""Delta sigma pipeline for HSC weak lensing."""
+"""Delta sigma pipeline for galaxy-galaxy lensing."""
 
 from . import helpers
 from . import jackknife

@@ -32,6 +32,7 @@ Authors
 
    application_boss
    application_hsc
+   application_kids
 
 .. toctree::
    :caption: API Documentation
