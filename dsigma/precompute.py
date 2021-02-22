@@ -16,6 +16,7 @@ from .physics import projection_angle_sin_cos
 from .physics import effective_critical_surface_density
 from .helpers import spherical_to_cartesian
 from . import surveys
+from .jackknife import compress_jackknife_fields as compress_jackknife_fields_function
 
 import time
 
@@ -172,7 +173,8 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
 
 def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                      sigma_crit_eff_inv=None,
-                     cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True):
+                     cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
+                     compress_jackknife_fields=False):
     """Do all the precomputation for all lens-source pairs. Compared to
     :func:`~dsigma.precompute.precompute_catalog`, this function calculates
     the separations between all sources and all lenses and assumes many
@@ -197,6 +199,11 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         Cosmology to assume for calculations.
     comoving : boolean, optional
         Whether to use comoving or physical quantities.
+    compress_jackknife_fields : boolean, optional
+        If set to true, use :func:`dsigma.jackknife.compress_jackknife_fields`
+        to compress jackknife fields into a single row and save memory.
+        However, doing so means that lenses inside each jackknife field can
+        no longer be studied individually or in subsets.
 
     Returns
     -------
@@ -321,12 +328,16 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         table_l = precompute_photo_z_dilution_factor(
             table_l, table_c, cosmology=cosmology)
 
+    if compress_jackknife_fields:
+        table_l = compress_jackknife_fields_function(table_l)
+
     return table_l
 
 
 def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                        cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                       comoving=True, trim=True, nside=64, n_jobs=1):
+                       comoving=True, trim=True,
+                       compress_jackknife_fields=False, nside=64, n_jobs=1):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -353,6 +364,11 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     trim : boolean, optional
         If set to true, the output table will omit lenses that do not have any
         nearby sources.
+    compress_jackknife_fields : boolean, optional
+        If set to true, use :func:`dsigma.jackknife.compress_jackknife_fields`
+        to compress jackknife fields into a single row and save memory.
+        However, doing so means that lenses inside each jackknife field can
+        no longer be studied individually or in subsets.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determine the number of pixels.
@@ -471,7 +487,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
 
     kwargs = {'table_c': table_c, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
-              'cosmology': cosmology, 'comoving': comoving}
+              'cosmology': cosmology, 'comoving': comoving,
+              'compress_jackknife_fields': compress_jackknife_fields}
 
     pool = Pool(processes=n_jobs)
     result_list = []
@@ -520,6 +537,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     # lens table and add useful meta-data.
     table_l = vstack([result.get() for result in result_list])[
         np.argsort(idx_l_unsorted)]
+    if compress_jackknife_fields:
+        table_l = compress_jackknife_fields_function(table_l)
     table_l.meta['rp_bins'] = rp_bins
     table_l.meta['comoving'] = comoving
     table_l.meta['H0'] = cosmology.H0.value
