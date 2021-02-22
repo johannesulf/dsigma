@@ -535,9 +535,11 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
 
     # Convert the list of results into a table that is merged with the original
     # lens table and add useful meta-data.
-    table_l = vstack([result.get() for result in result_list])[
-        np.argsort(idx_l_unsorted)]
-    if compress_jackknife_fields:
+    if not compress_jackknife_fields:
+        table_l = vstack([result.get() for result in result_list])[
+            np.argsort(idx_l_unsorted)]
+    else:
+        table_l = vstack([result.get() for result in result_list])
         table_l = compress_jackknife_fields_function(table_l)
     table_l.meta['rp_bins'] = rp_bins
     table_l.meta['comoving'] = comoving
