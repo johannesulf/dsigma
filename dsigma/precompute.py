@@ -18,8 +18,6 @@ from .helpers import spherical_to_cartesian
 from . import surveys
 from .jackknife import compress_jackknife_fields as compress_jackknife_fields_function
 
-import time
-
 
 __all__ = ["add_maximum_lens_redshift", "precompute_photo_z_dilution_factor",
            "precompute_catalog", "merge_precompute_catalogs"]
@@ -62,7 +60,7 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
         dist3d = np.sqrt(dx**2 + dy**2 + dz**2)
     else:
         dist3d = np.zeros(0)
-    #return idx
+
     theta = np.rad2deg(np.arcsin(dist3d * np.sqrt(1 - dist3d**2 / 4)))
     mask = theta > rmin
 
@@ -173,8 +171,7 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
 
 def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                      sigma_crit_eff_inv=None,
-                     cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
-                     compress_jackknife_fields=False):
+                     cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True):
     """Do all the precomputation for all lens-source pairs. Compared to
     :func:`~dsigma.precompute.precompute_catalog`, this function calculates
     the separations between all sources and all lenses and assumes many
@@ -199,11 +196,6 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         Cosmology to assume for calculations.
     comoving : boolean, optional
         Whether to use comoving or physical quantities.
-    compress_jackknife_fields : boolean, optional
-        If set to true, use :func:`dsigma.jackknife.compress_jackknife_fields`
-        to compress jackknife fields into a single row and save memory.
-        However, doing so means that lenses inside each jackknife field can
-        no longer be studied individually or in subsets.
 
     Returns
     -------
@@ -327,9 +319,6 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
     if table_c is not None:
         table_l = precompute_photo_z_dilution_factor(
             table_l, table_c, cosmology=cosmology)
-
-    if compress_jackknife_fields:
-        table_l = compress_jackknife_fields_function(table_l)
 
     return table_l
 
@@ -486,12 +475,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     x, y, z = spherical_to_cartesian(table_s['ra'], table_s['dec'])
     kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
 
-    kwargs = {'table_c': table_c, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
-              'cosmology': cosmology, 'comoving': comoving,
-              'compress_jackknife_fields': compress_jackknife_fields}
-
     pool = Pool(processes=n_jobs)
-    result_list = []
+    table_p = Table()
 
     idx_l_sorted = np.arange(len(table_l))
     idx_l_unsorted = np.zeros(0, dtype=np.int)
@@ -500,6 +485,11 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     idx_l_sorted = idx_l_sorted[np.argsort(pix_l)]
     n_group_l = n_group_l[np.argsort(pix_group_l)]
     pix_group_l = np.sort(pix_group_l)
+
+    precompute_chunk_partial = partial(
+        precompute_chunk, rp_bins=rp_bins,
+        table_c=table_c, sigma_crit_eff_inv=sigma_crit_eff_inv,
+        cosmology=cosmology, comoving=comoving)
 
     for i, pix in enumerate(pix_group_l):
 
@@ -524,11 +514,16 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
 
         table_s_sub = table_s[sel]
 
-        result_list.append(pool.apply_async(
-            precompute_chunk, (table_l_pix, table_s_sub, rp_bins), kwargs))
+        table_p_pix_list = pool.starmap(
+            precompute_chunk_partial,
+            [(table_l_pix, table_s_sub[i::n_jobs]) for i in range(n_jobs)])
 
-        while pool._taskqueue.qsize() >= n_jobs:
-            time.sleep(0.1)
+        table_p_pix = merge_precompute_catalogs(table_p_pix_list)
+
+        if compress_jackknife_fields:
+            table_p_pix = compress_jackknife_fields_function(table_l)
+
+        table_p = vstack(table_p, table_p_pix)
 
     pool.close()
     pool.join()
@@ -536,18 +531,17 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     # Convert the list of results into a table that is merged with the original
     # lens table and add useful meta-data.
     if not compress_jackknife_fields:
-        table_l = vstack([result.get() for result in result_list])[
-            np.argsort(idx_l_unsorted)]
+        table_p = table_p[np.argsort(idx_l_unsorted)]
     else:
-        table_l = vstack([result.get() for result in result_list])
-        table_l = compress_jackknife_fields_function(table_l)
-    table_l.meta['rp_bins'] = rp_bins
-    table_l.meta['comoving'] = comoving
-    table_l.meta['H0'] = cosmology.H0.value
-    table_l.meta['Ok0'] = cosmology.Ok0
-    table_l.meta['Om0'] = cosmology.Om0
+        table_p = compress_jackknife_fields_function(table_p)
 
-    return table_l
+    table_p.meta['rp_bins'] = rp_bins
+    table_p.meta['comoving'] = comoving
+    table_p.meta['H0'] = cosmology.H0.value
+    table_p.meta['Ok0'] = cosmology.Ok0
+    table_p.meta['Om0'] = cosmology.Om0
+
+    return table_p
 
 
 def merge_precompute_catalogs(table_l_list):
@@ -569,7 +563,8 @@ def merge_precompute_catalogs(table_l_list):
 
     for i in range(len(table_l_list)):
         for key in ['rp_bins', 'comoving', 'H0', 'Ok0', 'Om0']:
-            if not np.all(table_p.meta[key] == table_l_list[i].meta[key]):
+            if key in table_p.meta.keys() and not np.all(
+                    table_p.meta[key] == table_l_list[i].meta[key]):
                 raise RuntimeError(
                     'Inconsistent meta-data for key {}.'.format(key))
 
