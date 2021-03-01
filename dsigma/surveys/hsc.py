@@ -106,8 +106,7 @@ def precompute_selection_bias_factor(r_2, w_ls, i_bin, n_bins):
 
     Returns
     -------
-    dict
-        Dictionary with results to be used in the precomputation.
+        Results to be used in the precomputation.
     """
 
     r_2_min = 0.3

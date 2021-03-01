@@ -25,6 +25,14 @@ __all__ = ["add_maximum_lens_redshift", "precompute_photo_z_dilution_factor",
            "precompute_catalog", "merge_precompute_catalogs"]
 
 
+precompute_keys = [
+    'sum w_s e_t', 'sum w_s e_x', 'sum w_s', 'sum w_ls e_t sigma_crit',
+    'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
+    'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
+    'sum w_ls (1 - sigma_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
+    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_MCAL']
+
+
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
     """Cross-match coordinates.
 
@@ -211,9 +219,23 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         Lens catalog with the pre-computation results attached in the table.
     """
 
-    result_list = []
+    precompute_keys_chunk = precompute_keys.copy()
 
-    for lens in table_l:
+    if 'm' not in table_s.keys():
+        precompute_keys_chunk.remove('sum w_ls m')
+    if 'sigma_rms' not in table_s.keys():
+        precompute_keys_chunk.remove('sum w_ls (1 - sigma_rms^2)')
+
+    if 'R_2' not in table_s.keys():
+        precompute_keys_chunk.remove('sum w_ls A p(R_2=0.3)')
+    if np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
+                      list(table_s.keys()))):
+        precompute_keys_chunk.remove('sum w_ls R_T')
+
+    for key in precompute_keys_chunk:
+        table_l[key] = np.zeros((len(table_l), len(rp_bins) - 1))
+
+    for i, lens in enumerate(table_l):
 
         cos_theta = (
             (lens['sin dec'] * table_s['sin dec']) +
@@ -239,8 +261,6 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                        'w', 'e_1', 'e_2', 'sigma_rms', 'm', 'R_2', 'R_11',
                        'R_22', 'R_12', 'R_21', 'z_bin']:
                 table_s_sub[col] = table_s[col].data[sel]
-
-        result = {}
 
         # Calculate the critical surface density.
         if sigma_crit_eff_inv is None:
@@ -273,42 +293,46 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
 
         sum_s = partial(np.bincount, rp_binned, minlength=len(rp_bins) - 1)
 
-        result['sum w_s e_t'] = sum_s(weights=e_t * table_s_sub['w'])
-        result['sum w_s e_x'] = sum_s(weights=e_x * table_s_sub['w'])
-        result['sum w_s'] = sum_s(weights=table_s_sub['w'])
+        table_l['sum w_s e_t'][i, :] = sum_s(weights=e_t * table_s_sub['w'])
+        table_l['sum w_s e_x'][i, :] = sum_s(weights=e_x * table_s_sub['w'])
+        table_l['sum w_s'][i, :] = sum_s(weights=table_s_sub['w'])
 
-        result['sum w_ls e_t sigma_crit'] = sum_s(
+        table_l['sum w_ls e_t sigma_crit'][i, :] = sum_s(
             weights=e_t * sigma_crit_w_ls)
-        result['sum w_ls e_x sigma_crit'] = sum_s(
+        table_l['sum w_ls e_x sigma_crit'][i, :] = sum_s(
             weights=e_x * sigma_crit_w_ls)
-        result['sum w_ls'] = sum_s(weights=w_ls)
+        table_l['sum w_ls'][i, :] = sum_s(weights=w_ls)
 
         # This is used to calculate the naive error for the lensing signal.
-        result['sum (w_ls e_t sigma_crit)^2'] = sum_s(
+        table_l['sum (w_ls e_t sigma_crit)^2'][i, :] = sum_s(
             weights=(e_t * sigma_crit_w_ls)**2)
-        result['sum (w_ls e_x sigma_crit)^2'] = sum_s(
+        table_l['sum (w_ls e_x sigma_crit)^2'][i, :] = sum_s(
             weights=(e_x * sigma_crit_w_ls)**2)
 
         # Multiplicative bias m.
         if 'm' in table_s_sub.keys():
-            result['sum w_ls m'] = sum_s(weights=w_ls * table_s_sub['m'])
+            table_l['sum w_ls m'][i, :] = sum_s(
+                weights=w_ls * table_s_sub['m'])
 
         # Responsivity R.
         if 'sigma_rms' in table_s_sub.keys():
-            result['sum w_ls (1 - sigma_rms^2)'] = sum_s(
+            table_l['sum w_ls (1 - sigma_rms^2)'][i, :] = sum_s(
                 weights=w_ls * (1 - table_s_sub['sigma_rms']**2))
 
         # Square term about the shape noise.
-        result['sum w_s e_t^2'] = sum_s(weights=e_t**2 * table_s_sub['w'])
-        result['sum w_s e_x^2'] = sum_s(weights=e_x**2 * table_s_sub['w'])
+        table_l['sum w_s e_t^2'][i, :] = sum_s(
+            weights=e_t**2 * table_s_sub['w'])
+        table_l['sum w_s e_x^2'][i, :] = sum_s(
+            weights=e_x**2 * table_s_sub['w'])
 
         # Number of pairs in each radial bin.
-        result['sum 1'] = sum_s()
+        table_l['sum 1'][i, :] = sum_s()
 
         # Resolution selection bias.
         if 'R_2' in table_s_sub.keys():
-            result.update(surveys.hsc.precompute_selection_bias_factor(
-                table_s_sub['R_2'], w_ls, rp_binned, len(rp_bins) - 1))
+            table_l['sum w_ls A p(R_2=0.3)'][i, :] = (
+                surveys.hsc.precompute_selection_bias_factor(
+                    table_s_sub['R_2'], w_ls, rp_binned, len(rp_bins) - 1))
 
         # METACALIBRATION response.
         if np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
@@ -317,11 +341,7 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                    table_s_sub['R_22'] * sin2phi**2 +
                    (table_s_sub['R_12'] + table_s_sub['R_21']) *
                    sin2phi * cos2phi)
-            result['sum w_ls R_T'] = sum_s(weights=w_ls * r_t)
-
-        result_list.append(result)
-
-    table_l = hstack([table_l, Table(rows=result_list)])
+            table_l['sum w_ls R_T'][i, :] = sum_s(weights=w_ls * r_t)
 
     # If necessary, estimate the photo-z bias factor.
     if table_c is not None:
@@ -572,13 +592,6 @@ def merge_precompute_catalogs(table_l_list):
             if not np.all(table_p.meta[key] == table_l_list[i].meta[key]):
                 raise RuntimeError(
                     'Inconsistent meta-data for key {}.'.format(key))
-
-    precompute_keys = [
-        'sum w_s e_t', 'sum w_s e_x', 'sum w_s', 'sum w_ls e_t sigma_crit',
-        'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
-        'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
-        'sum w_ls (1 - sigma_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
-        'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_MCAL']
 
     for i in range(len(table_l_list)):
         for key in table_l_list[0].colnames:
