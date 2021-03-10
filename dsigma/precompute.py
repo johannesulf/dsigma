@@ -29,7 +29,7 @@ precompute_keys = [
     'sum w_s e_t', 'sum w_s e_x', 'sum w_s', 'sum w_ls e_t sigma_crit',
     'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
     'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
-    'sum w_ls (1 - sigma_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
+    'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
     'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_MCAL']
 
 
@@ -223,8 +223,8 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
 
     if 'm' not in table_s.keys():
         precompute_keys_chunk.remove('sum w_ls m')
-    if 'sigma_rms' not in table_s.keys():
-        precompute_keys_chunk.remove('sum w_ls (1 - sigma_rms^2)')
+    if 'e_rms' not in table_s.keys():
+        precompute_keys_chunk.remove('sum w_ls (1 - e_rms^2)')
 
     if 'R_2' not in table_s.keys():
         precompute_keys_chunk.remove('sum w_ls A p(R_2=0.3)')
@@ -258,7 +258,7 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         table_s_sub = {}
         for col in table_s.colnames:
             if col in ['sin ra', 'cos ra', 'sin dec', 'cos dec', 'z', 'd_com',
-                       'w', 'e_1', 'e_2', 'sigma_rms', 'm', 'R_2', 'R_11',
+                       'w', 'e_1', 'e_2', 'e_rms', 'm', 'R_2', 'R_11',
                        'R_22', 'R_12', 'R_21', 'z_bin']:
                 table_s_sub[col] = table_s[col].data[sel]
 
@@ -315,9 +315,9 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                 weights=w_ls * table_s_sub['m'])
 
         # Responsivity R.
-        if 'sigma_rms' in table_s_sub.keys():
-            table_l['sum w_ls (1 - sigma_rms^2)'][i, :] = sum_s(
-                weights=w_ls * (1 - table_s_sub['sigma_rms']**2))
+        if 'e_rms' in table_s_sub.keys():
+            table_l['sum w_ls (1 - e_rms^2)'][i, :] = sum_s(
+                weights=w_ls * (1 - table_s_sub['e_rms']**2))
 
         # Square term about the shape noise.
         table_l['sum w_s e_t^2'][i, :] = sum_s(

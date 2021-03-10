@@ -130,7 +130,7 @@ def shear_responsivity_factor(table_l):
     """
 
     return (
-        np.sum(table_l['sum w_ls (1 - sigma_rms^2)'] *
+        np.sum(table_l['sum w_ls (1 - e_rms^2)'] *
                table_l['w_sys'][:, None], axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 

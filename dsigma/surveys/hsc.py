@@ -19,7 +19,7 @@ def default_column_keys(version=default_version):
         'e_2': 'ishape_hsm_regauss_e2',
         'w': 'ishape_hsm_regauss_derived_shape_weight',
         'm': 'ishape_hsm_regauss_derived_shear_bias_m',
-        'sigma_rms': 'ishape_hsm_regauss_derived_rms_e',
+        'e_rms': 'ishape_hsm_regauss_derived_rms_e',
         'R_2': 'ishape_hsm_regauss_resolution'}
     return keys
 
