@@ -228,8 +228,8 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
 
     if 'R_2' not in table_s.keys():
         precompute_keys_chunk.remove('sum w_ls A p(R_2=0.3)')
-    if np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
-                      list(table_s.keys()))):
+    if not np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
+                          list(table_s.keys()))):
         precompute_keys_chunk.remove('sum w_ls R_T')
 
     for key in precompute_keys_chunk:
