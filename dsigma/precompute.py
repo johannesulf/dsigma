@@ -30,7 +30,7 @@ precompute_keys = [
     'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
     'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
     'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
-    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_MCAL']
+    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T']
 
 
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
