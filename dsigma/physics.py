@@ -4,10 +4,12 @@ import numpy as np
 from astropy import constants as c
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
+from scipy.special import jv, jn_zeros
 
 
 __all__ = ['mpc_per_degree', 'projection_angle', 'projection_angle_sin_cos',
-           'critical_surface_density', 'effective_critical_surface_density']
+           'critical_surface_density', 'effective_critical_surface_density',
+           'lens_magnification_bias']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
@@ -234,3 +236,97 @@ def effective_critical_surface_density(
                                           comoving=comoving, d_l=d_l, d_s=d_s)
 
     return np.average(sigma_crit**-1, axis=-1, weights=n_s)**-1
+
+
+def lens_magnification_bias(theta, alpha_l, z_l, z_s, camb_results,
+                            n_z=10, n_ell=200, bessel_function_zeros=100,
+                            k_max=1e3):
+    """The lens magnification bias to the mean tangential shear. This function
+    is based on equations (13) and (14) in Unruh et al. (2020).
+
+    Parameters
+    ----------
+    theta : float
+        Angular separation :math:`\theta` from the lens sample in radians.
+    alpha_l : float
+        Local slope of the flux distribution of lenses near the flux limit.
+    z_l : float
+        Redshift of lens.
+    z_s : float
+        Redshift of source.
+    camb_results : camb.results.CAMBdata
+        CAMB results object that contains information on cosmology and the
+        matter power spectrum.
+    n_z : int, optional
+        Number of redshift bins used in the integral. Larger numbers will be
+        more accurate.
+    n_ell : int, optional
+        Number of :math:`\ell` bins used in the integral. Larger numbers will
+        be more accurate.
+    bessel_function_zeros : int, optional
+        The calculation involves an integral over the second order Bessel
+        function :math:`J_2 (\ell \theta)` from :math:`\ell = 0` to
+        :math:`\ell = \infty`. In practice, this function replaces the upper
+        bound with the bessel_function_zeros-th zero point of the Bessel
+        function. Larger number should lead to more accurate results. However,
+        in practice, this also requires larger `n_ell`. Particularly, `n_ell`
+        should never fall below `bessel_function_zeros`.
+    k_max : float, optional
+        The maximum wavenumber beyond which the power spectrum is assumed to be
+        0.
+
+    Returns
+    -------
+    float
+        Bias in the mean tangential shear due to lens magnification effects.
+    """
+
+    camb_interp = camb_results.get_matter_power_interpolator(
+        hubble_units=False, k_hunit=False)
+
+    ell_min = 0
+    ell_max = np.amax(jn_zeros(2, bessel_function_zeros)) / theta
+    z_min = 0
+    z_max = z_l
+
+    z, w_z = np.polynomial.legendre.leggauss(n_z)
+    z = (z_max - z_min) / 2.0 * z + (z_max + z_min) / 2.0
+    w_z = w_z * (z_max - z_min) / 2.0
+
+    ell, w_ell = np.polynomial.legendre.leggauss(n_ell)
+    ell = (ell_max - ell_min) / 2.0 * ell + (ell_max + ell_min) / 2.0
+    w_ell = w_ell * (ell_max - ell_min) / 2.0
+
+    int_z = np.array([
+        (1 + z_i)**2 / (2 * np.pi) *
+        camb_results.hubble_parameter(0) /
+        camb_results.hubble_parameter(z_i) *
+        camb_results.angular_diameter_distance2(z_i, z_l) *
+        camb_results.angular_diameter_distance2(z_i, z_s) /
+        camb_results.angular_diameter_distance(z_l) /
+        camb_results.angular_diameter_distance(z_s) for z_i in z])
+
+    d_ang = np.array([
+        camb_results.angular_diameter_distance(z_i) for z_i in z])
+    z = np.tile(z, n_ell)
+    int_z = np.tile(int_z, n_ell)
+    d_ang = np.tile(d_ang, n_ell)
+    w_z = np.tile(w_z, n_ell)
+
+    int_ell = ell * jv(2, ell * theta)
+    ell = np.repeat(ell, n_z)
+    int_ell = np.repeat(int_ell, n_z)
+    w_ell = np.repeat(w_ell, n_z)
+
+    k = (ell + 0.5) / ((1 + z) * d_ang)
+
+    int_z_ell = np.array([camb_interp.P(z[i], k[i]) for i in range(len(k))])
+    int_z_ell = np.where(k > k_max, 0, int_z_ell)
+
+    gamma = np.sum(int_z * int_ell * int_z_ell * w_z * w_ell)
+    gamma = ((gamma * u.Mpc**3) * 9 * camb_results.Params.H0**3 * u.km**3 /
+             u.s**3 / u.Mpc**3 *
+             (camb_results.Params.omch2 + camb_results.Params.ombh2)**2 /
+             (camb_results.Params.H0 / 100)**4 / 4 / c.c**3)
+
+    return 2 * (alpha_l - 1) * gamma
