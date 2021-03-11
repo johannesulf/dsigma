@@ -6,7 +6,7 @@ import healpy as hp
 from scipy.spatial import cKDTree
 from scipy.interpolate import interp1d
 
-from astropy.table import Table, vstack, hstack
+from astropy.table import Table, vstack
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -30,7 +30,8 @@ precompute_keys = [
     'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
     'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
     'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
-    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T']
+    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T',
+    'sum w_ls z_s', 'sum w_ls sigma_crit']
 
 
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
@@ -70,7 +71,7 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
         dist3d = np.sqrt(dx**2 + dy**2 + dz**2)
     else:
         dist3d = np.zeros(0)
-    #return idx
+
     theta = np.rad2deg(np.arcsin(dist3d * np.sqrt(1 - dist3d**2 / 4)))
     mask = theta > rmin
 
@@ -319,7 +320,6 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
             table_l['sum w_ls (1 - e_rms^2)'][i, :] = sum_s(
                 weights=w_ls * (1 - table_s_sub['e_rms']**2))
 
-        # Square term about the shape noise.
         table_l['sum w_s e_t^2'][i, :] = sum_s(
             weights=e_t**2 * table_s_sub['w'])
         table_l['sum w_s e_x^2'][i, :] = sum_s(
@@ -327,6 +327,9 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
 
         # Number of pairs in each radial bin.
         table_l['sum 1'][i, :] = sum_s()
+
+        table_l['sum w_ls z_s'][i, :] = sum_s(weights=w_ls * table_s_sub['z'])
+        table_l['sum w_ls sigma_crit'][i, :] = sum_s(weights=sigma_crit_w_ls)
 
         # Resolution selection bias.
         if 'R_2' in table_s_sub.keys():
