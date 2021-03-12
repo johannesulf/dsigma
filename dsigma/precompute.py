@@ -124,9 +124,9 @@ def precompute_photo_z_dilution_factor(
             lens['z'], table_c['z_true'], d_l=lens['d_com'],
             d_s=table_c['d_com_true'])
         if comoving:
-            w_area = 1.0 / lens['d_com'][i]**2
+            w_area = 1.0 / lens['d_com']**2
         else:
-            w_area = 1.0 / (lens['d_com'][i] / (1 + lens['z']))**2
+            w_area = 1.0 / (lens['d_com'] / (1 + lens['z']))**2
         mask = lens['z'] < table_c['z_l_max']
         table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'][i] = np.sum(
             (w_area * table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
