@@ -79,8 +79,8 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
 
 
 def precompute_photo_z_dilution_factor(
-        table_l, table_c, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-        nz=None):
+        table_l, table_c, nz=None, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
+        comoving=True):
     """Calculate the photo-z bias for a single lens.
 
     Parameters
@@ -123,12 +123,17 @@ def precompute_photo_z_dilution_factor(
         sigma_crit_true = critical_surface_density(
             lens['z'], table_c['z_true'], d_l=lens['d_com'],
             d_s=table_c['d_com_true'])
+        if comoving:
+            w_area = 1.0 / lens['d_com'][i]**2
+        else:
+            w_area = 1.0 / (lens['d_com'][i] / (1 + lens['z']))**2
         mask = lens['z'] < table_c['z_l_max']
         table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'][i] = np.sum(
-            (table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
+            (w_area * table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
              sigma_crit_true)[mask])
         table_l['calib: sum w_ls w_c'][i] = np.sum((
-            table_c['w_sys'] * table_c['w'] / sigma_crit_phot**2)[mask])
+            w_area * table_c['w_sys'] * table_c['w'] /
+            sigma_crit_phot**2)[mask])
 
     return table_l
 
@@ -349,7 +354,7 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
     # If necessary, estimate the photo-z bias factor.
     if table_c is not None:
         table_l = precompute_photo_z_dilution_factor(
-            table_l, table_c, cosmology=cosmology)
+            table_l, table_c, cosmology=cosmology, comoving=comoving)
 
     if compress_jackknife_fields:
         table_l = compress_jackknife_fields_function(table_l)
