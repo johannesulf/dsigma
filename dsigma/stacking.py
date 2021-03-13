@@ -66,10 +66,10 @@ def photo_z_dilution_factor(table_l):
         Photometric redshift bias :math:`f_{\mathrm{bias}}`.
     """
 
-    return (np.sum(table_l['calib: sum w_ls w_c'] *
-                   table_l['w_sys']) /
-            np.sum(table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'] *
-                   table_l['w_sys']))
+    return (np.sum(table_l['sum w_ls e_t sigma_crit f_bias'] *
+                   table_l['w_sys'][:, None], axis=0) /
+            np.sum(table_l['sum w_ls e_t sigma_crit'] *
+                   table_l['w_sys'][:, None], axis=0))
 
 
 def boost_factor(table_l, table_r):

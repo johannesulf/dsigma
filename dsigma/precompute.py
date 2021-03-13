@@ -31,7 +31,7 @@ precompute_keys = [
     'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
     'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
     'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T',
-    'sum w_ls z_s', 'sum w_ls sigma_crit']
+    'sum w_ls z_s', 'sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit f_bias']
 
 
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
@@ -79,32 +79,27 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
 
 
 def precompute_photo_z_dilution_factor(
-        table_l, table_c, nz=None, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-        comoving=True):
+        z_l, table_c, nz=None, cosmology=FlatLambdaCDM(H0=100, Om0=0.3)):
     """Calculate the photo-z bias for a single lens.
 
     Parameters
     ----------
     z_l : float
         Redshift of the lens.
-    d_l : float
-        Comoving distance to the lens.
     table_c : astropy.table.Table, optional
         Photometric redshift calibration catalog.
 
     Returns
     -------
-        The denominator and numerator of the photo-z bias factor, `f_bias`.
+        The photo-z bias factor, `f_bias`.
     """
 
-    for table in [table_l, table_c]:
-        if 'd_com' not in table.colnames:
-            table['d_com'] = cosmology.comoving_transverse_distance(
-                table['z']).to(u.Mpc).value
+    if 'd_com' not in table_c.colnames:
+        table_c['d_com'] = cosmology.comoving_transverse_distance(
+            table_c['z']).to(u.Mpc).value
 
-    if 'd_com_true' not in table_c.colnames:
-        table_c['d_com_true'] = cosmology.comoving_transverse_distance(
-            table_c['z_true']).to(u.Mpc).value
+    table_c['d_com_true'] = cosmology.comoving_transverse_distance(
+        table_c['z_true']).to(u.Mpc).value
 
     if 'z_l_max' not in table_c.colnames:
         print("Warning: Could not find a lens-source separation cut." +
@@ -113,29 +108,15 @@ def precompute_photo_z_dilution_factor(
               "separation cut.")
         table_c['z_l_max'] = table_c['z']
 
-    table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'] = np.zeros(
-        len(table_l))
-    table_l['calib: sum w_ls w_c'] = np.zeros(len(table_l))
+    sigma_crit_phot = critical_surface_density(z_l, table_c['z'],
+                                               d_s=table_c['d_com'])
+    sigma_crit_true = critical_surface_density(z_l, table_c['z_true'],
+                                               d_s=table_c['d_com_true'])
+    mask = z_l < table_c['z_l_max']
+    w = table_c['w_sys'] * table_c['w']
 
-    for i, lens in enumerate(table_l):
-        sigma_crit_phot = critical_surface_density(
-            lens['z'], table_c['z'], d_l=lens['d_com'], d_s=table_c['d_com'])
-        sigma_crit_true = critical_surface_density(
-            lens['z'], table_c['z_true'], d_l=lens['d_com'],
-            d_s=table_c['d_com_true'])
-        if comoving:
-            w_area = 1.0 / lens['d_com']**2
-        else:
-            w_area = 1.0 / (lens['d_com'] / (1 + lens['z']))**2
-        mask = lens['z'] < table_c['z_l_max']
-        table_l['calib: sum w_ls w_c sigma_crit_p / sigma_crit_t'][i] = np.sum(
-            (w_area * table_c['w_sys'] * table_c['w'] / sigma_crit_phot /
-             sigma_crit_true)[mask])
-        table_l['calib: sum w_ls w_c'][i] = np.sum((
-            w_area * table_c['w_sys'] * table_c['w'] /
-            sigma_crit_phot**2)[mask])
-
-    return table_l
+    return (np.sum((w / sigma_crit_phot**2)[mask]) /
+            np.sum((w / sigma_crit_phot / sigma_crit_true)[mask]))
 
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
@@ -185,7 +166,7 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
     return table_s
 
 
-def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
+def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
                      sigma_crit_eff_inv=None,
                      cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
                      compress_jackknife_fields=False):
@@ -203,8 +184,8 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
         Catalog of sources.
     rp_bins : numpy array
         Bins in projected radius (in Mpc) to use for the stacking.
-    table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog.
+    f_bias : function, optional
+        Function returning the photometric redshift calibration factor.
     sigma_crit_eff_inv : list, optional
         List of functions that return the inverse of the effective critical
         surface density as a function of the scale factor of the lens. Each
@@ -237,6 +218,9 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
     if not np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
                           list(table_s.keys()))):
         precompute_keys_chunk.remove('sum w_ls R_T')
+
+    if f_bias is None:
+        precompute_keys_chunk.remove('sum w_ls e_t sigma_crit f_bias')
 
     for key in precompute_keys_chunk:
         table_l[key] = np.zeros((len(table_l), len(rp_bins) - 1))
@@ -351,10 +335,10 @@ def precompute_chunk(table_l, table_s, rp_bins, table_c=None,
                    sin2phi * cos2phi)
             table_l['sum w_ls R_T'][i, :] = sum_s(weights=w_ls * r_t)
 
-    # If necessary, estimate the photo-z bias factor.
-    if table_c is not None:
-        table_l = precompute_photo_z_dilution_factor(
-            table_l, table_c, cosmology=cosmology, comoving=comoving)
+        # If necessary, estimate the photo-z bias factor.
+        if f_bias is not None:
+            table_l['sum w_ls e_t sigma_crit f_bias'][i, :] = (
+                table_l['sum w_ls e_t sigma_crit'][i, :] * f_bias(lens['z']))
 
     if compress_jackknife_fields:
         table_l = compress_jackknife_fields_function(table_l)
@@ -506,6 +490,16 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                 if col not in table.colnames:
                     table[col] = f(np.deg2rad(table[angle]))
 
+    if table_c is not None:
+        z_min = np.amin(table_l['z']) * (1 - 1e-6)
+        z_max = np.amax(table_l['z']) * (1 + 1e-6)
+        z = np.linspace(z_min, z_max, int((z_max - z_min) / 0.01))
+        f_bias = np.array([precompute_photo_z_dilution_factor(
+            z_l, table_c, cosmology=cosmology) for z_l in z])
+        f_bias = interp1d(z, f_bias, kind='cubic')
+    else:
+        f_bias = None
+
     pix_l = hp.ang2pix(nside, table_l['ra'].data, table_l['dec'].data,
                        lonlat=True)
     pix_group_l, n_group_l = np.unique(pix_l, return_counts=True)
@@ -514,7 +508,7 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     x, y, z = spherical_to_cartesian(table_s['ra'], table_s['dec'])
     kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
 
-    kwargs = {'table_c': table_c, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
+    kwargs = {'f_bias': f_bias, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
               'cosmology': cosmology, 'comoving': comoving,
               'compress_jackknife_fields': compress_jackknife_fields}
 
