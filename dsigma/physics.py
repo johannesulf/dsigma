@@ -9,7 +9,7 @@ from scipy.special import jv, jn_zeros
 
 __all__ = ['mpc_per_degree', 'projection_angle', 'projection_angle_sin_cos',
            'critical_surface_density', 'effective_critical_surface_density',
-           'lens_magnification_bias']
+           'lens_magnification_shear_bias']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
@@ -20,10 +20,10 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
 
     Parameters
     ----------
-    cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations.
     z : float or numpy array
         Redshift of the object.
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations.
     comoving : boolen
         Use comoving distance instead of physical distance when True.
         Default: False
@@ -238,9 +238,9 @@ def effective_critical_surface_density(
     return np.average(sigma_crit**-1, axis=-1, weights=n_s)**-1
 
 
-def lens_magnification_bias(theta, alpha_l, z_l, z_s, camb_results,
-                            n_z=10, n_ell=200, bessel_function_zeros=100,
-                            k_max=1e3):
+def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
+                                  n_z=10, n_ell=200, bessel_function_zeros=100,
+                                  k_max=1e3):
     """The lens magnification bias to the mean tangential shear. This function
     is based on equations (13) and (14) in Unruh et al. (2020).
 
