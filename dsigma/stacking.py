@@ -1,10 +1,13 @@
 import numpy as np
 from astropy.table import Table
+from astropy.cosmology import FlatLambdaCDM
 from . import surveys
+from .physics import mpc_per_degree, lens_magnification_shear_bias
 
 __all__ = ['raw_tangential_shear', 'raw_excess_surface_density',
            'photo_z_dilution_factor', 'boost_factor', 'shear_bias_factor',
-           'shear_responsivity_factor', 'effective_lens_redshift',
+           'shear_responsivity_factor', 'mean_lens_redshift',
+           'mean_source_redshift', 'mean_critical_surface_density',
            'metacalibration_response_factor', 'excess_surface_density',
            'shape_noise_error']
 
@@ -135,7 +138,7 @@ def shear_responsivity_factor(table_l):
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def effective_lens_redshift(table_l):
+def mean_lens_redshift(table_l):
     """Compute the weighted-average lens redshift.
 
     Parameters
@@ -145,13 +148,52 @@ def effective_lens_redshift(table_l):
 
     Returns
     -------
-    r : numpy array
-        Effective lens redshift in each bin.
+    z_l : numpy array
+        Mean lens redshift in each bin.
     """
 
     return (
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None] *
                table_l['z'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+
+
+def mean_source_redshift(table_l):
+    """Compute the weighted-average source redshift.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+
+    Returns
+    -------
+    z_s : numpy array
+        Mean source redshift in each bin.
+    """
+
+    return (
+        np.sum(table_l['sum w_ls z_s'] * table_l['w_sys'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+
+
+def mean_critical_surface_density(table_l):
+    """Compute the weighted-average critical surface density.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+
+    Returns
+    -------
+    sigma_crit : numpy array
+        Mean critical surface_density in each bin.
+    """
+
+    return (
+        np.sum(table_l['sum w_ls sigma_crit'] * table_l['w_sys'][:, None],
+               axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
@@ -173,6 +215,46 @@ def metacalibration_response_factor(table_l):
         np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
                axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+
+
+def lens_magnification_bias(table_l, alpha_l, camb_results,
+                            photo_z_dilution_correction=True):
+    """Estimate the additive lens magnification bias.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+    alpha_l : float
+        TBD
+    camb_results : camb.results.CAMBdata
+        CAMB results object that contains information on cosmology and the
+        matter power spectrum.
+    photo_z_dilution_correction : boolean, optional
+        Whether to correct for photo-z dilution.
+
+    Returns
+    -------
+    ds_lm : numpy array
+        The lens magnification bias in each radial bin.
+    """
+
+    z_l = mean_lens_redshift(table_l)
+    z_s = mean_source_redshift(table_l)
+    sigma_crit = mean_critical_surface_density(table_l)
+
+    if photo_z_dilution_correction:
+        sigma_crit = sigma_crit * photo_z_dilution_factor(table_l)
+
+    rp_bins = table_l.meta['rp_bins']
+    rp = 2.0 / 3.0 * np.diff(rp_bins**3) / np.diff(rp_bins**2)
+    cosmo = FlatLambdaCDM(H0=table_l.meta['H0'], Om0=table_l.meta['Om0'])
+    theta = np.deg2rad(rp / mpc_per_degree(
+        z_l, cosmology=cosmo, comoving=table_l.meta['comoving']))
+
+    return np.array([lens_magnification_shear_bias(
+        theta[i], alpha_l, z_l[i], z_s[i], camb_results) for i in
+        range(len(theta))]) * sigma_crit
 
 
 def excess_surface_density(table_l, table_r=None, rotation=False,
@@ -237,7 +319,8 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
     result['et_raw'] = raw_tangential_shear(
         table_l, rotation=rotation)
     result['et'] = raw_tangential_shear(table_l, rotation=rotation)
-    result['z_eff'] = effective_lens_redshift(table_l)
+    result['z_l'] = mean_lens_redshift(table_l)
+    result['z_s'] = mean_source_redshift(table_l)
 
     if boost_correction:
         if table_r is None:
