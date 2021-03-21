@@ -498,8 +498,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                 if col not in table.colnames:
                     table[col] = f(np.deg2rad(table[angle]))
 
-    pix_l = hp.ang2pix(nside, table_l['ra'].data, table_l['dec'].data,
-                       lonlat=True)
+    pix_l = hp.ang2pix(
+        nside, np.array(table_l['ra']), np.array(table_l['dec']), lonlat=True)
     pix_group_l, n_group_l = np.unique(pix_l, return_counts=True)
     ra_group_l, dec_group_l = hp.pix2ang(nside, pix_group_l, lonlat=True)
 
