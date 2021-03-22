@@ -118,9 +118,9 @@ def precompute_selection_bias_factor(r_2, w_ls, i_bin, n_bins):
 
     r_2_max = 0.31
 
-    return {"sum w_ls A p(R_2=0.3)": 0.00865 * (
+    return 0.00865 * (
         np.bincount(i_bin, minlength=n_bins, weights=w_ls * (r_2 <= r_2_max)) /
-        (r_2_max - r_2_min))}
+        (r_2_max - r_2_min))
 
 
 def selection_bias_factor(table_l):
