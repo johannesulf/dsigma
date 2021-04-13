@@ -1,7 +1,8 @@
 import numpy as np
 
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
-           'default_column_keys', 'multiplicative_shear_bias']
+           'default_column_keys', 'tomographic_redshift_bin',
+           'multiplicative_shear_bias']
 
 default_version = 'DR4'
 known_versions = ['DR3', 'KV450', 'DR4']
@@ -46,10 +47,35 @@ def default_column_keys(version=default_version):
     return keys
 
 
+def tomographic_redshift_bin(z_s, version=default_version):
+    """KiDS KV450 and DR4 analyses work in pre-defined tomographic redshift
+    bins. This function returns the photometric redshift bin as a function of
+    photometric redshift.
+
+    Parameters
+    ----------
+    z_s : numpy array
+        Photometric redshifts.
+    version : string
+        Which catalog version to use.
+
+    Returns
+    -------
+    z_bin : numpy array
+        The tomographic redshift bin corresponding to each photometric
+        redshift. Returns -1 in case a redshift does not fall into any bin.
+    """
+
+    z_bin = np.digitize(z_s, [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]) - 1
+    z_bin = np.where((z_s < 0.1) | (z_s >= 1.2), -1, z_bin)
+
+    return z_bin
+
+
 def multiplicative_shear_bias(z_s, version=default_version):
     """For many version of KiDS, the multiplicative shear bias is not estimated
     on the basis of individual sources but for broad photometric redshift
-    bins. This function return the multiplicative bias :math:`m` as a function
+    bins. This function returns the multiplicative bias :math:`m` as a function
     of source photometric redshift.
 
     Parameters
@@ -78,17 +104,11 @@ def multiplicative_shear_bias(z_s, version=default_version):
         else:
             m = np.array([-0.009, -0.011, -0.015, 0.002, 0.007])
 
-        z_bins = np.digitize(
-            z_s, np.array([0.1, 0.3, 0.5, 0.7, 0.9, 1.2 + 1e-6])) - 1
+        z_bin = tomographic_redshift_bin(z_s, version=version)
 
-        if np.any(z_bins < 0) or np.any(z_bins > 4):
-            raise RuntimeError(
-                'The multiplicative shear bias is only defined for source ' +
-                'redshifts in the range 0.1 <= z <= 1.2.')
+        return np.where(z_bin != -1, m[z_bin], np.nan)
 
     else:
         raise RuntimeError(
             "Unkown version of KiDS. Supported versions are {}.".format(
                 known_versions))
-
-    return m[z_bins]

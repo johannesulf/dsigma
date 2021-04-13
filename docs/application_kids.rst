@@ -29,19 +29,16 @@ photometric redshift bin. ::
 
     import numpy as np
     from astropy import units as u
-    from astropy.table import Table, vstack, join
+    from astropy.table import Table
     from dsigma.helpers import dsigma_table
     from dsigma.surveys import kids
 
-    z_bins = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]
-    table_s = table_s[
-        (table_s['z'] >= np.amin(z_bins)) & (table_s['z'] < np.amax(z_bins))]
-    table_s['z_bin'] = np.digitize(table_s['z'], z_bins) - 1
+    table_s['z_bin'] = kids.tomographic_redshift_bin(table_s['z'], version='DR4')
     table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
+    table_s = table_s[table_s['z_bin'] >= 0]
 
     fname = ('K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2' +
              '_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
-
     nz = np.array([np.genfromtxt(fname.format(i + 1)).T for i in range(5)])
 
 Pre-Computing the Signal

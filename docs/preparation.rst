@@ -14,8 +14,8 @@ Lens Catalog
 
 The following columns are required for lens catalogs.
 
-* ``ra``: right ascension
-* ``dec``: declination
+* ``ra``: right ascension in degrees
+* ``dec``: declination in degrees
 * ``z``: best-fit redshift
 * ``w_sys``: systematic weight :math:`w_{\mathrm{sys}}`
 
@@ -27,8 +27,8 @@ Source Catalog
 
 The following columns are required for source catalogs.
 
-* ``ra``: right ascension
-* ``dec``: declination
+* ``ra``: right ascension in degrees
+* ``dec``: declination in degrees
 * ``z``: best-fit photometric redshift
 * ``w``: inverse variance weight for galaxy shape
 * ``e_1``: + component of ellipticity
@@ -42,6 +42,7 @@ Additionally, the following columns may be used in the analysis.
 * ``e_rms``: root mean square ellipticity
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)
 * ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
+* ``z_bin``: tomographic redshift bin, non-negative and starts at 0
 
 Calibration Catalog
 -------------------

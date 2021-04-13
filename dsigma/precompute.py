@@ -483,6 +483,9 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
             sigma_crit_eff_inv.append(interp1d(
                 a_l, 1.0 / sigma_crit_eff, kind='cubic', bounds_error=False,
                 fill_value=(sigma_crit_eff[0]**-1, sigma_crit_eff[-1]**-1)))
+
+        table_s = table_s[table_s['z_bin'] >= 0]
+
     else:
         sigma_crit_eff_inv = None
 
