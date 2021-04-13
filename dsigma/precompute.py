@@ -468,6 +468,9 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
             alpha_max *= (1 + table_l['z'])
         table_l = table_l[d2d < alpha_max]
 
+        if len(table_l) == 0:
+            raise RuntimeError('No suitable lens-source pairs.')
+
     if nz is not None:
         sigma_crit_eff_inv = []
         a_l = np.linspace(1.0 / (1 + np.amax(table_l['z'])),

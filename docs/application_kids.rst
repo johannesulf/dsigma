@@ -12,14 +12,9 @@ Downloading the Data
 First, we need to download the necessary KiDS data files. The following 
 commands should download all the necessary data. ::
 
-    wget http://ds.astro.rug.astro-wise.org:8000/KV450_G9_reweight_3x4x4_v2_good.cat
-    wget http://ds.astro.rug.astro-wise.org:8000/KV450_G12_reweight_3x4x4_v2_good.cat
-    wget http://ds.astro.rug.astro-wise.org:8000/KV450_G15_reweight_3x4x4_v2_good.cat
-    wget http://ds.astro.rug.astro-wise.org:8000/KV450_G23_reweight_3x4x4_v2_good.cat
-    wget http://ds.astro.rug.astro-wise.org:8000/KV450_GS_reweight_3x4x4_v2_good.cat
-
-    wget http://kids.strw.leidenuniv.nl/cs2018/KV450_COSMIC_SHEAR_DATA_RELEASE.tar.gz
-    tar -xvf KV450_COSMIC_SHEAR_DATA_RELEASE.tar.gz KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean ./
+    wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS_DR4.1_ugriZYJHKs_SOM_gold_WL_cat.fits
+    wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS1000_SOM_N_of_Z.tar.gz
+    tar -xvf KiDS1000_SOM_N_of_Z.tar.gz --strip 1
 
 
 Preparing the Data
@@ -38,26 +33,16 @@ photometric redshift bin. ::
     from dsigma.helpers import dsigma_table
     from dsigma.surveys import kids
 
-    table_s = Table()
-
-    for region in [9, 12, 15, 23, 'S']:
-        table_s = vstack([table_s, Table.read(
-            'KV450_G{}_reweight_3x4x4_v2_good.cat'.format(region), hdu=1)],
-            metadata_conflicts='silent')
-
-    table_s = table_s[table_s['MASK'] == 0]
-    table_s = dsigma_table(table_s, 'source', survey='KiDS', version='KV450')
-
     z_bins = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]
+    table_s = table_s[
+        (table_s['z'] >= np.amin(z_bins)) & (table_s['z'] < np.amax(z_bins))]
     table_s['z_bin'] = np.digitize(table_s['z'], z_bins) - 1
+    table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
 
-    nz = np.array([np.genfromtxt('Nz_DIR_z{}t{}.asc'.format(z_min, z_max)).T for
-                   z_min, z_max in zip(z_bins[:-1], z_bins[1:])])
+    fname = ('K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2' +
+             '_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
 
-    table_s = table_s[(table_s['z_bin'] >= 0) &
-                      (table_s['z_bin'] < len(z_bins) - 1)]
-    table_s['m'] = kids.multiplicative_shear_bias(table_s['z'],
-                                                  version='KV450')
+    nz = np.array([np.genfromtxt(fname.format(i + 1)).T for i in range(5)])
 
 Pre-Computing the Signal
 ------------------------
@@ -70,7 +55,6 @@ we first define the lens-source separation cuts. We require that
     from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
 
     add_maximum_lens_redshift(table_s, dz_min=0.1)
-    add_maximum_lens_redshift(table_c, dz_min=0.1)
 
     rp_bins = np.logspace(-1, 1.6, 14)
     table_l_pre = precompute_catalog(table_l, table_s, rp_bins, cosmology=Planck15,
@@ -131,4 +115,4 @@ Acknowledgements
 
 When using the above data and algorithms, please to read and follow the
 acknowledgement section on the
-`KiDS KV450 release site <http://kids.strw.leidenuniv.nl/DR3/kv450data.php>`_.
+`KiDS DR4 release site <http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.
