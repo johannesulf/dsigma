@@ -119,12 +119,12 @@ The Dark Energy Survey uses the following estimator for :math:`\Delta\Sigma`
         \Sigma_{\rm crit}^{-1} (z_l, z_{s, \rm META}) e_t}{
         \sum_{\mathrm{ls}} w_{\mathrm{sys, l}}
         \Sigma_{\rm crit}^{-1} (z_l, z_{s, \rm MOF, MC})
-        \Sigma_{\rm crit}^{-1} (z_l, z_{s, \rm META}) w_s R_{ls}^T} \, ,
+        \Sigma_{\rm crit}^{-1} (z_l, z_{s, \rm META}) w_s R_{t,ls}} \, ,
 
 where :math:`z_{s, \rm META}` is the mean of the :math:`p(z)` of the
 METACALIBRATION photometric redshift and :math:`z_{s, \rm MOF, MC}` a
 Monte-Carlo draw of the :math:`p(z)` from the multi-object fitting (MOF)
-photometric redshift. Finally, :math:`R_{ls}^T` denotes the tangential
+photometric redshift. Finally, :math:`R_{t,ls}` denotes the tangential
 component of the shear response of each individual lens-source pair. Initially,
 this might look very different from the estimators shown in the earlier section
 on :doc:`stacking <stacking>`. However, we can re-arrange the terms to have the
@@ -134,9 +134,9 @@ following form:
 
     \Delta\Sigma =& \frac{
         \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls}}{
-        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{ls}^T} \frac{
-        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{ls}^T}{
-        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{ls}^T
+        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{t,ls}} \frac{
+        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{t,ls}}{
+        \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} R_{t,ls}
         \frac{\Sigma_{\rm crit} (z_l, z_{s, \rm META})}{
               \Sigma_{\rm crit} (z_l, z_{s, \rm MOF, MC})}}\\&\frac{
         \sum_{\mathrm{ls}} w_{\mathrm{sys, l}} w_{ls} e_t
@@ -164,7 +164,7 @@ densities.
 being how the :math:`f_{\rm bias}` term is calculated and applied. First, the
 DES estimator calculates :math:`f_{\rm bias}` using only the actual lens-source
 pairs in each radial bin and using the actual projected response
-:math:`R_{ls}^T` for the response weighting. On the other hand, :code:`dsigma`
+:math:`R_{t,ls}` for the response weighting. On the other hand, :code:`dsigma`
 uses all lenses and all sources, regardless of angular separation. Also,
 because of this, :code:`dsigma` does not use the projected shear response
 and we will use the spherically-averaged response :math:`0.5 (R_{11} + R_{22})`
@@ -184,7 +184,7 @@ change close to lenses. So additional correction may need to be applied,
 anyway. :code:`dsigma` uses the lens-source spatial clustering to (optionally)
 estimate this effect but due to the complex selection function in DES, this
 estimator is likely biased, too. Overall, :math:`\Delta\Sigma` estimates on
-small scales (:math:`r_p \lesssim 1 \mathrm{Mmc} / h`) may currently be biased.
+small scales (:math:`r_p \lesssim 1 \mathrm{Mpc} / h`) may currently be biased.
 The second difference is that the :math:`f_{\rm bias}` in DES is applied to the
 averaged raw :math:`\Delta\Sigma` estimate whereas :code:`dsigma` applies it to
 each individual raw :math:`\Delta\Sigma` estimate as a function of lens
