@@ -10,7 +10,9 @@ Downloading the Data
 --------------------
 
 First, we need to download the necessary KiDS data files. The following 
-commands should download all the necessary data. ::
+commands should download all the necessary data.
+
+.. code-block::
 
     wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS_DR4.1_ugriZYJHKs_SOM_gold_WL_cat.fits
     wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS1000_SOM_N_of_Z.tar.gz
@@ -25,7 +27,9 @@ First, we must put the data into a format easily understandable by
 Additionally, we want to use the :math:`n(z)`'s provided by KiDS to correct
 for photometric redshift biases. Thus, we also bin the source galaxies
 by photometric redshift and read in the source redshift distribution in each
-photometric redshift bin. ::
+photometric redshift bin.
+
+.. code-block:: python
 
     import numpy as np
     from astropy import units as u
@@ -46,7 +50,9 @@ Pre-Computing the Signal
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
-:math:`z_l + 0.1 < z_s`. Afterwards, we run the actual pre-computation. ::
+:math:`z_l + 0.1 < z_s`. Afterwards, we run the actual pre-computation.
+
+.. code-block:: python
 
     from astropy.cosmology import Planck15
     from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
@@ -70,8 +76,10 @@ later use to estimate uncertainties. Finally, we stack the lensing signal in
 
 We choose to include all the necessary corrections factors. The multiplicative
 shear correction is the most important and absolutely necessary. The random
-subtraction is recommended but not strictlynecessary. Note that we don't apply
-a boost correction, but this is something that would also be possible.::
+subtraction is recommended but not strictly necessary. Note that we don't apply
+a boost correction, but this is something that would also be possible.
+
+.. code-block:: python
 
     from dsigma.jackknife import add_continous_fields, jackknife_field_centers
     from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
@@ -97,7 +105,8 @@ a boost correction, but this is something that would also be possible.::
         mask_r = ((z_bins[lens_bin] <= table_r_pre['z']) &
                   (table_r_pre['z'] < z_bins[lens_bin + 1]))
     
-        kwargs = {'return_table': True, 'shear_bias_correction': True,
+        kwargs = {'return_table': True,
+                  'scalar_shear_response_correction': True,
                   'random_subtraction': True, 'table_r': table_r_pre[mask_r]}
 
         result = excess_surface_density(table_l_pre[mask_l], **kwargs)
@@ -105,11 +114,12 @@ a boost correction, but this is something that would also be possible.::
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l_pre[mask_l], **kwargs)))
 
-    result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
+        result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
 
 Acknowledgements
 ----------------
 
 When using the above data and algorithms, please to read and follow the
 acknowledgement section on the
-`KiDS DR4 release site <http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.
+`KiDS DR4 release site
+<http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.

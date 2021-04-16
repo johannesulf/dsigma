@@ -14,7 +14,9 @@ publicly available data set is part of the public data release 2 (PDR2) and
 goes back to the internal S16A release.
 
 The following SQL script will return all the necessary data from the
-`CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_. ::
+`CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_.
+
+.. code-block::
 
     SELECT
         meas.object_id, meas.ira, meas.idec,
@@ -58,7 +60,9 @@ Preparing the Data
 ------------------
 
 First, we must put the data into a format easily understandable by
-:code:`dsigma`. There are a number of helper functions to make this easy. ::
+:code:`dsigma`. There are a number of helper functions to make this easy.
+
+.. code-block:: python
 
     import numpy as np
     from astropy import units as u
@@ -84,7 +88,9 @@ Pre-Computing the Signal
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
 :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterwards, we run
-the actual pre-computation. ::
+the actual pre-computation.
+
+.. code-block:: python
 
     from astropy.cosmology import Planck15
     from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
@@ -114,7 +120,9 @@ a big impact on the signal but is also required for HSC data. The photo-z
 dilution correction is not strictly necessary but highly recommended. Finally,
 the random subtraction is also highly recommended but not always applied. Note
 that we don't apply a boost correction, but this is something that would also
-be possible.::
+be possible.
+
+.. code-block:: python
 
     from dsigma.jackknife import add_continous_fields, jackknife_field_centers
     from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
@@ -140,12 +148,13 @@ be possible.::
         mask_r = ((z_bins[lens_bin] <= table_r_pre['z']) &
                   (table_r_pre['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True, 'shear_bias_correction': True,
+        kwargs = {'return_table': True,
+                  'scalar_shear_response_correction': True,
                   'shear_responsivity_correction': True,
-                  'selection_bias_correction': True,
+                  'hsc_selection_bias_correction': True,
                   'boost_correction': False, 'random_subtraction': True,
                   'photo_z_dilution_correction': True,
-                  'rotation': False, 'table_r': table_r_pre[mask_r]}
+                  'table_r': table_r_pre[mask_r]}
 
         result = excess_surface_density(table_l_pre[mask_l], **kwargs)
         kwargs['return_table'] = False

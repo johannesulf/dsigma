@@ -6,7 +6,8 @@ The package is written in python, has a broadly applicable API and is
 optimized for computational efficiency. While originally intended to be used
 with the shape catalog of the Hyper-Suprime Cam (HSC) survey, it is intended
 to also work with surveys like the Canada-France-Hawaii Telescope Lensing
-Survey (CFHTLenS) or the Kilo-Degree Survey (KiDS).
+Survey (CFHTLenS), the Kilo-Degree Survey (KiDS) or the Dark Energy Survey
+(DES).
 
 Authors
 -------
@@ -31,6 +32,7 @@ Authors
    :caption: Applications
 
    application_boss
+   application_des
    application_hsc
    application_kids
 

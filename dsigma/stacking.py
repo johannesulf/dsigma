@@ -28,9 +28,10 @@ def raw_tangential_shear(table_l, rotation=False):
 
     gamma = 'x' if rotation else 't'
 
-    return (np.sum(table_l['sum w_s e_{}'.format(gamma)] *
-                   table_l['w_sys'][:, None], axis=0) /
-            np.sum(table_l['sum w_s'] * table_l['w_sys'][:, None], axis=0))
+    return (np.sum(table_l['sum w_s e_{}'.format(gamma)].data *
+                   table_l['w_sys'].data[:, None], axis=0) /
+            np.sum(table_l['sum w_s'].data * table_l['w_sys'].data[:, None],
+                   axis=0))
 
 
 def raw_excess_surface_density(table_l, rotation=False):
@@ -49,10 +50,10 @@ def raw_excess_surface_density(table_l, rotation=False):
 
     gamma = 'x' if rotation else 't'
 
-    return (np.sum(table_l['sum w_ls e_{} sigma_crit'.format(gamma)] *
-                   table_l['w_sys'][:, None], axis=0) /
-            np.sum(table_l['sum w_ls'] *
-                   table_l['w_sys'][:, None], axis=0))
+    return (np.sum(table_l['sum w_ls e_{} sigma_crit'.format(gamma)].data *
+                   table_l['w_sys'].data[:, None], axis=0) /
+            np.sum(table_l['sum w_ls'].data *
+                   table_l['w_sys'].data[:, None], axis=0))
 
 
 def photo_z_dilution_factor(table_l):
@@ -69,10 +70,10 @@ def photo_z_dilution_factor(table_l):
         Photometric redshift bias :math:`f_{\mathrm{bias}}`.
     """
 
-    return (np.sum(table_l['sum w_ls e_t sigma_crit f_bias'] *
-                   table_l['w_sys'][:, None], axis=0) /
-            np.sum(table_l['sum w_ls e_t sigma_crit'] *
-                   table_l['w_sys'][:, None], axis=0))
+    return (np.sum(table_l['sum w_ls e_t sigma_crit f_bias'].data *
+                   table_l['w_sys'].data[:, None], axis=0) /
+            np.sum(table_l['sum w_ls e_t sigma_crit'].data *
+                   table_l['w_sys'].data[:, None], axis=0))
 
 
 def boost_factor(table_l, table_r):
@@ -93,14 +94,17 @@ def boost_factor(table_l, table_r):
     """
 
     return (
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['w_sys']) /
-        np.sum(table_r['sum w_ls'] * table_r['w_sys'][:, None], axis=0) *
-        np.sum(table_r['w_sys']))
+        np.sum(table_l['sum w_ls'].data *
+               table_l['w_sys'].data[:, None], axis=0) /
+        np.sum(table_l['w_sys'].data) /
+        np.sum(table_r['sum w_ls'].data *
+               table_r['w_sys'].data[:, None], axis=0) *
+        np.sum(table_r['w_sys'].data))
 
 
-def shear_bias_factor(table_l):
-    """Compute the multiplicative shear bias.
+def scalar_shear_response_factor(table_l):
+    """Compute the mean :math:`m` factor such that :math:`\gamma_{\mathrm obs}
+    = (1 + m) \gamma_{\mathrm intrinsic}`.
 
     Parameters
     ----------
@@ -114,7 +118,30 @@ def shear_bias_factor(table_l):
     """
 
     return (
-        np.sum(table_l['sum w_ls m'] * table_l['w_sys'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls m'].data *
+               table_l['w_sys'].data[:, None], axis=0) /
+        np.sum(table_l['sum w_ls'].data *
+               table_l['w_sys'].data[:, None], axis=0))
+
+
+def tensor_shear_response_factor(table_l):
+    """Compute the mean tangential response :math:`R_t` factor such that
+    :math:`\gamma_{\mathrm obs} = R_t \gamma_{\mathrm intrinsic}`.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+
+    Returns
+    -------
+    r_t : numpy array
+        Tangential shear response factor in each radial bin.
+    """
+
+    return (
+        np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
+               axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
@@ -197,26 +224,6 @@ def mean_critical_surface_density(table_l):
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def metacalibration_response_factor(table_l):
-    """Compute the METACALIBRATION response factor.
-
-    Parameters
-    ----------
-    table_l : astropy.table.Table
-        Precompute results for the lenses.
-
-    Returns
-    -------
-    r : numpy array
-        METACALIBRATION response factor in each radial bin.
-    """
-
-    return (
-        np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
-               axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
-
-
 def lens_magnification_bias(table_l, alpha_l, camb_results,
                             photo_z_dilution_correction=True):
     """Estimate the additive lens magnification bias.
@@ -260,10 +267,10 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
 def excess_surface_density(table_l, table_r=None, rotation=False,
                            photo_z_dilution_correction=False,
                            boost_correction=False,
-                           shear_bias_correction=False,
+                           scalar_shear_response_correction=False,
+                           tensor_shear_response_correction=False,
                            shear_responsivity_correction=False,
-                           metacalibration_response_correction=False,
-                           selection_bias_correction=False,
+                           hsc_selection_bias_correction=False,
                            random_subtraction=False,
                            return_table=False):
     """Compute the total lensing signal, including all corrections from
@@ -284,13 +291,13 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
     boost_correction : boolean, optional
         If true, calculate and apply a boost factor correction. This can only
         be done if a random catalog is provided.
-    shear_bias_correction : boolean or string, optional
-        Whether to correct for the multiplicative shear bias.
+    scalar_shear_response_correction : boolean or string, optional
+        Whether to correct for the multiplicative shear bias (scalar form).
+    tensor_shear_response_correction : boolean or string, optional
+        Whether to correct for the multiplicative shear bias (tensor form).
     shear_responsivity_correction : boolean, optional
         If true, correct for the shear responsivity.
-    metacalibration_response_correction : boolean, optional
-        If true, correct for the METACALIBRATION response.
-    selection_bias_correction : boolean, optional
+    hsc_selection_bias_correction : boolean, optional
         If true, correct for the multiplicative selection bias in HSC.
     random_subtraction : boolean, optional
         If true, subtract the signal around randoms. This can only be done if
@@ -330,22 +337,22 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
         result['ds'] *= result['b']
         result['et'] *= result['b']
 
-    if shear_bias_correction:
-        result['1 + m'] = 1 + shear_bias_factor(table_l)
-        result['ds'] /= result['1 + m']
-        result['et'] /= result['1 + m']
+    if scalar_shear_response_correction:
+        result['1+m'] = 1 + scalar_shear_response_factor(table_l)
+        result['ds'] /= result['1+m']
+        result['et'] /= result['1+m']
+
+    if tensor_shear_response_correction:
+        result['R_t'] = tensor_shear_response_factor(table_l)
+        result['ds'] /= result['R_t']
+        result['et'] /= result['R_t']
 
     if shear_responsivity_correction:
         result['2R'] = 2 * shear_responsivity_factor(table_l)
         result['ds'] /= result['2R']
         result['et'] /= result['2R']
 
-    if metacalibration_response_correction:
-        result['R_MCAL'] = metacalibration_response_factor(table_l)
-        result['ds'] /= result['R_MCAL']
-        result['et'] /= result['R_MCAL']
-
-    if selection_bias_correction:
+    if hsc_selection_bias_correction:
         result['1 + m_sel'] = 1 + surveys.hsc.selection_bias_factor(
             table_l)
         result['ds'] *= result['1 + m_sel']
@@ -363,10 +370,10 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
             table_r, rotation=rotation,
             photo_z_dilution_correction=photo_z_dilution_correction,
             boost_correction=False,
-            shear_bias_correction=shear_bias_correction,
+            scalar_shear_response_correction=scalar_shear_response_correction,
+            tensor_shear_response_correction=tensor_shear_response_correction,
             shear_responsivity_correction=shear_responsivity_correction,
-            metacalibration_response_correction=metacalibration_response_correction,
-            selection_bias_correction=selection_bias_correction,
+            hsc_selection_bias_correction=hsc_selection_bias_correction,
             random_subtraction=False, return_table=True)
         result['ds_r'] = result_r['ds']
         result['et_r'] = result_r['et']

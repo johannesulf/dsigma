@@ -1,7 +1,7 @@
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
            'default_column_keys']
 
-e_2_convention = 'flipped'
+e_2_convention = 'standard'
 default_version = None
 known_versions = [None, ]
 

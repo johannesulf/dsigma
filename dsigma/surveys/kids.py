@@ -6,7 +6,7 @@ __all__ = ['default_version', 'known_versions', 'e_2_convention',
 
 default_version = 'DR4'
 known_versions = ['DR3', 'KV450', 'DR4']
-e_2_convention = 'flipped'
+e_2_convention = 'standard'
 
 
 def default_column_keys(version=default_version):

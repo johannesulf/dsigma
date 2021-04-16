@@ -271,8 +271,8 @@ def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
             table_s_sub['sin dec'], table_s_sub['cos dec'])
 
         # Calculate the tangential and cross shear terms.
-        e_t = - table_s_sub['e_1'] * cos2phi - table_s_sub['e_2'] * sin2phi
-        e_x = + table_s_sub['e_1'] * sin2phi - table_s_sub['e_2'] * cos2phi
+        e_t = - table_s_sub['e_1'] * cos2phi + table_s_sub['e_2'] * sin2phi
+        e_x = + table_s_sub['e_1'] * sin2phi + table_s_sub['e_2'] * cos2phi
 
         # The weight of each lens-source pair is weighted by the critical
         # surface density.

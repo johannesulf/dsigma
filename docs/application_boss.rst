@@ -14,7 +14,9 @@ following, we will assume that all relevant lens
 (:code:`galaxy_DR12v5_CMASSLOWZ_*.fits.gz`) and random files
 (:code:`random0_DR12v5_CMASSLOWZ_*.fits.gz`) are in the working directory. The
 following code reads in the data and puts it in the a format easily
-understandable by :code:`dsigma`. ::
+understandable by :code:`dsigma`.
+
+.. code-block:: python
 
     from astropy.table import Table, vstack
     from dsigma.helpers import dsigma_table
