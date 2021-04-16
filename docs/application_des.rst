@@ -220,10 +220,12 @@ galaxy nearby. Then we divide it into different jackknife samples that we will
 later use to estimate uncertainties. Finally, we stack the lensing signal in
 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. The multiplicative
-shear correction is the most important and absolutely necessary. The random
-subtraction is recommended but not strictlynecessary. Note that we don't apply
-a boost correction, but this is something that would also be possible.
+We choose to include all the necessary corrections factors. The tensor shear
+response correction and the photo-z dilution correction are the ones discussed
+above. Additionally, we perform a random subtraction which is highly
+recommended but not strictly necessary. Note that we don't apply
+a boost correction since this might be biased for DES given our boost
+estimator.
 
 .. code-block:: python
 
