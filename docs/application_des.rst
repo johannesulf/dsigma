@@ -151,14 +151,14 @@ where
 
 is the usual weight using the METACALIBRATION redshift. The above equation is
 much more similar to what :code:`dsigma` works with. The first of the three
-fractions corresponds to the mean shear response. The second term is a
-response-weighted :math:`f_{\rm bias}` factor where the Monte-Carlo draw from
-the MOF :math:`p(z)` is used as the "true" redshift. This implies that we
-implicitly assume that the Monte-Carlo draws from the MOF :math:`p(z)` sample
-the true redshift distributions :math:`n(z)` of source galaxies. Finally, the
-third time is the usual estimate of the raw excess surface density where we
-used the METACALIBRATION redshift to calculate weights and critical surface
-densities.
+fractions corresponds to the correction for the mean shear response. The second
+term is a response-weighted :math:`f_{\rm bias}` factor where the Monte-Carlo
+draw from the MOF :math:`p(z)` is used as the "true" redshift. This implies
+that we implicitly assume that the Monte-Carlo draws from the MOF :math:`p(z)`
+sample the true redshift distributions :math:`n(z)` of source galaxies.
+Finally, the third time is the usual estimate of the raw excess surface density
+where we used the METACALIBRATION redshift to calculate weights and critical
+surface densities.
 
 :code:`dsigma` implements almost the same estimator with the only difference
 being how the :math:`f_{\rm bias}` term is calculated and applied. First, the
