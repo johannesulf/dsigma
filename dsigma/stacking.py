@@ -5,11 +5,11 @@ from . import surveys
 from .physics import mpc_per_degree, lens_magnification_shear_bias
 
 __all__ = ['raw_tangential_shear', 'raw_excess_surface_density',
-           'photo_z_dilution_factor', 'boost_factor', 'shear_bias_factor',
+           'photo_z_dilution_factor', 'boost_factor',
+           'scalar_shear_response_factor', 'tensor_shear_response_factor',
            'shear_responsivity_factor', 'mean_lens_redshift',
            'mean_source_redshift', 'mean_critical_surface_density',
-           'metacalibration_response_factor', 'excess_surface_density',
-           'shape_noise_error']
+           'excess_surface_density', 'shape_noise_error']
 
 
 def raw_tangential_shear(table_l, rotation=False):

@@ -94,12 +94,10 @@ def precompute_photo_z_dilution_factor(
         The photo-z bias factor, `f_bias`.
     """
 
-    if 'd_com' not in table_c.colnames:
-        table_c['d_com'] = cosmology.comoving_transverse_distance(
-            table_c['z']).to(u.Mpc).value
-
-    table_c['d_com_true'] = cosmology.comoving_transverse_distance(
-        table_c['z_true']).to(u.Mpc).value
+    for key in ['', '_true']:
+        if 'd_com' + key not in table_c.colnames:
+            table_c['d_com' + key] = cosmology.comoving_transverse_distance(
+                table_c['z' + key]).to(u.Mpc).value
 
     if 'z_l_max' not in table_c.colnames:
         print("Warning: Could not find a lens-source separation cut." +
@@ -413,12 +411,16 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                         'but received {}.'.format(n_jobs))
 
     if 'd_com' not in table_l.colnames:
-        table_l['d_com'] = cosmology.comoving_transverse_distance(
-            table_l['z']).to(u.Mpc).value
+        with Pool(n_jobs) as pool:
+            table_l['d_com'] = np.concatenate(pool.map(
+                cosmology.comoving_transverse_distance,
+                np.array_split(table_l['z'], n_jobs))).to(u.Mpc).value
 
     if 'd_com' not in table_s.colnames and nz is None:
-        table_s['d_com'] = cosmology.comoving_transverse_distance(
-            table_s['z']).to(u.Mpc).value
+        with Pool(n_jobs) as pool:
+            table_s['d_com'] = np.concatenate(pool.map(
+                cosmology.comoving_transverse_distance,
+                np.array_split(table_s['z'], n_jobs))).to(u.Mpc).value
 
     if np.any(table_l['z'] < 0):
         raise Exception('Input lens redshifts must all be non-negative.')
@@ -441,9 +443,13 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                             'than where passed via the nz argument.')
 
     if table_c is not None:
-        if 'd_com_true' not in table_c.colnames:
-            table_c['d_com_true'] = cosmology.comoving_transverse_distance(
-                table_c['z_true']).to(u.Mpc).value
+        for key in ['', '_true']:
+            if 'd_com' + key not in table_c.colnames:
+                with Pool(n_jobs) as pool:
+                    table_c['d_com' + key] = np.concatenate(pool.map(
+                        cosmology.comoving_transverse_distance,
+                        np.array_split(table_c['z' + key], n_jobs))).to(
+                            u.Mpc).value
 
     if 'w_sys' not in table_l.colnames:
         print("Warning: Could not find systematic weights for lenses. " +

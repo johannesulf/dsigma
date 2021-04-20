@@ -5,7 +5,7 @@ with open('README.md', 'r') as fstream:
 
 setup(
     name='dsigma',
-    version="0.4.0",
+    version="0.5.0",
     description=('A Galaxy-Galaxy Lensing Pipeline'),
     long_description=long_description,
     long_description_content_type="text/markdown",

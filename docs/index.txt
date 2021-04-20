@@ -19,6 +19,7 @@ Authors
    :caption: Getting Started
 
    installation
+   background
 
 .. toctree::
    :caption: Workflow

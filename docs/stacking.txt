@@ -31,39 +31,6 @@ calculated as
 where :math:`w_{\mathrm{s}}` is some weight associated to the noise of galaxy
 shapes.
 
-Correction Factors
-------------------
-
-Unfortunately, for virtually all lensing surveys, the above estimate is biased.
-Thus, we need to apply a variety of correction terms to correction terms to get
-an unbiased estimate of :math:`\Delta\Sigma`.
-
-Photo-z Dilution
-^^^^^^^^^^^^^^^^
-
-When calculating the critical excess surface density
-:math:`\Sigma_{\mathrm{crit}}`, we need to know both lens and source redshift.
-However, in many lensing surveys, we only have very inaccurate and possibly
-biased photometric redshifts for sources. Even in case of just inaccurate
-redshifts, this can cause systematic biases in the calculation of
-:math:`\Sigma_{\mathrm{crit}}`. We can correct for this via the photo-z
-dilution correction, commonly described via :math:`f_{\rm bias}`. We refer the
-reader to Leauthaud et al. (in prep) for a derivation of this correction
-factor. It's defined via
-
-.. math::
-
-    f_{\rm bias}^{-1} =
-        \frac{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}} w_{\mathrm{sys, l}}
-              \sum_{\mathrm{ls}} w_{\mathrm{ls}} \frac{
-                  \Sigma_{\rm c, ls, true}}{\Sigma_{\rm c, ls, photo-z}}
-              }{\sum_{\mathrm{l} = 1}^{N_{\mathrm{l}}}
-              w_{\mathrm{sys, l}} \sum_{\mathrm{ls}} w_{\mathrm{ls}}} \, .
-
-To apply the correction, we multiply the raw lensing signal by
-:math:`f_{\rm bias}`. In order to run the photo-z dilution correction, you must
-have passed a calibration catalog during the pre-compuation phase.
-
 Boost Factor
 ^^^^^^^^^^^^
 
