@@ -110,7 +110,7 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
             del keys['e_2']
             del keys['w']
             del keys['m']
-            keys.pop('sigma_rms', None)
+            keys.pop('e_rms', None)
             keys.pop('R_2', None)
         if e_2_convention is None:
             e_2_convention = getattr(surveys, survey.lower()).e_2_convention
