@@ -146,7 +146,7 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
         else:
             table.rename_column(input_key, output_key)
 
-    if e_2_convention == 'flipped':
+    if e_2_convention == 'flipped' and table_type == 'source':
         table['e_2'] = - table['e_2']
         if verbose:
             print("Info: Flipping sign of e_2 component.")
