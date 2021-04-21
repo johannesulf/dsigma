@@ -1,5 +1,6 @@
+##############################################
 A Simple Python Galaxy-Galaxy Lensing Pipeline
-==============================================
+##############################################
 
 :code:`dsigma` is an easy-to-use pipeline for analyzing galaxy-galaxy lensing.
 The package is written in python, has a broadly applicable API and is
@@ -9,8 +10,9 @@ to also work with surveys like the Canada-France-Hawaii Telescope Lensing
 Survey (CFHTLenS), the Kilo-Degree Survey (KiDS) or the Dark Energy Survey
 (DES).
 
+*******
 Authors
--------
+*******
 
 * Johannes Lange
 * Song Huang
@@ -32,7 +34,7 @@ Authors
 .. toctree::
    :caption: Applications
 
-   application_boss
+   application_intro
    application_des
    application_hsc
    application_kids

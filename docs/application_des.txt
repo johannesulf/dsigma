@@ -1,13 +1,16 @@
+########################
 Dark Energy Survey (DES)
-========================
+########################
 
 Here, we we will show how to cross-correlate BOSS lens galaxies with shape
 catalogs from DES. We will work with the Y1 data release, the only release
 currently publicly available. The code will likely have to be adjusted for the
 upcoming Y3 data release.
 
+
+********************
 Downloading the Data
---------------------
+********************
 
 DES data can be downloaded from the `DES data release website
 <https://des.ncsa.illinois.edu/releases>`_. The following commands should
@@ -22,8 +25,10 @@ use to approximate the true redshift distribution :math:`n(z)`.
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/photoz_catalogs/y1a1-gold-mof-badregion_BPZ.fits
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/photoz_catalogs/mcal-y1a1-combined-griz-blind-v3-matched_BPZbase.fits
 
+
+******************
 Preparing the Data
-------------------
+******************
 
 The first step is to put the data into a format easily understandable by
 :code:`dsigma`. There are a number of helper functions to make this easy.
@@ -55,8 +60,10 @@ memory is not an issue, feel free to use :code:`astropy`, instead.)
     table_s = dsigma_table(table_s, 'source', survey='DES')
     table_s['z_bin'] = des.tomographic_redshift_bin(table_s['z'])
 
+
+******************
 Selection Response
-------------------
+******************
 
 In an intermediate step, we calculate the so-called METACALIBRATION selection
 response. This factor takes into account how the selection flags of the
@@ -106,8 +113,10 @@ that fall outside the redshift bins).
 
     table_s = table_s[(table_s['flags_select'] == 0) & (table_s['z_bin'] != -1)]
 
+
+*********************
 Note on the Estimator
----------------------
+*********************
 
 The Dark Energy Survey uses the following estimator for :math:`\Delta\Sigma`
 (excluding random subtraction):
@@ -191,8 +200,10 @@ each individual raw :math:`\Delta\Sigma` estimate as a function of lens
 redshift, i.e. :math:`f_{\rm bias} = f_{\rm bias} (z_l)`. This difference
 should not matter since both estimators can be shown to be unbiased.
 
+
+************************
 Pre-Computing the Signal
-------------------------
+************************
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
@@ -207,12 +218,14 @@ we first define the lens-source separation cuts. We require that
 
     rp_bins = np.logspace(-1, 1.6, 14)
     table_l_pre = precompute_catalog(table_l, table_s, rp_bins, cosmology=Planck15,
-                                     comoving=True, table_c=table_s)
+                                     comoving=True, table_c=table_c)
     table_r_pre = precompute_catalog(table_r, table_s, rp_bins, cosmology=Planck15,
-                                     comoving=True, table_c=table_s)
+                                     comoving=True, table_c=table_c)
 
+
+*******************
 Stacking the Signal
--------------------
+*******************
 
 The total galaxy-galaxy lensing signal can be obtained with the following code.
 It first filters out all BOSS galaxies for which we couldn't find any source
@@ -264,8 +277,10 @@ estimator.
 
         result.write('des_{}.csv'.format(lens_bin), overwrite=True)
 
+
+****************
 Acknowledgements
-----------------
+****************
 
 When using the above data and algorithms, please to read and follow the
 acknowledgement section on the `DES data release site

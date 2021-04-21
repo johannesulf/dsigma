@@ -32,9 +32,9 @@ first term in the above equation can be shown to be :math:`M / \pi r_p^2`
 whereas the second term vanishes. Thus, :math:`\Delta\Sigma = M / \pi r_p^2`.
 For non-trivial mass distributions, the above expression is more complicated.
 However, if we have two mass distributions whose only difference is a
-re-scaling, i.e. :math:`\Sigma_1 (r_p) / \Sigma_2 (r_p) = x` or
-:math:`\rho (r) / \rho_2 (r) = x` (:math:`\rho` refers to the three-dimensional
-density), then the two ESDs obey :math:`\Delta\Sigma_1 / \Delta\Sigma_2 = x`.
+re-scaling, i.e. :math:`\Sigma_1 (r_p) / \Sigma_2 (r_p) = c` or
+:math:`\rho (r) / \rho_2 (r) = c` (:math:`\rho` refers to the three-dimensional
+density), then the two ESDs obey :math:`\Delta\Sigma_1 / \Delta\Sigma_2 = c`.
 Ultimetaly, :math:`\Delta\Sigma` is a measure of the distribution of mass (both
 baryonic and dark) around lens galaxies.
 
@@ -103,7 +103,7 @@ where
 
 .. math::
 
-    w_{\mathrm{ls}} = \frac{w_s}{\Sigma_{\mathrm{crit}}^2 (z_l, z_s)}
+    w_{ls} = \frac{w_s}{\Sigma_{\mathrm{crit}}^2 (z_l, z_s)}
 
 and :math:`w_s` is a source weight designed to minimize errors due to noise
 in the shape meeasurements themselves. :math:`\sum_{ls}` denotes that the
@@ -153,8 +153,8 @@ used for the stacking. In this case, we simply replace the above estimator with
               (z_l, z_s) e_t}{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}} \, .
 
 
-Photometric Redshift Bias
-=========================
+Photometric Redshifts
+=====================
 
 When calculating the critical surface density :math:`\Sigma_{\mathrm{crit}}`,
 we need to know both lens and source redshift. However, in many lensing
@@ -225,9 +225,9 @@ for this effect is to calculate the so-called boost factor :math:`b` via
 
 .. math::
 
-    b(r_p) =
-        \frac{\sum_{ls} w_{\mathrm{sys, l}} w_{ls}}{\sum_{rs}
-              w_{\mathrm{sys, l}} w_{ls}} \, .
+    b =
+        \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}}{\sum_{rs}
+              w_{\mathrm{sys}, l} w_{ls}} \, .
 
 Note that the sum in the denominator goes over a set of random lenses with the
 same overall redshift and spatial extent as the true lenses. Effectively, we
@@ -235,11 +235,127 @@ are trying to detect any over-abundance of sources close to lenses as opposed
 to random points. If sources cluster around lenses, i.e. there is an
 over-abundance of sources physically associated with the lenses, then :math:`b
 \geq 1`. To apply the correction, we multiply the raw lensing signal by the
-radially dependent boost factor :math:`b(r_p)`.
+radially dependent boost factor :math:`b`.
 
 Note however, that this boost factor estimate might be biased for various shape
 detection algorithms. For example, it is not unreasonable to assume that a
 larger fraction of potential source galaxies are rejected close to massive
 cluster lenses due to an increase in blending between different sources. This
-woud lead to biases in the estimate of :math:`b(r_p)`.
+woud lead to biases in the estimate of :math:`b`.
 
+
+Shear Response
+==============
+
+Although the algorithms used by different weak lensing groups are very
+sophisticated, the measured shapes of galaxies can still be biased. We need to
+correct for this in the galaxy-galaxy lensing estimator in order to get
+unbiased estimates of :math:`\Delta\Sigma`. Typically, lensing surveys provide
+a (scalar) bias estimate :math:`m` for every object or group of objects. This
+bias quantifies the response of the measured shapes to changes in intrinsic
+shapes such that, on average, the measured ellipticities are biased by
+:math:`1 + m`. In order to correct for this bias, one first calculates the
+average shear bias via
+
+.. math::
+
+    \bar{m} =
+        \frac{\sum_{ls} w_{\mathrm{sys, l}} w_{ls} m_s}{\sum_{ls}
+              w_{\mathrm{sys, l}} w_{ls}} \, .
+
+To apply the correction, we simply divide the raw lensing signal by :math:`1 +
+\bar{m}(R)` in each radial bin. For some applications, it is important that
+this correction is applied to a set of lens-source pairs and not every object
+individually. The reason is that individual shear bias estimates might be
+noisy. Thus, applying this correction to the shapes of individual objects can
+lead to biases because generally :math:`\langle 1 + m \rangle^{-1} \neq
+\langle (1 + m)^{-1} \rangle`.
+
+The Dark Energy Survey uses the shear measurement code METACALIBRATION. This
+code generalizes the shear response formalism by providing a shear response
+tensor :math:`\mathbf{R}` instead of a scalar.
+
+.. math::
+
+    \mathbf{R} = \frac{\partial \mathbf{e}}{\partial \mathbf{\gamma}} =
+                 \begin{bmatrix} R_{11} & R_{12}\\R_{21} & R_{22} \end{bmatrix}
+
+This formalism allows it to quantify, for example, how the sensitivity to shape
+distortions depends on direction. However, this does not change the response
+formalism substantially. Instead of averaging the (scalar) bias, we average
+the projection of the response tensor onto the tangential direction of the
+lens-source pair,
+
+.. math::
+
+    R_t = R_{11} \cos^2 (2 \phi) + R_{22} \sin^2 (2 \phi)+ (R_{12} + R_{21})
+          \sin (2 \phi) \cos (2 \phi)
+
+where :math:`\phi` is the polar angle of the source in the lens coordinate
+system. We then just calculate the mean tangential shear response and divide
+:math:`\Delta\Sigma` by :math:`\overline{R_t}`, similar to the scalar case.
+
+Shear Responsivity
+==================
+
+Depending on the shape estimator, the ellipticity vector of some shape
+detection algorithm will be biased :math:`2 (1 - e_\mathrm{rms}^2)`, where
+:math:`e_\mathrm{rms}` is the intrinsic shape dispersion per component. In
+contrast to the shear response bias, this bias is not due to, for example
+imperfections like blending, and instead is a natural mathematical property of
+the estimator. Nonetheless, we need to correct for it and we do so in virtually
+the same way as for the shear response bias.
+
+.. math::
+
+    \mathcal{R} = 1 -
+        \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls} e_{{\rm rms}, s}^2}{
+              \sum_{ls} w_{\mathrm{sys}, l} w_{ls}} \, .
+
+To apply the shear responsivity correction, we need to divide the final lensing
+signal by :math:`2\mathcal{R}`. This correction is somewhat large so it is
+critical to apply it when necessary. One example is the public shape catalog
+of the Hyper Suprime-Cam survey.
+
+Selection Bias
+==============
+
+While the shear response and responsivity describe how the measured shapes of
+individual galaxies are affected by the measurement pipeline, the selection
+bias describes the phenomenon that the selection of sources, i.e. quality
+cuts, can depend on the intrinsic shape itself. Without correcting for this
+effect, this could lead to biases in the mean tangential shear.
+
+Correcting for selection bias is handled very differently between different
+surveys. Details about the selection bias in the Hyper Suprime-Cam survey can
+be found in section 5.6.2 of `Mandelbaum et al. (2018)
+<https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_. Similarly,
+details on the selection bias in the Dark Energy Survey can be found in
+`Sheldon & Huff (2017)
+<https://ui.adsabs.harvard.edu/abs/2017ApJ...841...24S>`_. We also refer the
+reader to their respective tutorials where these correction factors are
+implemented. Luckily, the selection bias affects the shear only at the level
+of :math:`\sim 1\%`.
+
+Random Subtraction
+==================
+
+Often, we can calculate the lensing signal around a set of random lenses with
+the same overall redshift and spatial distribution as the true lenses. If these
+random lenses are truly random, they have no correlation with the large-scale
+matter field. As a result, they should give a lensing amplitude consistent with
+0. However, lensing systematics like systematic shears can lead to non-zero
+signals even for random points. Subtracting those points can alleviate such
+systematic errors. Furthermore, even in the absence of lensing systematics,
+subtracting randoms leads to a reduced variance of the lensing signal on large
+scales, as shown in `Singh et al. (2017)
+<https://ui.adsabs.harvard.edu/abs/2017MNRAS.471.3827S/abstract>`_.
+
+Note: When applying the random subtraction, we first calculate the lensing
+amplitude around lenses including their own shear bias, shear responsivity and
+HSC selection bias correction, if such corrections are also applied to the lens
+sample, as well. Applying individual corrections for the random sample instead
+just using the ones for the lens sample is important when the lens sample
+itself is very small and the correction factors are noisy. After the random
+signal is subtracted from the lens signal, we apply boost factor and photo-z
+dilution corrections.

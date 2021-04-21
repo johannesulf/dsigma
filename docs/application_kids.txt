@@ -1,13 +1,16 @@
+#########################
 Kilo-Degree Survey (KiDS)
-=========================
+#########################
 
 In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
 shape catalogs from KiDS. We will work with the 4th data release but it
 should be straightforward to adjust the code to work with DR3 (KiDS-450) or
 KV450.
 
+
+********************
 Downloading the Data
---------------------
+********************
 
 First, we need to download the necessary KiDS data files. The following 
 commands should download all the necessary data.
@@ -19,8 +22,9 @@ commands should download all the necessary data.
     tar -xvf KiDS1000_SOM_N_of_Z.tar.gz --strip 1
 
 
+******************
 Preparing the Data
-------------------
+******************
 
 First, we must put the data into a format easily understandable by
 :code:`dsigma`. There are a number of helper functions to make this easy.
@@ -45,8 +49,10 @@ photometric redshift bin.
              '_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
     nz = np.array([np.genfromtxt(fname.format(i + 1)).T for i in range(5)])
 
+
+************************
 Pre-Computing the Signal
-------------------------
+************************
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
@@ -65,8 +71,10 @@ we first define the lens-source separation cuts. We require that
     table_r_pre = precompute_catalog(table_r, table_s, rp_bins, cosmology=Planck15,
                                      comoving=True, nz=nz)
 
+
+*******************
 Stacking the Signal
--------------------
+*******************
 
 The total galaxy-galaxy lensing signal can be obtained with the following code.
 It first filters out all BOSS galaxies for which we couldn't find any source
@@ -116,8 +124,10 @@ a boost correction, but this is something that would also be possible.
 
         result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
 
+
+****************
 Acknowledgements
-----------------
+****************
 
 When using the above data and algorithms, please to read and follow the
 acknowledgement section on the

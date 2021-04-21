@@ -1,11 +1,14 @@
+#######################
 Hyper Suprime-Cam (HSC)
-=======================
+#######################
 
 In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
 shape catalogs from the HSC survey.
 
+
+********************
 Downloading the Data
---------------------
+********************
 
 First, we need to download the necessary HSC data files. Head over to the
 `HSC data release site <https://hsc-release.mtk.nao.ac.jp/doc/>`_ and register
@@ -56,8 +59,10 @@ ephor_ab/pdf-s17a_wide-9812.cat.fits>`_,
 cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/
 ephor_ab/pdf-s17a_wide-9813.cat.fits>`_.
 
+
+******************
 Preparing the Data
-------------------
+******************
 
 First, we must put the data into a format easily understandable by
 :code:`dsigma`. There are a number of helper functions to make this easy.
@@ -82,8 +87,10 @@ First, we must put the data into a format easily understandable by
     table_c = dsigma_table(table_c, 'calibration', w_sys='SOM_weight',
                            w='weight_source', z_true='COSMOS_photoz', survey='HSC')
 
+
+************************
 Pre-Computing the Signal
-------------------------
+************************
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
@@ -104,8 +111,10 @@ the actual pre-computation.
     table_r_pre = precompute_catalog(table_r, table_s, rp_bins, table_c=table_c,
                                      cosmology=Planck15, comoving=True)
 
+
+*******************
 Stacking the Signal
--------------------
+*******************
 
 The total galaxy-galaxy lensing signal can be obtained with the following code.
 It first filters out all BOSS galaxies for which we couldn't find any source
@@ -163,8 +172,10 @@ be possible.
     
         result.write('hsc_{}.csv'.format(lens_bin))
 
+
+****************
 Acknowledgements
-----------------
+****************
 
 When using the above data and algorithms, please make sure to cite
 `Mandelbaum et al. (2018a) <https://ui.adsabs.harvard.edu/abs/
