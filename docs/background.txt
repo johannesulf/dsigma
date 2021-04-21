@@ -6,7 +6,8 @@ Here, we will give a brief overview over the various equations and estimators
 provided by :code:`dsigma`. However, this document is not a full theoretical
 discussion of the theory of gravitational lensing and galaxy-galaxy lensing
 in particular. For this, we refer the reader to suitable standard literature
-like ...
+like `Bartelmann (2001)
+<https://ui.adsabs.harvard.edu/abs/2001PhR...340..291B/abstract>`_.
 
 
 **********************
@@ -350,12 +351,3 @@ systematic errors. Furthermore, even in the absence of lensing systematics,
 subtracting randoms leads to a reduced variance of the lensing signal on large
 scales, as shown in `Singh et al. (2017)
 <https://ui.adsabs.harvard.edu/abs/2017MNRAS.471.3827S/abstract>`_.
-
-Note: When applying the random subtraction, we first calculate the lensing
-amplitude around lenses including their own shear bias, shear responsivity and
-HSC selection bias correction, if such corrections are also applied to the lens
-sample, as well. Applying individual corrections for the random sample instead
-just using the ones for the lens sample is important when the lens sample
-itself is very small and the correction factors are noisy. After the random
-signal is subtracted from the lens signal, we apply boost factor and photo-z
-dilution corrections.
