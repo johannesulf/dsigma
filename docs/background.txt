@@ -264,8 +264,8 @@ average shear bias via
               w_{\mathrm{sys, l}} w_{ls}} \, .
 
 To apply the correction, we simply divide the raw lensing signal by :math:`1 +
-\bar{m}(R)` in each radial bin. For some applications, it is important that
-this correction is applied to a set of lens-source pairs and not every object
+\bar{m}` in each radial bin. For some applications, it is important that this
+correction is applied to a set of lens-source pairs and not every object
 individually. The reason is that individual shear bias estimates might be
 noisy. Thus, applying this correction to the shapes of individual objects can
 lead to biases because generally :math:`\langle 1 + m \rangle^{-1} \neq
