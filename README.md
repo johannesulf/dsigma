@@ -1,5 +1,7 @@
 # A Simple Python Galaxy-Galaxy Lensing Pipeline
 
+![plot](./docs/plot.png)
+
 `dsigma` is an easy-to-use pipeline for analyzing galaxy-galaxy lensing. It is
 written in pure python, has a broadly applicable API and is optimized for
 computational efficiency. While originally intended to be used with the shape

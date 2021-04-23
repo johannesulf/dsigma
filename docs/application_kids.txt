@@ -12,7 +12,7 @@ KV450.
 Downloading the Data
 ********************
 
-First, we need to download the necessary KiDS data files. The following 
+First, we need to download the necessary KiDS data files. The following
 commands should download all the necessary data.
 
 .. code-block::
@@ -48,6 +48,7 @@ photometric redshift bin.
     fname = ('K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2' +
              '_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
     nz = np.array([np.genfromtxt(fname.format(i + 1)).T for i in range(5)])
+    nz[:, 0, :] += 0.025  # in original file, redshifts are lower bin edges
 
 
 ************************
@@ -112,7 +113,7 @@ a boost correction, but this is something that would also be possible.
                   (table_l_pre['z'] < z_bins[lens_bin + 1]))
         mask_r = ((z_bins[lens_bin] <= table_r_pre['z']) &
                   (table_r_pre['z'] < z_bins[lens_bin + 1]))
-    
+
         kwargs = {'return_table': True,
                   'scalar_shear_response_correction': True,
                   'random_subtraction': True, 'table_r': table_r_pre[mask_r]}

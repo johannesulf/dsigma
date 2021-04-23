@@ -2,13 +2,16 @@
 A Simple Python Galaxy-Galaxy Lensing Pipeline
 ##############################################
 
+.. image:: plot.png
+   :width: 100 %
+   :align: center
+
 :code:`dsigma` is an easy-to-use pipeline for analyzing galaxy-galaxy lensing.
 The package is written in python, has a broadly applicable API and is
 optimized for computational efficiency. While originally intended to be used
-with the shape catalog of the Hyper-Suprime Cam (HSC) survey, it is intended
-to also work with surveys like the Canada-France-Hawaii Telescope Lensing
-Survey (CFHTLenS), the Kilo-Degree Survey (KiDS) or the Dark Energy Survey
-(DES).
+with the shape catalog of the Hyper-Suprime Cam (HSC) survey, it is also works
+with surveys like the Canada-France-Hawaii Telescope Lensing Survey (CFHTLenS),
+the Kilo-Degree Survey (KiDS) or the Dark Energy Survey (DES).
 
 *******
 Authors
@@ -48,4 +51,3 @@ Authors
    api/precompute
    api/stacking
    api/surveys
-
