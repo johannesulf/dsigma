@@ -1,3 +1,4 @@
+import warnings
 from functools import partial
 from multiprocessing import Pool
 
@@ -31,7 +32,7 @@ precompute_keys = [
     'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
     'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
     'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T',
-    'sum w_ls z_s', 'sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit f_bias']
+    'sum w_ls z_s', 'sum w_ls z_l', 'sum w_ls e_t sigma_crit f_bias']
 
 
 def _search_around_sky(ra, dec, kdtree, rmin, rmax):
@@ -100,10 +101,8 @@ def precompute_photo_z_dilution_factor(
                 table_c['z' + key]).to(u.Mpc).value
 
     if 'z_l_max' not in table_c.colnames:
-        print("Warning: Could not find a lens-source separation cut." +
-              " Thus, only z_l < z_s is required. Consider running " +
-              "`add_maximum_lens_redshift` to define a lens-source " +
-              "separation cut.")
+        warnings.warn('Could not find a lens-source separation cut. Only ' +
+                      'z_l < z_s will required.', RuntimeWarning)
         table_c['z_l_max'] = table_c['z']
 
     sigma_crit_phot = critical_surface_density(z_l, table_c['z'],
@@ -113,8 +112,13 @@ def precompute_photo_z_dilution_factor(
     mask = z_l < table_c['z_l_max']
     w = table_c['w_sys'] * table_c['w']
 
-    return (np.sum((w / sigma_crit_phot**2)[mask]) /
-            np.sum((w / sigma_crit_phot / sigma_crit_true)[mask]))
+    if np.sum(mask) > 0:
+        return (np.sum((w / sigma_crit_phot**2)[mask]) /
+                np.sum((w / sigma_crit_phot / sigma_crit_true)[mask]))
+    else:
+        warnings.warn('Could not find valid calibration sources for some ' +
+                      'lens redshifts. The f_bias correction may be ' +
+                      'undefined.', RuntimeWarning)
 
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
@@ -316,7 +320,7 @@ def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
         table_l['sum 1'][i, :] = sum_s()
 
         table_l['sum w_ls z_s'][i, :] = sum_s(weights=w_ls * table_s_sub['z'])
-        table_l['sum w_ls sigma_crit'][i, :] = sum_s(weights=sigma_crit_w_ls)
+        table_l['sum w_ls z_s'][i, :] = sum_s(weights=w_ls * lens['z'])
 
         # Resolution selection bias.
         if 'R_2' in table_s_sub.keys():
@@ -452,16 +456,13 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                             u.Mpc).value
 
     if 'w_sys' not in table_l.colnames:
-        print("Warning: Could not find systematic weights for lenses. " +
-              "Weights can be specified in the `w` column of the lens" +
-              "table. Weights are set to unity.")
+        warnings.warn('Could not find systematic weights for lenses. ' +
+                      'Weights are set to unity.', RuntimeWarning)
         table_l['w_sys'] = 1
 
     if 'z_l_max' not in table_s.colnames:
-        print("Warning: Could not find a lens-source separation cut." +
-              " Thus, only z_l < z_s is required. Consider running " +
-              "`add_maximum_lens_redshift` to define a lens-source " +
-              "separation cut.")
+        warnings.warn('Could not find a lens-source separation cut. Only ' +
+                      'z_l < z_s will required.', RuntimeWarning)
         table_s['z_l_max'] = table_s['z']
 
     if trim:
@@ -503,12 +504,13 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
                     table[col] = f(np.deg2rad(table[angle]))
 
     if table_c is not None:
-        z_min = np.amin(table_l['z']) * (1 - 1e-6)
-        z_max = np.amax(table_l['z']) * (1 + 1e-6)
-        z = np.linspace(z_min, z_max, int((z_max - z_min) / 0.01))
+        z_min = np.amin(table_l['z'])
+        z_max = np.amax(table_l['z'])
+        z = np.linspace(z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
         f_bias = np.array([precompute_photo_z_dilution_factor(
             z_l, table_c, cosmology=cosmology) for z_l in z])
-        f_bias = interp1d(z, f_bias, kind='cubic')
+        f_bias = interp1d(
+            z, f_bias, kind='cubic', fill_value=(f_bias[0], f_bias[-1]))
     else:
         f_bias = None
 
