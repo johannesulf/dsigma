@@ -105,10 +105,10 @@ def precompute_photo_z_dilution_factor(
                       'z_l < z_s will required.', RuntimeWarning)
         table_c['z_l_max'] = table_c['z']
 
-    sigma_crit_phot = critical_surface_density(z_l, table_c['z'],
-                                               d_s=table_c['d_com'])
-    sigma_crit_true = critical_surface_density(z_l, table_c['z_true'],
-                                               d_s=table_c['d_com_true'])
+    sigma_crit_phot = critical_surface_density(
+        z_l, table_c['z'], d_s=table_c['d_com'], cosmology=cosmology)
+    sigma_crit_true = critical_surface_density(
+        z_l, table_c['z_true'], d_s=table_c['d_com_true'], cosmology=cosmology)
     mask = z_l < table_c['z_l_max']
     w = table_c['w_sys'] * table_c['w']
 
