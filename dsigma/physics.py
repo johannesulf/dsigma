@@ -14,15 +14,14 @@ __all__ = ['mpc_per_degree', 'projection_angle', 'projection_angle_sin_cos',
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
 
-def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                   comoving=False):
+def mpc_per_degree(z, cosmology, comoving=True):
     """Estimate the angular scale in Mpc/degree at certain redshift.
 
     Parameters
     ----------
     z : float or numpy array
         Redshift of the object.
-    cosmology : astropy.cosmology, optional
+    cosmology : astropy.cosmology,
         Cosmology to assume for calculations.
     comoving : boolen
         Use comoving distance instead of physical distance when True.
@@ -145,9 +144,8 @@ def projection_angle_sin_cos(sin_ra_l, cos_ra_l, sin_dec_l, cos_dec_l,
     return cos_2phi, sin_2phi
 
 
-def critical_surface_density(z_l, z_s,
-                             cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                             comoving=False, d_l=None, d_s=None):
+def critical_surface_density(z_l, z_s, cosmology, comoving=True, d_l=None,
+                             d_s=None):
     """The critical surface density for a given lens and source redshift.
 
     Parameters
@@ -156,7 +154,7 @@ def critical_surface_density(z_l, z_s,
         Redshift of lens.
     z_s : float or numpy array
         Redshift of source.
-    cosmology : astropy.cosmology, optional
+    cosmology : astropy.cosmology
         Cosmology to assume for calculations.
     comoving : boolean, optional
         Flag for using comoving instead of physical units.
@@ -194,9 +192,8 @@ def critical_surface_density(z_l, z_s,
     return _sigma_crit_factor * dist_term
 
 
-def effective_critical_surface_density(
-        z_l, z_s, n_s, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-        comoving=False):
+def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
+                                       comoving=True):
     """The effective critical surface density for a given lens redshift and
     source redshift distribution.
 
@@ -209,7 +206,7 @@ def effective_critical_surface_density(
     n_s : numpy array
         Fraction of source galaxies in each redshift bin. Does not need to be
         normalized.
-    cosmology : astropy.cosmology, optional
+    cosmology : astropy.cosmology
         Cosmology to assume for calculations.
     comoving : boolean, optional
         Flag for using comoving instead of physical unit.

@@ -79,16 +79,17 @@ def _search_around_sky(ra, dec, kdtree, rmin, rmax):
     return idx[mask], theta[mask]
 
 
-def precompute_photo_z_dilution_factor(
-        z_l, table_c, nz=None, cosmology=FlatLambdaCDM(H0=100, Om0=0.3)):
+def precompute_photo_z_dilution_factor(z_l, table_c, cosmology):
     """Calculate the photo-z bias for a single lens.
 
     Parameters
     ----------
     z_l : float
         Redshift of the lens.
-    table_c : astropy.table.Table, optional
+    table_c : astropy.table.Table
         Photometric redshift calibration catalog.
+    cosmology : astropy.cosmology
+        Cosmology to assume for calculations.
 
     Returns
     -------
@@ -168,9 +169,8 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
     return table_s
 
 
-def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
-                     sigma_crit_eff_inv=None,
-                     cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
+def precompute_chunk(table_l, table_s, rp_bins, cosmology, f_bias=None,
+                     sigma_crit_eff_inv=None, comoving=True,
                      compress_jackknife_fields=False):
     """Do all the precomputation for all lens-source pairs. Compared to
     :func:`~dsigma.precompute.precompute_catalog`, this function calculates
@@ -186,14 +186,14 @@ def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
         Catalog of sources.
     rp_bins : numpy array
         Bins in projected radius (in Mpc) to use for the stacking.
+    cosmology : astropy.cosmology
+        Cosmology to assume for calculations.
     f_bias : function, optional
         Function returning the photometric redshift calibration factor.
     sigma_crit_eff_inv : list, optional
         List of functions that return the inverse of the effective critical
         surface density as a function of the scale factor of the lens. Each
         function in the list corresponds to one source redshift bin.
-    cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations.
     comoving : boolean, optional
         Whether to use comoving or physical quantities.
     compress_jackknife_fields : boolean, optional
@@ -257,7 +257,7 @@ def precompute_chunk(table_l, table_s, rp_bins, f_bias=None,
         # Calculate the critical surface density.
         if sigma_crit_eff_inv is None:
             sigma_crit = critical_surface_density(
-                lens['z'], table_s_sub['z'], comoving=comoving,
+                lens['z'], table_s_sub['z'], cosmology, comoving=comoving,
                 d_l=lens['d_com'], d_s=table_s_sub['d_com'])
         else:
             sigma_crit = np.zeros(len(table_s_sub['z_bin']))
@@ -508,7 +508,7 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
         z_max = np.amax(table_l['z'])
         z = np.linspace(z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
         f_bias = np.array([precompute_photo_z_dilution_factor(
-            z_l, table_c, cosmology=cosmology) for z_l in z])
+            z_l, table_c, cosmology) for z_l in z])
         f_bias = interp1d(
             z, f_bias, kind='cubic', fill_value=(f_bias[0], f_bias[-1]))
     else:
@@ -523,7 +523,7 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
 
     kwargs = {'f_bias': f_bias, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
-              'cosmology': cosmology, 'comoving': comoving,
+              'comoving': comoving,
               'compress_jackknife_fields': compress_jackknife_fields}
 
     pool = Pool(processes=n_jobs)
@@ -561,7 +561,8 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
         table_s_sub = table_s[sel]
 
         result_list.append(pool.apply_async(
-            precompute_chunk, (table_l_pix, table_s_sub, rp_bins), kwargs))
+            precompute_chunk, (table_l_pix, table_s_sub, rp_bins, cosmology),
+            kwargs))
 
         while pool._taskqueue.qsize() >= n_jobs:
             time.sleep(0.1)
