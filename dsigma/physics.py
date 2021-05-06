@@ -3,7 +3,6 @@
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
-from astropy.cosmology import FlatLambdaCDM
 from scipy.special import jv, jn_zeros
 
 
@@ -42,7 +41,7 @@ def mpc_per_degree(z, cosmology, comoving=True):
 
 
 def projection_angle(ra_l, dec_l, ra_s, dec_s):
-    """Calculate projection angle between lens and sources.
+    r"""Calculate projection angle between lens and sources.
 
     Parameters
     ----------
@@ -93,7 +92,7 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
 
 def projection_angle_sin_cos(sin_ra_l, cos_ra_l, sin_dec_l, cos_dec_l,
                              sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s):
-    """Calculate projection angle between lens and sources. This function is
+    r"""Calculate projection angle between lens and sources. This function is
     similar to projection_angle but is much faster if sin and cos of the angles
     have been computed before.
 
@@ -238,7 +237,7 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
 def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
                                   n_z=10, n_ell=200, bessel_function_zeros=100,
                                   k_max=1e3):
-    """The lens magnification bias to the mean tangential shear. This function
+    r"""The lens magnification bias to the mean tangential shear. This function
     is based on equations (13) and (14) in Unruh et al. (2020).
 
     Parameters

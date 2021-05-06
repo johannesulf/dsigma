@@ -57,7 +57,7 @@ def raw_excess_surface_density(table_l, rotation=False):
 
 
 def photo_z_dilution_factor(table_l):
-    """Compute the photometric redshift bias averaged over the entire catalog.
+    r"""Compute the photometric redshift bias averaged over the entire catalog.
 
     Parameters
     ----------
@@ -103,7 +103,7 @@ def boost_factor(table_l, table_r):
 
 
 def scalar_shear_response_factor(table_l):
-    """Compute the mean :math:`m` factor such that :math:`\gamma_{\mathrm obs}
+    r"""Compute the mean :math:`m` factor such that :math:`\gamma_{\mathrm obs}
     = (1 + m) \gamma_{\mathrm intrinsic}`.
 
     Parameters
@@ -125,7 +125,7 @@ def scalar_shear_response_factor(table_l):
 
 
 def tensor_shear_response_factor(table_l):
-    """Compute the mean tangential response :math:`R_t` factor such that
+    r"""Compute the mean tangential response :math:`R_t` factor such that
     :math:`\gamma_{\mathrm obs} = R_t \gamma_{\mathrm intrinsic}`.
 
     Parameters

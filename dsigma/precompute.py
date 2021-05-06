@@ -124,7 +124,7 @@ def precompute_photo_z_dilution_factor(z_l, table_c, cosmology):
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
                               apply_z_low=False):
-    """For each source in the table, determine the maximum lens redshift
+    r"""For each source in the table, determine the maximum lens redshift
     :math:`z_{\mathrm{max}}`. During the precomputation phase, only lens-source
     pairs with :math:`z_{\mathrm{l}} \leq z_{\mathrm{max}}` are being used. The
     maximum redshift is the minimum of the following three quantities where
