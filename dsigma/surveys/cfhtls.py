@@ -5,6 +5,7 @@ e_2_convention = 'standard'
 default_version = None
 known_versions = [None, ]
 
+
 def default_column_keys(version=None):
     keys = {
         'ra': 'ALPHA_J2000',

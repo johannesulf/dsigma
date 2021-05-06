@@ -1,0 +1,5 @@
+astropy
+healpy
+numpy
+scikit-learn
+scipy
