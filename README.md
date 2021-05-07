@@ -1,6 +1,8 @@
 # A Simple Python Galaxy-Galaxy Lensing Pipeline
 
+
 [![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://raw.githubusercontent.com/johannesulf/dsigma/master/LICENSE)
 
 ![plot](./docs/plot.png)
 
