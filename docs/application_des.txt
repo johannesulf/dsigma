@@ -19,7 +19,7 @@ catalog, the second one includes the METACALIBRATION photo-z's used to
 bin galaxies and the last one includes the MOF Monte-Carlo redshifts we will
 use to approximate the true redshift distribution :math:`n(z)`.
 
-.. code-block::
+.. code-block:: none
 
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/shear_catalogs/mcal-y1a1-combined-riz-unblind-v4-matched.fits
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/photoz_catalogs/y1a1-gold-mof-badregion_BPZ.fits

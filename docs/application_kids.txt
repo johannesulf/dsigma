@@ -15,7 +15,7 @@ Downloading the Data
 First, we need to download the necessary KiDS data files. The following
 commands should download all the necessary data.
 
-.. code-block::
+.. code-block:: none
 
     wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS_DR4.1_ugriZYJHKs_SOM_gold_WL_cat.fits
     wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS1000_SOM_N_of_Z.tar.gz

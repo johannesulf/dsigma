@@ -19,7 +19,7 @@ goes back to the internal S16A release.
 The following SQL script will return all the necessary data from the
 `CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_.
 
-.. code-block::
+.. code-block:: sql
 
     SELECT
         meas.object_id, meas.ira, meas.idec,

@@ -1,5 +1,7 @@
 # A Simple Python Galaxy-Galaxy Lensing Pipeline
 
+|RTD|
+
 ![plot](./docs/plot.png)
 
 `dsigma` is an easy-to-use pipeline for analyzing galaxy-galaxy lensing. It is
@@ -9,15 +11,20 @@ catalog of the Hyper-Suprime Cam (HSC) survey, it should work for other
 surveys like the Canada-France-Hawaii Telescope Lensing Survey (CFHTLenS) or
 the Kilo-Degree Survey (KiDS).
 
-#### Authors
+### Authors
+
 * Johannes Lange
 * Song Huang
 
-#### Documentation
+### Documentation
 
 A documentation for `dsigma` with concept introductions, examples and API
 documentation can be found at dsigma.readthedocs.io.
 
-#### License
+### License
 
 `dsigma` is licensed under the MIT License.
+
+.. |RTD| image:: https://readthedocs.org/projects/dsigma/badge/?version=latest
+   :target: https://dsigma.readthedocs.io/en/latest/
+   :alt: Documentation Status
