@@ -1,6 +1,6 @@
 # A Simple Python Galaxy-Galaxy Lensing Pipeline
 
-|RTD|
+[![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)
 
 ![plot](./docs/plot.png)
 
@@ -24,7 +24,3 @@ documentation can be found at dsigma.readthedocs.io.
 ### License
 
 `dsigma` is licensed under the MIT License.
-
-.. |RTD| image:: https://readthedocs.org/projects/dsigma/badge/?version=latest
-   :target: https://dsigma.readthedocs.io/en/latest/
-   :alt: Documentation Status
