@@ -1,4 +1,4 @@
-# A Simple Python Galaxy-Galaxy Lensing Pipeline
+# dsigma: galaxy-galaxy lensing made easy
 
 
 [![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)

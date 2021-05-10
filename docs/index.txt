@@ -1,6 +1,6 @@
-##############################################
-A Simple Python Galaxy-Galaxy Lensing Pipeline
-##############################################
+#######################################
+dsigma: galaxy-galaxy lensing made easy
+#######################################
 
 .. image:: plot.png
    :width: 100 %
