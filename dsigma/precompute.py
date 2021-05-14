@@ -1,85 +1,23 @@
 import warnings
-from functools import partial
-from multiprocessing import Pool
+import multiprocessing as mp
+import queue as Queue
 
 import numpy as np
 import healpy as hp
-from scipy.spatial import cKDTree
 from scipy.interpolate import interp1d
 
-from astropy.table import Table, vstack
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 
-from .physics import mpc_per_degree, critical_surface_density
-from .physics import projection_angle_sin_cos
-from .physics import effective_critical_surface_density
-from .helpers import spherical_to_cartesian
-from . import surveys
-from .jackknife import compress_jackknife_fields as compress_jackknife_fields_function
-
-import time
+from .physics import critical_surface_density
+from .precompute_engine import precompute_engine
 
 
-__all__ = ["add_maximum_lens_redshift", "precompute_photo_z_dilution_factor",
-           "precompute_catalog", "merge_precompute_catalogs"]
+__all__ = ["add_maximum_lens_redshift", "photo_z_dilution_factor",
+           "add_precompute_results"]
 
 
-precompute_keys = [
-    'sum w_s e_t', 'sum w_s e_x', 'sum w_s', 'sum w_ls e_t sigma_crit',
-    'sum w_ls e_x sigma_crit', 'sum w_ls', 'sum (w_ls e_t sigma_crit)^2',
-    'sum (w_ls e_x sigma_crit)^2', 'sum w_ls m',
-    'sum w_ls (1 - e_rms^2)', 'sum w_s e_t^2', 'sum w_s e_x^2',
-    'sum 1', 'sum w_ls A p(R_2=0.3)', 'sum w_ls R_T',
-    'sum w_ls z_s', 'sum w_ls z_l', 'sum w_ls e_t sigma_crit f_bias']
-
-
-def _search_around_sky(ra, dec, kdtree, rmin, rmax):
-    """Cross-match coordinates.
-
-    Parameters
-    ----------
-    ra, dec : float
-        Coordinates around which objects are searched.
-    kdtree : scipy.spatial.cKDTree
-        KDTree containing the objects to be searched.
-    rmin : float, optional
-        Minimum radius to search for objects in degrees.
-    rmax : float, optional
-        Maximum radius to search for objects in degrees.
-
-    Returns
-    -------
-    idx : numpy array
-        Indices of objects in the KDTree that lie in the search area.
-    theta : numpy array
-        The distance to the search center in degrees.
-    """
-
-    # Convert the angular distance into a 3D distance on the unit sphere.
-    rmax_3d = np.sqrt(2 - 2 * np.cos(np.deg2rad(rmax)))
-
-    x, y, z = spherical_to_cartesian(ra, dec)
-    idx = np.fromiter(kdtree.query_ball_point([x, y, z], rmax_3d),
-                      dtype=np.int64)
-
-    # Convert 3D distance back into angular distances.
-    if len(idx) != 0:
-        dx = x - kdtree.data[idx, 0]
-        dy = y - kdtree.data[idx, 1]
-        dz = z - kdtree.data[idx, 2]
-        dist3d = np.sqrt(dx**2 + dy**2 + dz**2)
-    else:
-        dist3d = np.zeros(0)
-
-    theta = np.rad2deg(np.arcsin(dist3d * np.sqrt(1 - dist3d**2 / 4)))
-    mask = theta > rmin
-
-    return idx[mask], theta[mask]
-
-
-def precompute_photo_z_dilution_factor(z_l, table_c, cosmology):
+def photo_z_dilution_factor(z_l, table_c, cosmology):
     """Calculate the photo-z bias for a single lens.
 
     Parameters
@@ -169,189 +107,36 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
     return table_s
 
 
-def precompute_chunk(table_l, table_s, rp_bins, cosmology, f_bias=None,
-                     sigma_crit_eff_inv=None, comoving=True,
-                     compress_jackknife_fields=False):
-    """Do all the precomputation for all lens-source pairs. Compared to
-    :func:`~dsigma.precompute.precompute_catalog`, this function calculates
-    the separations between all sources and all lenses and assumes many
-    pre-computed results. Most users will use
-    :func:`~dsigma.precompute.precompute_catalog`, instead.
+def get_raw_multiprocessing_array(array):
+    """ To save memeory, use shared-memory multiprocessing arrays. This
+    function converts an integer or float numpy array into such an array.
 
     Parameters
     ----------
-    table_l : astropy.table.Table
-        Catalog of lenses.
-    table_s : astropy.table.Table
-        Catalog of sources.
-    rp_bins : numpy array
-        Bins in projected radius (in Mpc) to use for the stacking.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
-    f_bias : function, optional
-        Function returning the photometric redshift calibration factor.
-    sigma_crit_eff_inv : list, optional
-        List of functions that return the inverse of the effective critical
-        surface density as a function of the scale factor of the lens. Each
-        function in the list corresponds to one source redshift bin.
-    comoving : boolean, optional
-        Whether to use comoving or physical quantities.
-    compress_jackknife_fields : boolean, optional
-        If set to true, use :func:`dsigma.jackknife.compress_jackknife_fields`
-        to compress jackknife fields into a single row and save memory.
-        However, doing so means that lenses inside each jackknife field can
-        no longer be studied individually or in subsets.
+    array : numpy array or None
+        Input array.
 
     Returns
     -------
-    table_l : astropy.table.Table
-        Lens catalog with the pre-computation results attached in the table.
+    array_mp : multiprocessing.RawArray or None
+        Output array. None if input is None.
+
     """
 
-    precompute_keys_chunk = precompute_keys.copy()
+    if array is None:
+        return None
 
-    if 'm' not in table_s.keys():
-        precompute_keys_chunk.remove('sum w_ls m')
-    if 'e_rms' not in table_s.keys():
-        precompute_keys_chunk.remove('sum w_ls (1 - e_rms^2)')
+    array_mp = mp.RawArray('l' if np.issubdtype(array.dtype, np.integer) else
+                           'd', len(array))
+    array_np = np.ctypeslib.as_array(array_mp)
+    array_np[:] = array
 
-    if 'R_2' not in table_s.keys():
-        precompute_keys_chunk.remove('sum w_ls A p(R_2=0.3)')
-    if not np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
-                          list(table_s.keys()))):
-        precompute_keys_chunk.remove('sum w_ls R_T')
-
-    if f_bias is None:
-        precompute_keys_chunk.remove('sum w_ls e_t sigma_crit f_bias')
-
-    for key in precompute_keys_chunk:
-        table_l[key] = np.zeros((len(table_l), len(rp_bins) - 1))
-
-    for i, lens in enumerate(table_l):
-
-        cos_theta = (
-            (lens['sin dec'] * table_s['sin dec']) +
-            (lens['cos dec'] * lens['sin ra'] *
-             table_s['cos dec'] * table_s['sin ra']) +
-            (lens['cos dec'] * lens['cos ra'] *
-             table_s['cos dec'] * table_s['cos ra']))
-
-        mpc_deg = mpc_per_degree(lens['z'], cosmology=cosmology,
-                                 comoving=comoving)
-
-        rp_binned = np.digitize(
-            cos_theta, np.cos(np.deg2rad(rp_bins / mpc_deg))) - 1
-
-        use = ((rp_binned >= 0) & (rp_binned < len(rp_bins) - 1) &
-               (lens['z'] < table_s['z_l_max']))
-        sel = np.arange(len(use))[use]
-        rp_binned = rp_binned[sel]
-
-        table_s_sub = {}
-        for col in table_s.colnames:
-            if col in ['sin ra', 'cos ra', 'sin dec', 'cos dec', 'z', 'd_com',
-                       'w', 'e_1', 'e_2', 'e_rms', 'm', 'R_2', 'R_11',
-                       'R_22', 'R_12', 'R_21', 'z_bin']:
-                table_s_sub[col] = table_s[col].data[sel]
-
-        # Calculate the critical surface density.
-        if sigma_crit_eff_inv is None:
-            sigma_crit = critical_surface_density(
-                lens['z'], table_s_sub['z'], cosmology, comoving=comoving,
-                d_l=lens['d_com'], d_s=table_s_sub['d_com'])
-        else:
-            sigma_crit = np.zeros(len(table_s_sub['z_bin']))
-            for z_bin in np.unique(table_s_sub['z_bin']):
-                mask = table_s_sub['z_bin'] == z_bin
-                sigma_crit[mask] = (
-                    1.0 / sigma_crit_eff_inv[z_bin](1.0 / (1.0 + lens['z'])))
-
-        # Calculate the projection angle for each lens-source pair.
-        cos2phi, sin2phi = projection_angle_sin_cos(
-            lens['sin ra'], lens['cos ra'], lens['sin dec'], lens['cos dec'],
-            table_s_sub['sin ra'], table_s_sub['cos ra'],
-            table_s_sub['sin dec'], table_s_sub['cos dec'])
-
-        # Calculate the tangential and cross shear terms.
-        e_t = - table_s_sub['e_1'] * cos2phi + table_s_sub['e_2'] * sin2phi
-        e_x = + table_s_sub['e_1'] * sin2phi + table_s_sub['e_2'] * cos2phi
-
-        # The weight of each lens-source pair is weighted by the critical
-        # surface density.
-        w_ls = np.where(
-            sigma_crit != np.inf, table_s_sub['w'] / sigma_crit**2, 0)
-        sigma_crit_w_ls = np.where(
-            sigma_crit != np.inf, table_s_sub['w'] / sigma_crit, 0)
-
-        sum_s = partial(np.bincount, rp_binned, minlength=len(rp_bins) - 1)
-
-        table_l['sum w_s e_t'][i, :] = sum_s(weights=e_t * table_s_sub['w'])
-        table_l['sum w_s e_x'][i, :] = sum_s(weights=e_x * table_s_sub['w'])
-        table_l['sum w_s'][i, :] = sum_s(weights=table_s_sub['w'])
-
-        table_l['sum w_ls e_t sigma_crit'][i, :] = sum_s(
-            weights=e_t * sigma_crit_w_ls)
-        table_l['sum w_ls e_x sigma_crit'][i, :] = sum_s(
-            weights=e_x * sigma_crit_w_ls)
-        table_l['sum w_ls'][i, :] = sum_s(weights=w_ls)
-
-        # This is used to calculate the naive error for the lensing signal.
-        table_l['sum (w_ls e_t sigma_crit)^2'][i, :] = sum_s(
-            weights=(e_t * sigma_crit_w_ls)**2)
-        table_l['sum (w_ls e_x sigma_crit)^2'][i, :] = sum_s(
-            weights=(e_x * sigma_crit_w_ls)**2)
-
-        # Multiplicative bias m.
-        if 'm' in table_s_sub.keys():
-            table_l['sum w_ls m'][i, :] = sum_s(
-                weights=w_ls * table_s_sub['m'])
-
-        # Responsivity R.
-        if 'e_rms' in table_s_sub.keys():
-            table_l['sum w_ls (1 - e_rms^2)'][i, :] = sum_s(
-                weights=w_ls * (1 - table_s_sub['e_rms']**2))
-
-        table_l['sum w_s e_t^2'][i, :] = sum_s(
-            weights=e_t**2 * table_s_sub['w'])
-        table_l['sum w_s e_x^2'][i, :] = sum_s(
-            weights=e_x**2 * table_s_sub['w'])
-
-        # Number of pairs in each radial bin.
-        table_l['sum 1'][i, :] = sum_s()
-
-        table_l['sum w_ls z_s'][i, :] = sum_s(weights=w_ls * table_s_sub['z'])
-        table_l['sum w_ls z_s'][i, :] = sum_s(weights=w_ls * lens['z'])
-
-        # Resolution selection bias.
-        if 'R_2' in table_s_sub.keys():
-            table_l['sum w_ls A p(R_2=0.3)'][i, :] = (
-                surveys.hsc.precompute_selection_bias_factor(
-                    table_s_sub['R_2'], w_ls, rp_binned, len(rp_bins) - 1))
-
-        # METACALIBRATION response.
-        if np.all(np.isin(['R_11', 'R_22', 'R_12', 'R_21'],
-                          list(table_s_sub.keys()))):
-            r_t = (table_s_sub['R_11'] * cos2phi**2 +
-                   table_s_sub['R_22'] * sin2phi**2 +
-                   (table_s_sub['R_12'] + table_s_sub['R_21']) *
-                   sin2phi * cos2phi)
-            table_l['sum w_ls R_T'][i, :] = sum_s(weights=w_ls * r_t)
-
-        # If necessary, estimate the photo-z bias factor.
-        if f_bias is not None:
-            table_l['sum w_ls e_t sigma_crit f_bias'][i, :] = (
-                table_l['sum w_ls e_t sigma_crit'][i, :] * f_bias(lens['z']))
-
-    if compress_jackknife_fields:
-        table_l = compress_jackknife_fields_function(table_l)
-
-    return table_l
+    return array_mp
 
 
-def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
-                       cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                       comoving=True, trim=True,
-                       compress_jackknife_fields=False, nside=64, n_jobs=1):
+def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
+                           cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
+                           comoving=True, nside=256, n_jobs=1):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -375,19 +160,10 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
         Cosmology to assume for calculations.
     comoving : boolean, optional
         Whether to use comoving or physical quantities.
-    trim : boolean, optional
-        If set to true, the output table will omit lenses that do not have any
-        nearby sources.
-    compress_jackknife_fields : boolean, optional
-        If set to true, use :func:`dsigma.jackknife.compress_jackknife_fields`
-        to compress jackknife fields into a single row and save memory.
-        However, doing so means that lenses inside each jackknife field can
-        no longer be studied individually or in subsets.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
-        them simultaneously. This parameter determine the number of pixels.
-        See the documentation of healpix or healpy for reference. Has to be
-        a power of 2.
+        them simultaneously. This parameter determines the number of pixels.
+        It has to be a power of 2. This number likely impacts performance.
     n_jobs : int, optional
         Number of jobs to run at the same time.
 
@@ -414,172 +190,263 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
         raise Exception('Illegal number of jobs. Expected positive integer ' +
                         'but received {}.'.format(n_jobs))
 
-    if 'd_com' not in table_l.colnames:
-        with Pool(n_jobs) as pool:
-            table_l['d_com'] = np.concatenate(pool.map(
-                cosmology.comoving_transverse_distance,
-                np.array_split(table_l['z'], n_jobs))).to(u.Mpc).value
-
-    if 'd_com' not in table_s.colnames and nz is None:
-        with Pool(n_jobs) as pool:
-            table_s['d_com'] = np.concatenate(pool.map(
-                cosmology.comoving_transverse_distance,
-                np.array_split(table_s['z'], n_jobs))).to(u.Mpc).value
-
     if np.any(table_l['z'] < 0):
         raise Exception('Input lens redshifts must all be non-negative.')
 
-    if nz is not None:
-        if not (isinstance(nz, np.ndarray) and np.issubdtype(nz.dtype,
-                                                             np.float)):
-            raise Exception('nz must be a numpy array of floats.')
-        if len(nz.shape) != 3 or nz.shape[1] != 2:
-            raise Exception('nz must have shape (n, 2, m).')
-        if 'z_bin' not in table_s.colnames:
-            raise Exception('To use source redshift distributions, the ' +
-                            'source table needs to have a `z_bin` column.')
-        if not np.issubdtype(table_s['z_bin'].data.dtype, np.int) or np.amin(
-                table_s['z_bin']) < 0:
-            raise Exception('The `z_bin` column in the source table must ' +
-                            'contain only non-negative integers.')
-        if np.amax(table_s['z_bin']) > nz.shape[0]:
-            raise Exception('The source table contains more redshift bins ' +
-                            'than where passed via the nz argument.')
+    npix = hp.nside2npix(nside)
+    pix_l = hp.ang2pix(nside, table_l['ra'], table_l['dec'], lonlat=True)
+    pix_s = hp.ang2pix(nside, table_s['ra'], table_s['dec'], lonlat=True)
+    argsort_pix_l = np.argsort(pix_l)
+    argsort_pix_s = np.argsort(pix_s)
+    pix_l_counts = np.ascontiguousarray(np.bincount(pix_l, minlength=npix))
+    pix_s_counts = np.ascontiguousarray(np.bincount(pix_s, minlength=npix))
+    pix_l_cum_counts = np.ascontiguousarray(np.cumsum(pix_l_counts))
+    pix_s_cum_counts = np.ascontiguousarray(np.cumsum(pix_s_counts))
 
-    if table_c is not None:
-        for key in ['', '_true']:
-            if 'd_com' + key not in table_c.colnames:
-                with Pool(n_jobs) as pool:
-                    table_c['d_com' + key] = np.concatenate(pool.map(
-                        cosmology.comoving_transverse_distance,
-                        np.array_split(table_c['z' + key], n_jobs))).to(
-                            u.Mpc).value
+    z_l = np.ascontiguousarray(table_l['z'][argsort_pix_l], dtype=np.float64)
+    z_s = np.ascontiguousarray(table_s['z'][argsort_pix_s], dtype=np.float64)
 
-    if 'w_sys' not in table_l.colnames:
-        warnings.warn('Could not find systematic weights for lenses. ' +
-                      'Weights are set to unity.', RuntimeWarning)
-        table_l['w_sys'] = 1
+    # Parrallelize comoving distance calculation because it's slow.
+    with mp.Pool(n_jobs) as pool:
+        d_com_l = np.ascontiguousarray((np.concatenate(pool.map(
+            cosmology.comoving_transverse_distance,
+            np.array_split(table_l['z'], n_jobs))).to(u.Mpc).value)[
+                argsort_pix_l])
+        d_com_s = np.ascontiguousarray(np.concatenate(pool.map(
+            cosmology.comoving_transverse_distance,
+            np.array_split(table_s['z'], n_jobs))).to(u.Mpc).value[
+                argsort_pix_s])
+
+    sin_ra_l = np.ascontiguousarray(
+        np.sin(np.deg2rad(table_l['ra']))[argsort_pix_l])
+    cos_ra_l = np.ascontiguousarray(
+        np.cos(np.deg2rad(table_l['ra']))[argsort_pix_l])
+    sin_dec_l = np.ascontiguousarray(
+        np.sin(np.deg2rad(table_l['dec']))[argsort_pix_l])
+    cos_dec_l = np.ascontiguousarray(
+        np.cos(np.deg2rad(table_l['dec']))[argsort_pix_l])
+    sin_ra_s = np.ascontiguousarray(
+        np.sin(np.deg2rad(table_s['ra']))[argsort_pix_s])
+    cos_ra_s = np.ascontiguousarray(
+        np.cos(np.deg2rad(table_s['ra']))[argsort_pix_s])
+    sin_dec_s = np.ascontiguousarray(
+        np.sin(np.deg2rad(table_s['dec']))[argsort_pix_s])
+    cos_dec_s = np.ascontiguousarray(
+        np.cos(np.deg2rad(table_s['dec']))[argsort_pix_s])
+    w_s = np.ascontiguousarray(table_s['w'][argsort_pix_s])
+    e_1 = np.ascontiguousarray(table_s['e_1'][argsort_pix_s])
+    e_2 = np.ascontiguousarray(table_s['e_2'][argsort_pix_s])
 
     if 'z_l_max' not in table_s.colnames:
         warnings.warn('Could not find a lens-source separation cut. Only ' +
                       'z_l < z_s will required.', RuntimeWarning)
-        table_s['z_l_max'] = table_s['z']
-
-    if trim:
-        coord_s = SkyCoord(ra=table_s['ra'], dec=table_s['dec'], unit='deg')
-        coord_l = SkyCoord(ra=table_l['ra'], dec=table_l['dec'], unit='deg')
-
-        idx, d2d, d3d = coord_l.match_to_catalog_sky(coord_s)
-        alpha_max = np.amax(rp_bins) / table_l['d_com'] * u.rad
-        if not comoving:
-            alpha_max *= (1 + table_l['z'])
-        table_l = table_l[d2d < alpha_max]
-
-        if len(table_l) == 0:
-            raise RuntimeError('No suitable lens-source pairs.')
-
-    if nz is not None:
-        sigma_crit_eff_inv = []
-        a_l = np.linspace(1.0 / (1 + np.amax(table_l['z'])),
-                          1.0 / (1 + np.amin(table_l['z'])), 1000)
-        z_l = 1 / a_l - 1
-        for i in range(nz.shape[0]):
-            sigma_crit_eff = effective_critical_surface_density(
-                z_l, nz[i, 0, :], nz[i, 1, :], cosmology=cosmology,
-                comoving=comoving)
-            sigma_crit_eff_inv.append(interp1d(
-                a_l, 1.0 / sigma_crit_eff, kind='cubic', bounds_error=False,
-                fill_value=(sigma_crit_eff[0]**-1, sigma_crit_eff[-1]**-1)))
-
-        table_s = table_s[table_s['z_bin'] >= 0]
-
+        z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s])
     else:
-        sigma_crit_eff_inv = None
-
-    for f in [np.sin, np.cos]:
-        for table in [table_s, table_l]:
-            for angle in ['ra', 'dec']:
-                col = f.__name__ + ' ' + angle
-                if col not in table.colnames:
-                    table[col] = f(np.deg2rad(table[angle]))
+        z_l_max = np.ascontiguousarray(table_s['z_l_max'][argsort_pix_s])
 
     if table_c is not None:
         z_min = np.amin(table_l['z'])
         z_max = np.amax(table_l['z'])
         z = np.linspace(z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
-        f_bias = np.array([precompute_photo_z_dilution_factor(
-            z_l, table_c, cosmology) for z_l in z])
+        f_bias = np.array([photo_z_dilution_factor(z_i, table_c, cosmology) for
+                           z_i in z])
         f_bias = interp1d(
             z, f_bias, kind='cubic', fill_value=(f_bias[0], f_bias[-1]))
+        f_bias = np.ascontiguousarray(f_bias(table_l['z'])[argsort_pix_l])
     else:
         f_bias = None
 
-    pix_l = hp.ang2pix(
-        nside, np.array(table_l['ra']), np.array(table_l['dec']), lonlat=True)
-    pix_group_l, n_group_l = np.unique(pix_l, return_counts=True)
-    ra_group_l, dec_group_l = hp.pix2ang(nside, pix_group_l, lonlat=True)
-
-    x, y, z = spherical_to_cartesian(table_s['ra'], table_s['dec'])
-    kdtree_s = cKDTree(np.column_stack([x, y, z]), leafsize=1000)
-
-    kwargs = {'f_bias': f_bias, 'sigma_crit_eff_inv': sigma_crit_eff_inv,
-              'comoving': comoving,
-              'compress_jackknife_fields': compress_jackknife_fields}
-
-    pool = Pool(processes=n_jobs)
-    result_list = []
-
-    idx_l_sorted = np.arange(len(table_l))
-    idx_l_unsorted = np.zeros(0, dtype=np.int)
-
-    table_l = table_l[np.argsort(pix_l)]
-    idx_l_sorted = idx_l_sorted[np.argsort(pix_l)]
-    n_group_l = n_group_l[np.argsort(pix_group_l)]
-    pix_group_l = np.sort(pix_group_l)
-
-    for i, pix in enumerate(pix_group_l):
-
-        # Calculate the result for all lenses in a healpix pixel and all
-        # sources that could possibly be associated with any lens in the pixel.
-        i_min, i_max = np.sum(n_group_l[:i]), np.sum(n_group_l[:i+1])
-        table_l_pix = table_l[i_min:i_max]
-        idx_l_unsorted = np.concatenate((
-            idx_l_unsorted, idx_l_sorted[i_min:i_max]))
-
-        alpha_max = np.amax(rp_bins) / np.amin(table_l_pix['d_com']) * u.rad
-        if not comoving:
-            alpha_max *= (
-                1 + table_l_pix['z'][np.argmin(table_l_pix['d_com'])])
-        alpha_max += hp.max_pixrad(nside, degrees=True) * u.deg
-
-        r_max = np.sqrt(2 - 2 * np.cos(alpha_max.to(u.rad).value))
-        x_l, y_l, z_l = spherical_to_cartesian(ra_group_l[i], dec_group_l[i])
-        sel = np.fromiter(kdtree_s.query_ball_point([x_l, y_l, z_l], r_max),
-                          dtype=np.int64)
-        sel = np.sort(sel)
-
-        table_s_sub = table_s[sel]
-
-        result_list.append(pool.apply_async(
-            precompute_chunk, (table_l_pix, table_s_sub, rp_bins, cosmology),
-            kwargs))
-
-        while pool._taskqueue.qsize() >= n_jobs:
-            time.sleep(0.1)
-
-    pool.close()
-    pool.join()
-
-    # Convert the list of results into a table that is merged with the original
-    # lens table and add useful meta-data.
-    meta_orig = table_l.meta
-    if not compress_jackknife_fields:
-        table_l = vstack([result.get() for result in result_list])[
-            np.argsort(idx_l_unsorted)]
+    if 'm' in table_s.colnames:
+        m = np.ascontiguousarray(table_s['m'][argsort_pix_s], dtype=np.float64)
     else:
-        table_l = vstack([result.get() for result in result_list])
-        table_l = compress_jackknife_fields_function(table_l)
-    table_l.meta = meta_orig
+        m = None
+
+    if 'e_rms' in table_s.colnames:
+        e_rms = np.ascontiguousarray(table_s['e_rms'][argsort_pix_s],
+                                     dtype=np.float64)
+    else:
+        e_rms = None
+
+    if 'R_2' in table_s.colnames:
+        R_2 = np.ascontiguousarray(table_s['R_2'][argsort_pix_s],
+                                   dtype=np.float64)
+
+    if (('R_11' in table_s.colnames) and ('R_12' in table_s.colnames) and
+            ('R_21' in table_s.colnames) and ('R_22' in table_s.colnames)):
+        R_11 = np.ascontiguousarray(table_s['R_11'][argsort_pix_s],
+                                    dtype=np.float64)
+        R_12 = np.ascontiguousarray(table_s['R_12'][argsort_pix_s],
+                                    dtype=np.float64)
+        R_21 = np.ascontiguousarray(table_s['R_21'][argsort_pix_s],
+                                    dtype=np.float64)
+        R_22 = np.ascontiguousarray(table_s['R_22'][argsort_pix_s],
+                                    dtype=np.float64)
+    else:
+        R_11, R_12, R_21, R_22 = None, None, None, None
+
+    if comoving:
+        cos_theta_bins = np.ascontiguousarray(np.cos(
+            np.tile(rp_bins, len(table_l)) / np.repeat(
+                d_com_l, len(rp_bins))).flatten())
+    else:
+        cos_theta_bins = np.ascontiguousarray(np.cos(
+            np.tile(rp_bins, len(table_l)) / np.repeat(
+                d_com_l, len(rp_bins)) * np.repeat(
+                z_l, len(rp_bins))).flatten())
+
+    # Create arrays that will hold the final results.
+    n_results = len(table_l) * (len(rp_bins) - 1)
+    sum_1 = np.ascontiguousarray(np.zeros(n_results, dtype=np.int64))
+    sum_w_ls = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
+    sum_w_ls_e_t = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
+    sum_w_ls_e_t_sigma_crit = np.ascontiguousarray(np.zeros(
+        n_results, dtype=np.float64))
+    sum_w_ls_e_t_sigma_crit_f_bias = np.ascontiguousarray(np.zeros(
+        n_results, dtype=np.float64))
+    sum_w_ls_e_t_sigma_crit_sq = np.ascontiguousarray(np.zeros(
+        n_results, dtype=np.float64))
+    sum_w_ls_z_s = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
+
+    if 'm' in table_s.colnames:
+        sum_w_ls_m = np.ascontiguousarray(
+            np.zeros(n_results, dtype=np.float64))
+    else:
+        sum_w_ls_m = None
+
+    if 'e_rms' in table_s.colnames:
+        sum_w_ls_1_minus_e_rms_sq = np.ascontiguousarray(
+            np.zeros(n_results, dtype=np.float64))
+    else:
+        sum_w_ls_1_minus_e_rms_sq = None
+
+    if 'R_2' in table_s.colnames:
+        sum_w_ls_A_p_R_2 = np.ascontiguousarray(
+            np.zeros(n_results, dtype=np.float64))
+    else:
+        sum_w_ls_A_p_R_2 = None
+
+    if (('R_11' in table_s.colnames) and ('R_12' in table_s.colnames) and
+            ('R_21' in table_s.colnames) and ('R_22' in table_s.colnames)):
+        sum_w_ls_R_T = np.ascontiguousarray(
+            np.zeros(n_results, dtype=np.float64))
+    else:
+        sum_w_ls_R_T = None
+
+    # When running in parrallel, replace numpy arrays with shared-memory
+    # multiprocessing arrays.
+    if n_jobs > 1:
+        pix_l_counts = get_raw_multiprocessing_array(pix_l_counts)
+        pix_s_counts = get_raw_multiprocessing_array(pix_s_counts)
+        pix_l_cum_counts = get_raw_multiprocessing_array(pix_l_cum_counts)
+        pix_s_cum_counts = get_raw_multiprocessing_array(pix_s_cum_counts)
+        z_l = get_raw_multiprocessing_array(z_l)
+        z_s = get_raw_multiprocessing_array(z_s)
+        d_com_l = get_raw_multiprocessing_array(d_com_l)
+        d_com_s = get_raw_multiprocessing_array(d_com_s)
+        sin_ra_l = get_raw_multiprocessing_array(sin_ra_l)
+        cos_ra_l = get_raw_multiprocessing_array(cos_ra_l)
+        sin_dec_l = get_raw_multiprocessing_array(sin_dec_l)
+        cos_dec_l = get_raw_multiprocessing_array(cos_dec_l)
+        sin_ra_s = get_raw_multiprocessing_array(sin_ra_s)
+        cos_ra_s = get_raw_multiprocessing_array(cos_ra_s)
+        sin_dec_s = get_raw_multiprocessing_array(sin_dec_s)
+        cos_dec_s = get_raw_multiprocessing_array(cos_dec_s)
+        w_s = get_raw_multiprocessing_array(w_s)
+        e_1 = get_raw_multiprocessing_array(e_1)
+        e_2 = get_raw_multiprocessing_array(e_2)
+        z_l_max = get_raw_multiprocessing_array(z_l_max)
+        f_bias = get_raw_multiprocessing_array(f_bias)
+        m = get_raw_multiprocessing_array(m)
+        e_rms = get_raw_multiprocessing_array(e_rms)
+        R_2 = get_raw_multiprocessing_array(R_2)
+        R_11 = get_raw_multiprocessing_array(R_11)
+        R_12 = get_raw_multiprocessing_array(R_12)
+        R_21 = get_raw_multiprocessing_array(R_21)
+        R_22 = get_raw_multiprocessing_array(R_22)
+        sum_1 = get_raw_multiprocessing_array(sum_1)
+        sum_w_ls = get_raw_multiprocessing_array(sum_w_ls)
+        sum_w_ls_e_t = get_raw_multiprocessing_array(sum_w_ls_e_t)
+        sum_w_ls_e_t_sigma_crit = get_raw_multiprocessing_array(
+            sum_w_ls_e_t_sigma_crit)
+        sum_w_ls_e_t_sigma_crit_f_bias = get_raw_multiprocessing_array(
+            sum_w_ls_e_t_sigma_crit_f_bias)
+        sum_w_ls_e_t_sigma_crit_sq = get_raw_multiprocessing_array(
+            sum_w_ls_e_t_sigma_crit_sq)
+        sum_w_ls_z_s = get_raw_multiprocessing_array(
+            sum_w_ls_z_s)
+        sum_w_ls_m = get_raw_multiprocessing_array(
+            sum_w_ls_m)
+        sum_w_ls_1_minus_e_rms_sq = get_raw_multiprocessing_array(
+            sum_w_ls_1_minus_e_rms_sq)
+        sum_w_ls_A_p_R_2 = get_raw_multiprocessing_array(sum_w_ls_A_p_R_2)
+        sum_w_ls_R_T = get_raw_multiprocessing_array(sum_w_ls_R_T)
+
+    # Create a queue that holds all the pixels containing lenses.
+    if n_jobs == 1:
+        queue = Queue.Queue()
+    else:
+        queue = mp.Queue()
+
+    for pix in np.unique(pix_l):
+        queue.put(pix)
+
+    args = (pix_l_counts, pix_s_counts, pix_l_cum_counts, pix_s_cum_counts,
+            z_l, z_s, d_com_l, d_com_s, sin_ra_l, cos_ra_l, sin_dec_l,
+            cos_dec_l, sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s, w_s, e_1, e_2,
+            z_l_max, f_bias, m, e_rms, R_2, R_11, R_12, R_21, R_22,
+            cos_theta_bins, sum_1, sum_w_ls, sum_w_ls_e_t,
+            sum_w_ls_e_t_sigma_crit, sum_w_ls_e_t_sigma_crit_f_bias,
+            sum_w_ls_e_t_sigma_crit_sq, sum_w_ls_z_s, sum_w_ls_m,
+            sum_w_ls_1_minus_e_rms_sq, sum_w_ls_A_p_R_2, sum_w_ls_R_T)
+
+    if n_jobs == 1:
+        precompute_engine(*args, rp_bins, comoving, nside, queue)
+    else:
+        processes = []
+        for i in range(n_jobs):
+            process = mp.Process(
+                target=precompute_engine,
+                args=(*args, rp_bins, comoving, nside, queue))
+            process.start()
+            processes.append(process)
+        for i in range(n_jobs):
+            processes[i].join()
+
+    inv_argsort_pix_l = np.argsort(argsort_pix_l)
+    table_l['sum 1'] = np.array(sum_1).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    table_l['sum w_ls'] = np.array(sum_w_ls).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    table_l['sum w_ls e_t'] = np.array(sum_w_ls_e_t).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    table_l['sum w_ls e_t sigma_crit'] = np.array(
+        sum_w_ls_e_t_sigma_crit).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_e_t_sigma_crit_f_bias is not None:
+        table_l['sum w_ls e_t sigma_crit f_bias'] = np.array(
+            sum_w_ls_e_t_sigma_crit_f_bias).reshape(
+            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    table_l['sum (w_ls e_t sigma_crit)^2'] = np.array(
+        sum_w_ls_e_t_sigma_crit_sq).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
+    table_l['sum w_ls z_s'] = np.array(sum_w_ls_z_s).reshape(
+        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_m is not None:
+        table_l['sum w_ls m'] = np.array(sum_w_ls_m).reshape(
+            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_1_minus_e_rms_sq is not None:
+        table_l['sum w_ls (1 - e_rms^2)'] = np.array(
+            sum_w_ls_1_minus_e_rms_sq).reshape(
+                len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_A_p_R_2 is not None:
+        table_l['sum w_ls A p(R_2=0.3)'] = np.array(
+            sum_w_ls_A_p_R_2).reshape(
+                len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_R_T is not None:
+        table_l['sum w_ls R_T'] = np.array(sum_w_ls_R_T).reshape(
+            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+
     table_l.meta['rp_bins'] = rp_bins
     table_l.meta['comoving'] = comoving
     table_l.meta['H0'] = cosmology.H0.value
@@ -587,41 +454,3 @@ def precompute_catalog(table_l, table_s, rp_bins, table_c=None, nz=None,
     table_l.meta['Om0'] = cosmology.Om0
 
     return table_l
-
-
-def merge_precompute_catalogs(table_l_list):
-    """Merge precompute results for the same lenses and different sources.
-
-    Parameters
-    ----------
-    table_l_list : list of astropy.table.Table
-        List of precompute results.
-
-    Returns
-    -------
-    table_l : astropy.table.Table
-        Merged catalog of precompute results.
-    """
-
-    table_p = Table()
-    table_p.meta = table_l_list[0].meta
-
-    for i in range(len(table_l_list)):
-        for key in ['rp_bins', 'comoving', 'H0', 'Ok0', 'Om0']:
-            if not np.all(table_p.meta[key] == table_l_list[i].meta[key]):
-                raise RuntimeError(
-                    'Inconsistent meta-data for key {}.'.format(key))
-
-    for i in range(len(table_l_list)):
-        for key in table_l_list[0].colnames:
-            if i == 0:
-                table_p[key] = table_l_list[0][key]
-            else:
-                if key not in precompute_keys:
-                    if np.any(table_p[key] != table_l_list[i][key]):
-                        raise RuntimeError(
-                            'Mismatch between tables for key {}.'.format(key))
-                else:
-                    table_p[key] += table_l_list[i][key]
-
-    return table_p

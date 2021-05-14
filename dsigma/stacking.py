@@ -26,15 +26,13 @@ def raw_tangential_shear(table_l, rotation=False):
         The raw, uncorrected tangential shear in each radial bin.
     """
 
-    gamma = 'x' if rotation else 't'
-
-    return (np.sum(table_l['sum w_s e_{}'.format(gamma)].data *
+    return (np.sum(table_l['sum w_ls e_t'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
             np.sum(table_l['sum w_s'].data * table_l['w_sys'].data[:, None],
                    axis=0))
 
 
-def raw_excess_surface_density(table_l, rotation=False):
+def raw_excess_surface_density(table_l):
     """Compute the raw, uncorrected excess surface density for a catalog.
 
     Parameters
@@ -48,9 +46,7 @@ def raw_excess_surface_density(table_l, rotation=False):
         The raw, uncorrected excess surface density in each radial bin.
     """
 
-    gamma = 'x' if rotation else 't'
-
-    return (np.sum(table_l['sum w_ls e_{} sigma_crit'.format(gamma)].data *
+    return (np.sum(table_l['sum w_ls e_t sigma_crit'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
             np.sum(table_l['sum w_ls'].data *
                    table_l['w_sys'].data[:, None], axis=0))
@@ -353,10 +349,10 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
         result['et'] /= result['2R']
 
     if hsc_selection_bias_correction:
-        result['1 + m_sel'] = 1 + surveys.hsc.selection_bias_factor(
+        result['1+m_sel'] = 1 + surveys.hsc.selection_bias_factor(
             table_l)
-        result['ds'] *= result['1 + m_sel']
-        result['et'] *= result['1 + m_sel']
+        result['ds'] *= result['1+m_sel']
+        result['et'] *= result['1+m_sel']
 
     if photo_z_dilution_correction:
         result['f_bias'] = photo_z_dilution_factor(table_l)
