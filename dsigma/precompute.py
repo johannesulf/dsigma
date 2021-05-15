@@ -41,8 +41,8 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
                 table_c['z' + key]).to(u.Mpc).value
 
     if 'z_l_max' not in table_c.colnames:
-        warnings.warn('Could not find a lens-source separation cut. Only ' +
-                      'z_l < z_s will required.', RuntimeWarning)
+        warnings.warn('No lens-source cut given in calibration catalog. Will' +
+                      ' use z_l < z_s.', RuntimeWarning)
         table_c['z_l_max'] = table_c['z']
 
     sigma_crit_phot = critical_surface_density(
@@ -153,11 +153,14 @@ def add_precompute_results(
         projected distance and Mpc. However, if `shear_mode` is set to True,
         these will be assumed to be angular separations in degrees.
     table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog.
+        Additional photometric redshift calibration catalog. Only relevant if
+        `shear_mode` is not active.
     table_n : astropy.table.Table, optional
-        Source redshift distributions.
+        Source redshift distributions. Only relevant if `shear_mode` is not
+        active.
     cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations.
+        Cosmology to assume for calculations. Only relevant if `shear_mode` is
+        not active.
     comoving : boolean, optional
         Whether to use comoving or physical quantities. Only relevant if
         `shear_mode` is not active.
@@ -253,8 +256,8 @@ def add_precompute_results(
 
     if 'z_l_max' not in table_s.colnames:
         if not shear_mode:
-            warnings.warn('No lens-source cut given. Will use z_l < z_s.',
-                          RuntimeWarning)
+            warnings.warn('No lens-source cut given in source catalog. Will' +
+                          ' use z_l < z_s.', RuntimeWarning)
             z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s],
                                            dtype=np.float64)
         if shear_mode:
