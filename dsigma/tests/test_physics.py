@@ -1,10 +1,10 @@
 import numpy as np
-from astropy.cosmology import FlatLambdaCDM, Planck18
+from astropy.cosmology import FlatLambdaCDM
 
 from ..physics import critical_surface_density
 
 
-def test_critical_surface_density_1():
+def test_critical_surface_density():
 
     cosmology = FlatLambdaCDM(100, 0.3)
     z_l = 0.3

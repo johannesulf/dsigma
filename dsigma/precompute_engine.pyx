@@ -42,9 +42,9 @@ def precompute_engine(
         sum_w_ls_e_t_in, sum_w_ls_e_t_sigma_crit_in,
         sum_w_ls_e_t_sigma_crit_f_bias_in, sum_w_ls_e_t_sigma_crit_sq_in,
         sum_w_ls_z_s_in, sum_w_ls_m_in, sum_w_ls_1_minus_e_rms_sq_in,
-        sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, rp_bins, comoving_in, nside, queue):
+        sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, bins, bint comoving,
+        bint shear_mode, int nside, queue):
 
-    cdef bint comoving = comoving_in
     cdef long[::1] pix_l_counts = pix_l_counts_in
     cdef long[::1] pix_s_counts = pix_s_counts_in
     cdef long[::1] pix_l_cum_counts = pix_l_cum_counts_in
@@ -126,7 +126,7 @@ def precompute_engine(
     cdef long i_s, i_s_min, i_s_max
     cdef long i_pix_l, i_pix_s
     cdef long[::1] i_pix_s_list
-    cdef long i_bin, n_bins = len(rp_bins) - 1
+    cdef long i_bin, n_bins = len(bins) - 1
     cdef long offset_bin, offset_result
     cdef double dist_3d_sq_max, dist_3d_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
@@ -199,13 +199,16 @@ def precompute_engine(
                     if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
                         continue
 
-                    if z_l[i_l] < z_s[i_s]:
+                    if z_l[i_l] < z_s[i_s] and not shear_mode:
                         sigma_crit = (sigma_crit_factor * (1 + z_l[i_l]) *
                             d_com_s[i_s] / d_com_l[i_l] /
                             (d_com_s[i_s] - d_com_l[i_l]))
                         if comoving:
                             sigma_crit /= (1.0 + z_l[i_l]) * (1.0 + z_l[i_l])
                         w_ls = w_s[i_s] / sigma_crit / sigma_crit
+                    elif shear_mode:
+                        w_ls = 1
+                        sigma_crit = 1
                     else:
                         sigma_crit = 0
                         w_ls = 0
@@ -240,13 +243,14 @@ def precompute_engine(
                             sum_1[offset_result + i_bin] += 1
                             sum_w_ls[offset_result + i_bin] += w_ls
                             sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
-                            sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)
-                            if has_f_bias:
-                                sum_w_ls_e_t_sigma_crit_f_bias[offset_result + i_bin] += (
-                                    w_ls * e_t * sigma_crit * f_bias[i_l])
-                            sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)**2
+                            if not shear_mode:
+                                sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
+                                    w_ls * e_t * sigma_crit)
+                                if has_f_bias:
+                                    sum_w_ls_e_t_sigma_crit_f_bias[offset_result + i_bin] += (
+                                        w_ls * e_t * sigma_crit * f_bias[i_l])
+                                sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
+                                    w_ls * e_t * sigma_crit)**2
                             sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
                             if has_m:
                                 sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]

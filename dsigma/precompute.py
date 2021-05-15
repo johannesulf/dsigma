@@ -136,9 +136,9 @@ def get_raw_multiprocessing_array(array):
 
 
 def add_precompute_results(
-        table_l, table_s, rp_bins, table_c=None, table_n=None,
-        cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True, nside=256,
-        n_jobs=1):
+        table_l, table_s, bins, table_c=None, table_n=None,
+        cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
+        shear_mode=False, nside=256, n_jobs=1):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -148,8 +148,10 @@ def add_precompute_results(
         Catalog of lenses.
     table_s : astropy.table.Table
         Catalog of sources.
-    rp_bins : numpy array
-        Bins in projected radius (in Mpc) to use for the stacking.
+    bins : numpy array
+        Bins in radius to use for the stacking. By default, these are in
+        projected distance and Mpc. However, if `shear_mode` is set to True,
+        these will be assumed to be angular separations in degrees.
     table_c : astropy.table.Table, optional
         Additional photometric redshift calibration catalog.
     table_n : astropy.table.Table, optional
@@ -157,7 +159,14 @@ def add_precompute_results(
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations.
     comoving : boolean, optional
-        Whether to use comoving or physical quantities.
+        Whether to use comoving or physical quantities. Only relevant if
+        `shear_mode` is not active.
+    shear_mode : boolean, optional
+        If true, bins are assumed to be in degrees. Also, the individual
+        weights of lens-source pairs are only determined by the source weight,
+        not also by the critical surface density. Finally, all lens-source
+        pairs will be analzyed unless a lens-source cut was previously
+        specified. This mode is useful for calculating tangential shear.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determines the number of pixels.
@@ -168,7 +177,7 @@ def add_precompute_results(
     Returns
     -------
     table_l : astropy.table.Table
-        Lens catalog with the pre-computation results attached in the table.
+        Lens catalog with the pre-computation results attached to the table.
     """
 
     try:
@@ -243,10 +252,14 @@ def add_precompute_results(
     e_2 = np.ascontiguousarray(table_s['e_2'][argsort_pix_s], dtype=np.float64)
 
     if 'z_l_max' not in table_s.colnames:
-        warnings.warn('Could not find a lens-source separation cut. Only ' +
-                      'z_l < z_s will required.', RuntimeWarning)
-        z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s],
-                                       dtype=np.float64)
+        if not shear_mode:
+            warnings.warn('No lens-source cut given. Will use z_l < z_s.',
+                          RuntimeWarning)
+            z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s],
+                                           dtype=np.float64)
+        if shear_mode:
+            z_l_max = np.ascontiguousarray(
+                np.repeat(np.amax(z_l) * 10, len(table_s)), dtype=np.float64)
     else:
         z_l_max = np.ascontiguousarray(table_s['z_l_max'][argsort_pix_s],
                                        dtype=np.float64)
@@ -311,24 +324,38 @@ def add_precompute_results(
     else:
         R_11, R_12, R_21, R_22 = None, None, None, None
 
-    theta = (np.tile(rp_bins, len(table_l)) /
-             np.repeat(d_com_l, len(rp_bins))).flatten()
-    if not comoving:
-        theta *= (1 + np.repeat(z_l, len(rp_bins))).flatten()
+    if not shear_mode:
+        theta = (np.tile(bins, len(table_l)) /
+                 np.repeat(d_com_l, len(bins))).flatten()
+    else:
+        theta = np.tile(np.deg2rad(bins), len(table_l))
+
+    if not shear_mode and not comoving:
+        theta *= (1 + np.repeat(z_l, len(bins))).flatten()
 
     dist_3d_sq_bins = np.minimum(4 * np.sin(theta / 2.0)**2, 2.0)
 
     # Create arrays that will hold the final results.
-    n_results = len(table_l) * (len(rp_bins) - 1)
+    n_results = len(table_l) * (len(bins) - 1)
     sum_1 = np.ascontiguousarray(np.zeros(n_results, dtype=np.int64))
     sum_w_ls = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
     sum_w_ls_e_t = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
-    sum_w_ls_e_t_sigma_crit = np.ascontiguousarray(np.zeros(
-        n_results, dtype=np.float64))
-    sum_w_ls_e_t_sigma_crit_f_bias = np.ascontiguousarray(np.zeros(
-        n_results, dtype=np.float64))
-    sum_w_ls_e_t_sigma_crit_sq = np.ascontiguousarray(np.zeros(
-        n_results, dtype=np.float64))
+
+    if not shear_mode:
+        sum_w_ls_e_t_sigma_crit = np.ascontiguousarray(np.zeros(
+            n_results, dtype=np.float64))
+        if table_c is not None:
+            sum_w_ls_e_t_sigma_crit_f_bias = np.ascontiguousarray(np.zeros(
+                n_results, dtype=np.float64))
+        else:
+            sum_w_ls_e_t_sigma_crit_f_bias = None
+        sum_w_ls_e_t_sigma_crit_sq = np.ascontiguousarray(np.zeros(
+            n_results, dtype=np.float64))
+    else:
+        sum_w_ls_e_t_sigma_crit = None
+        sum_w_ls_e_t_sigma_crit_f_bias = None
+        sum_w_ls_e_t_sigma_crit_sq = None
+
     sum_w_ls_z_s = np.ascontiguousarray(np.zeros(n_results, dtype=np.float64))
 
     if 'm' in table_s.colnames:
@@ -425,13 +452,13 @@ def add_precompute_results(
             sum_w_ls_1_minus_e_rms_sq, sum_w_ls_A_p_R_2, sum_w_ls_R_T)
 
     if n_jobs == 1:
-        precompute_engine(*args, rp_bins, comoving, nside, queue)
+        precompute_engine(*args, bins, comoving, shear_mode, nside, queue)
     else:
         processes = []
         for i in range(n_jobs):
             process = mp.Process(
                 target=precompute_engine,
-                args=(*args, rp_bins, comoving, nside, queue))
+                args=(*args, bins, comoving, shear_mode, nside, queue))
             process.start()
             processes.append(process)
         for i in range(n_jobs):
@@ -439,40 +466,42 @@ def add_precompute_results(
 
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
     table_l['sum 1'] = np.array(sum_1).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+        len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     table_l['sum w_ls'] = np.array(sum_w_ls).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+        len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     table_l['sum w_ls e_t'] = np.array(sum_w_ls_e_t).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
-    table_l['sum w_ls e_t sigma_crit'] = np.array(
-        sum_w_ls_e_t_sigma_crit).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+        len(table_l), len(bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_e_t_sigma_crit is not None:
+        table_l['sum w_ls e_t sigma_crit'] = np.array(
+            sum_w_ls_e_t_sigma_crit).reshape(
+            len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     if sum_w_ls_e_t_sigma_crit_f_bias is not None:
         table_l['sum w_ls e_t sigma_crit f_bias'] = np.array(
             sum_w_ls_e_t_sigma_crit_f_bias).reshape(
-            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
-    table_l['sum (w_ls e_t sigma_crit)^2'] = np.array(
-        sum_w_ls_e_t_sigma_crit_sq).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+            len(table_l), len(bins) - 1)[inv_argsort_pix_l]
+    if sum_w_ls_e_t_sigma_crit_sq is not None:
+        table_l['sum (w_ls e_t sigma_crit)^2'] = np.array(
+            sum_w_ls_e_t_sigma_crit_sq).reshape(
+            len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
     table_l['sum w_ls z_s'] = np.array(sum_w_ls_z_s).reshape(
-        len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+        len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     if sum_w_ls_m is not None:
         table_l['sum w_ls m'] = np.array(sum_w_ls_m).reshape(
-            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+            len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     if sum_w_ls_1_minus_e_rms_sq is not None:
         table_l['sum w_ls (1 - e_rms^2)'] = np.array(
             sum_w_ls_1_minus_e_rms_sq).reshape(
-                len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+                len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     if sum_w_ls_A_p_R_2 is not None:
         table_l['sum w_ls A p(R_2=0.3)'] = np.array(
             sum_w_ls_A_p_R_2).reshape(
-                len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+                len(table_l), len(bins) - 1)[inv_argsort_pix_l]
     if sum_w_ls_R_T is not None:
         table_l['sum w_ls R_T'] = np.array(sum_w_ls_R_T).reshape(
-            len(table_l), len(rp_bins) - 1)[inv_argsort_pix_l]
+            len(table_l), len(bins) - 1)[inv_argsort_pix_l]
 
-    table_l.meta['rp_bins'] = rp_bins
+    table_l.meta['bins'] = bins
     table_l.meta['comoving'] = comoving
     table_l.meta['H0'] = cosmology.H0.value
     table_l.meta['Ok0'] = cosmology.Ok0

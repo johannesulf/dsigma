@@ -4,12 +4,30 @@ from astropy.cosmology import FlatLambdaCDM
 from . import surveys
 from .physics import mpc_per_degree, lens_magnification_shear_bias
 
-__all__ = ['raw_tangential_shear', 'raw_excess_surface_density',
-           'photo_z_dilution_factor', 'boost_factor',
-           'scalar_shear_response_factor', 'tensor_shear_response_factor',
-           'shear_responsivity_factor', 'mean_lens_redshift',
-           'mean_source_redshift', 'mean_critical_surface_density',
-           'excess_surface_density', 'shape_noise_error']
+__all__ = ['number_of_pairs', 'raw_tangential_shear',
+           'raw_excess_surface_density', 'photo_z_dilution_factor',
+           'boost_factor', 'scalar_shear_response_factor',
+           'tensor_shear_response_factor', 'shear_responsivity_factor',
+           'mean_lens_redshift', 'mean_source_redshift',
+           'mean_critical_surface_density', 'excess_surface_density',
+           'shape_noise_error']
+
+
+def number_of_pairs(table_l, rotation=False):
+    """Compute the number of lens-source pairs per bin.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+
+    Returns
+    -------
+    n_pairs : numpy array
+        The number of lens-source pairs in each radial bin.
+    """
+
+    return np.sum(table_l['sum 1'].data, axis=0)
 
 
 def raw_tangential_shear(table_l, rotation=False):
@@ -28,7 +46,7 @@ def raw_tangential_shear(table_l, rotation=False):
 
     return (np.sum(table_l['sum w_ls e_t'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
-            np.sum(table_l['sum w_s'].data * table_l['w_sys'].data[:, None],
+            np.sum(table_l['sum w_ls'].data * table_l['w_sys'].data[:, None],
                    axis=0))
 
 
