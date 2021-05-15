@@ -10,6 +10,7 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 
 from .physics import critical_surface_density
+from .physics import effective_critical_surface_density
 from .precompute_engine import precompute_engine
 
 
@@ -134,9 +135,10 @@ def get_raw_multiprocessing_array(array):
     return array_mp
 
 
-def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
-                           cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                           comoving=True, nside=256, n_jobs=1):
+def add_precompute_results(
+        table_l, table_s, rp_bins, table_c=None, table_n=None,
+        cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True, nside=256,
+        n_jobs=1):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -151,11 +153,7 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
     table_c : astropy.table.Table, optional
         Additional photometric redshift calibration catalog.
     table_n : astropy.table.Table, optional
-        Source redshift distributions. Must have shape (n, 2, m), where n is
-        the number of source redshift bins and m the number of redshifts for
-        which n(z) is tabulated. The first entry in the second dimension is
-        assumed to be the redshift and the second entry in the second dimension
-        is the n(z).
+        Source redshift distributions.
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations.
     comoving : boolean, optional
@@ -187,6 +185,18 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
     if not isinstance(n_jobs, int) or n_jobs < 1:
         raise Exception('Illegal number of jobs. Expected positive integer ' +
                         'but received {}.'.format(n_jobs))
+
+    if table_n is not None:
+        if 'z_bin' not in table_s.colnames:
+            raise Exception('To use source redshift distributions, the ' +
+                            'source table needs to have a `z_bin` column.')
+        if not np.issubdtype(table_s['z_bin'].data.dtype, np.int) or np.amin(
+                table_s['z_bin']) < 0:
+            raise Exception('The `z_bin` column in the source table must ' +
+                            'contain only non-negative integers.')
+        if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:
+            raise Exception('The source table contains more redshift bins ' +
+                            'than where passed via the nz argument.')
 
     npix = hp.nside2npix(nside)
     pix_l = hp.ang2pix(nside, table_l['ra'], table_l['dec'], lonlat=True)
@@ -253,6 +263,24 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
     else:
         f_bias = None
 
+    if table_n is not None:
+        n_bins = table_n['n'].data.shape[1]
+        sigma_crit_eff_inv = np.ascontiguousarray(
+            np.zeros(len(table_l) * n_bins), dtype=np.float64)
+        a = np.linspace(1.0 / (1.0 + np.amax(z_l)), 1.0 / (1.0 + np.amin(z_l)),
+                        1000)
+        z = 1 / a - 1
+        for i in range(n_bins):
+            sigma_crit_eff = effective_critical_surface_density(
+                z, table_n['z'], table_n['n'][:, i], cosmology=cosmology,
+                comoving=comoving)
+            sigma_crit_eff_inv[i::n_bins] = interp1d(
+                a, 1.0 / sigma_crit_eff, kind='cubic', bounds_error=False,
+                fill_value=(sigma_crit_eff[0]**-1, sigma_crit_eff[-1]**-1))(
+                    1.0 / (1 + table_l['z'][argsort_pix_l]))
+        else:
+            sigma_crit_eff_inv = None
+
     if 'm' in table_s.colnames:
         m = np.ascontiguousarray(table_s['m'][argsort_pix_s], dtype=np.float64)
     else:
@@ -283,15 +311,12 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
     else:
         R_11, R_12, R_21, R_22 = None, None, None, None
 
-    if comoving:
-        cos_theta_bins = np.ascontiguousarray(np.cos(
-            np.tile(rp_bins, len(table_l)) / np.repeat(
-                d_com_l, len(rp_bins))).flatten())
-    else:
-        cos_theta_bins = np.ascontiguousarray(np.cos(
-            np.tile(rp_bins, len(table_l)) / np.repeat(
-                d_com_l, len(rp_bins)) * np.repeat(
-                z_l, len(rp_bins))).flatten())
+    theta = (np.tile(rp_bins, len(table_l)) /
+             np.repeat(d_com_l, len(rp_bins))).flatten()
+    if not comoving:
+        theta *= (1 + np.repeat(z_l, len(rp_bins))).flatten()
+
+    dist_3d_sq_bins = np.minimum(4 * np.sin(theta / 2.0)**2, 2.0)
 
     # Create arrays that will hold the final results.
     n_results = len(table_l) * (len(rp_bins) - 1)
@@ -362,6 +387,7 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
         R_12 = get_raw_multiprocessing_array(R_12)
         R_21 = get_raw_multiprocessing_array(R_21)
         R_22 = get_raw_multiprocessing_array(R_22)
+        dist_3d_sq_bins = get_raw_multiprocessing_array(dist_3d_sq_bins)
         sum_1 = get_raw_multiprocessing_array(sum_1)
         sum_w_ls = get_raw_multiprocessing_array(sum_w_ls)
         sum_w_ls_e_t = get_raw_multiprocessing_array(sum_w_ls_e_t)
@@ -393,7 +419,7 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
             z_l, z_s, d_com_l, d_com_s, sin_ra_l, cos_ra_l, sin_dec_l,
             cos_dec_l, sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s, w_s, e_1, e_2,
             z_l_max, f_bias, m, e_rms, R_2, R_11, R_12, R_21, R_22,
-            cos_theta_bins, sum_1, sum_w_ls, sum_w_ls_e_t,
+            dist_3d_sq_bins, sum_1, sum_w_ls, sum_w_ls_e_t,
             sum_w_ls_e_t_sigma_crit, sum_w_ls_e_t_sigma_crit_f_bias,
             sum_w_ls_e_t_sigma_crit_sq, sum_w_ls_z_s, sum_w_ls_m,
             sum_w_ls_1_minus_e_rms_sq, sum_w_ls_A_p_R_2, sum_w_ls_R_T)

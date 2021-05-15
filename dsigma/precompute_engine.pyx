@@ -4,7 +4,7 @@
 import queue as Queue
 import numpy as np
 import healpy as hp
-from libc.math cimport sin, cos, sqrt, fmax, pow
+from libc.math cimport sin, cos, sqrt, fmax
 from scipy.spatial import cKDTree
 
 from astropy import constants as c
@@ -15,12 +15,21 @@ cdef double sigma_crit_factor = (
     1e-6 * c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 cdef double deg2rad = np.pi / 180.0
 
+cdef double x_1, x_2, y_1, y_2, z_1, z_2
 
-cdef cos_theta(double sin_ra_1, double cos_ra_1, double sin_dec_1,
-               double cos_dec_1, double sin_ra_2, double cos_ra_2,
-               double sin_dec_2, double cos_dec_2):
-    return (sin_dec_1 * sin_dec_2 + cos_dec_1 * cos_dec_2 * (
-        sin_ra_1 * sin_ra_2 + cos_ra_1 * cos_ra_2))
+cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
+                double cos_dec_1, double sin_ra_2, double cos_ra_2,
+                double sin_dec_2, double cos_dec_2):
+
+    x_1 = cos_ra_1 * cos_dec_1
+    y_1 = sin_ra_1 * cos_dec_1
+    z_1 = sin_dec_1
+    x_2 = cos_ra_2 * cos_dec_2
+    y_2 = sin_ra_2 * cos_dec_2
+    z_2 = sin_dec_2
+
+    return ((x_1 - x_2) * (x_1 - x_2) + (y_1 - y_2) * (y_1 - y_2) +
+            (z_1 - z_2) * (z_1 - z_2))
 
 
 def precompute_engine(
@@ -29,12 +38,13 @@ def precompute_engine(
         sin_ra_l_in, cos_ra_l_in, sin_dec_l_in, cos_dec_l_in, sin_ra_s_in,
         cos_ra_s_in, sin_dec_s_in, cos_dec_s_in, w_s_in, e_1_in, e_2_in,
         z_l_max_in, f_bias_in, m_in, e_rms_in, R_2_in, R_11_in, R_12_in,
-        R_21_in, R_22_in, cos_theta_bins_in, sum_1_in, sum_w_ls_in,
+        R_21_in, R_22_in, dist_3d_sq_bins_in, sum_1_in, sum_w_ls_in,
         sum_w_ls_e_t_in, sum_w_ls_e_t_sigma_crit_in,
         sum_w_ls_e_t_sigma_crit_f_bias_in, sum_w_ls_e_t_sigma_crit_sq_in,
         sum_w_ls_z_s_in, sum_w_ls_m_in, sum_w_ls_1_minus_e_rms_sq_in,
-        sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, rp_bins, comoving, nside, queue):
+        sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, rp_bins, comoving_in, nside, queue):
 
+    cdef bint comoving = comoving_in
     cdef long[::1] pix_l_counts = pix_l_counts_in
     cdef long[::1] pix_s_counts = pix_s_counts_in
     cdef long[::1] pix_l_cum_counts = pix_l_cum_counts_in
@@ -84,7 +94,7 @@ def precompute_engine(
         R_21 = R_21_in
         R_22 = R_22_in
 
-    cdef double[::1] cos_theta_bins = cos_theta_bins_in
+    cdef double[::1] dist_3d_sq_bins = dist_3d_sq_bins_in
 
     cdef long[::1] sum_1 = sum_1_in
     cdef double[::1] sum_w_ls = sum_w_ls_in
@@ -117,12 +127,11 @@ def precompute_engine(
     cdef long i_pix_l, i_pix_s
     cdef long[::1] i_pix_s_list
     cdef long i_bin, n_bins = len(rp_bins) - 1
-    cdef long offset_cos_theta_bin, offset_result
-    cdef double r_max, cos_theta_ls
+    cdef long offset_bin, offset_result
+    cdef double dist_3d_sq_max, dist_3d_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
     cdef double sin_2phi, cos_2phi, tan_phi, e_t
     cdef double w_ls, sigma_crit
-    cdef double delta_max, delta_max_i, rp_max = np.amax(rp_bins)
     cdef double max_pixrad = hp.max_pixrad(nside, degrees=True)
 
     while True:
@@ -144,19 +153,18 @@ def precompute_engine(
         i_l_max = pix_l_cum_counts[i_pix_l]
 
         # Find the maximum angular search radius.
-        delta_max = 0.0
+        dist_3d_sq_max = 0.0
         for i_l in range(i_l_min, i_l_max):
-            delta_max_i = rp_max / d_com_l[i_l] / deg2rad
-            if not comoving:
-                delta_max_i /= 1 + z_l[i_l]
-            delta_max_i += 2 * max_pixrad
-            if delta_max_i > delta_max:
-                delta_max = delta_max_i
+            dist_3d_sq_max = fmax(dist_3d_sq_bins[i_l * (n_bins + 1) + n_bins],
+                                  dist_3d_sq_max)
+        # Note that pixels can be up to max_pixrad away from the pixel center.
+        dist_3d_sq_max += (4 * deg2rad * deg2rad * max_pixrad * max_pixrad +
+                           4 * sqrt(dist_3d_sq_max) * deg2rad * max_pixrad)
 
         # Get list of all source pixels that could contain suitable sources.
-        r_max = sqrt(2 - 2 * cos(delta_max * deg2rad))
         i_pix_s_list = np.fromiter(
-            kdtree.query_ball_point(xyz[i_pix_l], r_max), dtype=long)
+            kdtree.query_ball_point(xyz[i_pix_l], sqrt(dist_3d_sq_max)),
+            dtype=long)
 
         # Loop over all suitable source pixels.
         for i_pix_s in i_pix_s_list:
@@ -175,7 +183,7 @@ def precompute_engine(
             for i_l in range(i_l_min, i_l_max):
 
                 offset_result = i_l * n_bins
-                offset_cos_theta_bin = i_l * (n_bins + 1)
+                offset_bin = i_l * (n_bins + 1)
 
                 # Loop over all sources in the pixel.
                 for i_s in range(i_s_min, i_s_max):
@@ -183,11 +191,12 @@ def precompute_engine(
                     if z_l[i_l] > z_l_max[i_s]:
                         continue
 
-                    cos_theta_ls = cos_theta(
+                    dist_3d_sq_ls = dist_3d_sq(
                         sin_ra_l[i_l], cos_ra_l[i_l], sin_dec_l[i_l],
                         cos_dec_l[i_l], sin_ra_s[i_s], cos_ra_s[i_s],
                         sin_dec_s[i_s], cos_dec_s[i_s])
-                    if cos_theta_ls < cos_theta_bins[offset_cos_theta_bin + n_bins]:
+
+                    if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
                         continue
 
                     if z_l[i_l] < z_s[i_s]:
@@ -227,7 +236,7 @@ def precompute_engine(
                     i_bin = n_bins - 1
                     while i_bin >= 0:
 
-                        if cos_theta_ls < cos_theta_bins[offset_cos_theta_bin + i_bin]:
+                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
                             sum_1[offset_result + i_bin] += 1
                             sum_w_ls[offset_result + i_bin] += w_ls
                             sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
