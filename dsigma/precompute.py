@@ -150,7 +150,7 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
         Bins in projected radius (in Mpc) to use for the stacking.
     table_c : astropy.table.Table, optional
         Additional photometric redshift calibration catalog.
-    nz : numpy array, optional
+    table_n : astropy.table.Table, optional
         Source redshift distributions. Must have shape (n, 2, m), where n is
         the number of source redshift bins and m the number of redshifts for
         which n(z) is tabulated. The first entry in the second dimension is
@@ -179,19 +179,14 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
         raise Exception('Currently, dsigma does not support non-flat ' +
                         'cosmologies.')
 
-    try:
-        assert np.all(table_l['z'] > 0)
-    except AssertionError:
-        raise Exception('The redshifts of all lens galaxies must be positive.')
+    if np.any(table_l['z'] < 0):
+        raise Exception('Input lens redshifts must all be non-negative.')
     if not isinstance(nside, int) or not np.isin(nside, 2**np.arange(15)):
         raise Exception('nside must be a positive power of 2 but received ' +
                         '{}.'.format(nside))
     if not isinstance(n_jobs, int) or n_jobs < 1:
         raise Exception('Illegal number of jobs. Expected positive integer ' +
                         'but received {}.'.format(n_jobs))
-
-    if np.any(table_l['z'] < 0):
-        raise Exception('Input lens redshifts must all be non-negative.')
 
     npix = hp.nside2npix(nside)
     pix_l = hp.ang2pix(nside, table_l['ra'], table_l['dec'], lonlat=True)
@@ -233,16 +228,18 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
         np.sin(np.deg2rad(table_s['dec']))[argsort_pix_s])
     cos_dec_s = np.ascontiguousarray(
         np.cos(np.deg2rad(table_s['dec']))[argsort_pix_s])
-    w_s = np.ascontiguousarray(table_s['w'][argsort_pix_s])
-    e_1 = np.ascontiguousarray(table_s['e_1'][argsort_pix_s])
-    e_2 = np.ascontiguousarray(table_s['e_2'][argsort_pix_s])
+    w_s = np.ascontiguousarray(table_s['w'][argsort_pix_s], dtype=np.float64)
+    e_1 = np.ascontiguousarray(table_s['e_1'][argsort_pix_s], dtype=np.float64)
+    e_2 = np.ascontiguousarray(table_s['e_2'][argsort_pix_s], dtype=np.float64)
 
     if 'z_l_max' not in table_s.colnames:
         warnings.warn('Could not find a lens-source separation cut. Only ' +
                       'z_l < z_s will required.', RuntimeWarning)
-        z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s])
+        z_l_max = np.ascontiguousarray(table_s['z'][argsort_pix_s],
+                                       dtype=np.float64)
     else:
-        z_l_max = np.ascontiguousarray(table_s['z_l_max'][argsort_pix_s])
+        z_l_max = np.ascontiguousarray(table_s['z_l_max'][argsort_pix_s],
+                                       dtype=np.float64)
 
     if table_c is not None:
         z_min = np.amin(table_l['z'])
@@ -270,6 +267,8 @@ def add_precompute_results(table_l, table_s, rp_bins, table_c=None, nz=None,
     if 'R_2' in table_s.colnames:
         R_2 = np.ascontiguousarray(table_s['R_2'][argsort_pix_s],
                                    dtype=np.float64)
+    else:
+        R_2 = None
 
     if (('R_11' in table_s.colnames) and ('R_12' in table_s.colnames) and
             ('R_21' in table_s.colnames) and ('R_22' in table_s.colnames)):

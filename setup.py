@@ -3,9 +3,8 @@ from distutils.extension import Extension
 from distutils.command.sdist import sdist
 try:
     from Cython.Build import cythonize
-    USE_CYTHON = True
 except ImportError:
-    USE_CYTHON = False
+    pass
 
 
 class sdist_with_cythonize(sdist):
@@ -14,21 +13,12 @@ class sdist_with_cythonize(sdist):
         sdist.run(self)
 
 
-ext = '.pyx' if USE_CYTHON else '.c'
-
-extensions = [Extension(
-    'dsigma.precompute_engine', ['dsigma/precompute_engine' + ext])]
-
-if USE_CYTHON:
-    extensions = cythonize(extensions)
-
-
 with open('README.md', 'r') as fstream:
     long_description = fstream.read()
 
 setup(
     name='dsigma',
-    version='0.5.0',
+    version='0.5.0.3',
     description=('A Galaxy-Galaxy Lensing Pipeline'),
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -49,6 +39,8 @@ setup(
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
                       'healpy'],
     python_requires='>=3.4',
-    ext_modules=extensions,
+    ext_modules=[Extension(
+        'dsigma.precompute_engine', ['dsigma/precompute_engine.c'],
+        extra_compile_args=['-Ofast', '-march=native'])],
     cmdclass={'sdist': sdist_with_cythonize}
 )
