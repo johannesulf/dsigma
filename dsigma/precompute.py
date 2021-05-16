@@ -59,6 +59,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
         warnings.warn('Could not find valid calibration sources for some ' +
                       'lens redshifts. The f_bias correction may be ' +
                       'undefined.', RuntimeWarning)
+        return np.nan
 
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
@@ -267,35 +268,50 @@ def add_precompute_results(
         z_l_max = np.ascontiguousarray(table_s['z_l_max'][argsort_pix_s],
                                        dtype=np.float64)
 
-    if table_c is not None:
+    if table_c is not None and table_n is None:
         z_min = np.amin(table_l['z'])
         z_max = np.amax(table_l['z'])
-        z = np.linspace(z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
-        f_bias = np.array([photo_z_dilution_factor(z_i, table_c, cosmology) for
-                           z_i in z])
-        f_bias = interp1d(
-            z, f_bias, kind='cubic', fill_value=(f_bias[0], f_bias[-1]))
-        f_bias = np.ascontiguousarray(f_bias(table_l['z'])[argsort_pix_l])
+        z_interp = np.linspace(
+            z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
+        f_bias_interp = np.array(
+            [photo_z_dilution_factor(z, table_c, cosmology) for z in z_interp])
+        f_bias_interp = interp1d(
+            z_interp, f_bias_interp, kind='cubic', bounds_error=False,
+            fill_value=(f_bias_interp[0], f_bias_interp[-1]))
+        f_bias = np.ascontiguousarray(f_bias_interp(z_l))
+        sigma_crit_eff = None
+        z_bin = None
+    elif table_c is None and table_n is not None:
+        z_min = np.amin(table_l['z'])
+        z_max = np.amax(table_l['z'])
+        z_interp = np.linspace(
+            z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
+        n_bins = table_n['n'].data.shape[1]
+        sigma_crit_eff = np.ascontiguousarray(np.zeros(len(table_l) * n_bins,
+                                                       dtype=np.float64))
+        for i in range(n_bins):
+            sigma_crit_eff_inv_interp = effective_critical_surface_density(
+                z_interp, table_n['z'], table_n['n'][:, i],
+                cosmology=cosmology, comoving=comoving)**-1
+            sigma_crit_eff_inv_interp = interp1d(
+                z_interp, sigma_crit_eff_inv_interp, kind='cubic',
+                bounds_error=False,
+                fill_value=(sigma_crit_eff_inv_interp[0],
+                            sigma_crit_eff_inv_interp[-1]))
+            sigma_crit_eff_inv_interp = sigma_crit_eff_inv_interp(z_l)
+            sigma_crit_eff_interp = np.repeat(np.inf, len(table_l))
+            mask = sigma_crit_eff_inv_interp == 0
+            sigma_crit_eff_interp[~mask] = sigma_crit_eff_inv_interp[~mask]**-1
+            sigma_crit_eff[i::n_bins] = sigma_crit_eff_interp
+        z_bin = np.ascontiguousarray(table_s['z_bin'][argsort_pix_s],
+                                     dtype=int)
+        f_bias = None
+    elif table_c is not None and table_s is not None:
+        raise Exception('table_c and table_n cannot both be given.')
     else:
         f_bias = None
-
-    if table_n is not None:
-        n_bins = table_n['n'].data.shape[1]
-        sigma_crit_eff_inv = np.ascontiguousarray(
-            np.zeros(len(table_l) * n_bins), dtype=np.float64)
-        a = np.linspace(1.0 / (1.0 + np.amax(z_l)), 1.0 / (1.0 + np.amin(z_l)),
-                        1000)
-        z = 1 / a - 1
-        for i in range(n_bins):
-            sigma_crit_eff = effective_critical_surface_density(
-                z, table_n['z'], table_n['n'][:, i], cosmology=cosmology,
-                comoving=comoving)
-            sigma_crit_eff_inv[i::n_bins] = interp1d(
-                a, 1.0 / sigma_crit_eff, kind='cubic', bounds_error=False,
-                fill_value=(sigma_crit_eff[0]**-1, sigma_crit_eff[-1]**-1))(
-                    1.0 / (1 + table_l['z'][argsort_pix_l]))
-        else:
-            sigma_crit_eff_inv = None
+        sigma_crit_eff = None
+        z_bin = None
 
     if 'm' in table_s.colnames:
         m = np.ascontiguousarray(table_s['m'][argsort_pix_s], dtype=np.float64)
@@ -410,6 +426,8 @@ def add_precompute_results(
         e_2 = get_raw_multiprocessing_array(e_2)
         z_l_max = get_raw_multiprocessing_array(z_l_max)
         f_bias = get_raw_multiprocessing_array(f_bias)
+        sigma_crit_eff = get_raw_multiprocessing_array(sigma_crit_eff)
+        z_bin = get_raw_multiprocessing_array(z_bin)
         m = get_raw_multiprocessing_array(m)
         e_rms = get_raw_multiprocessing_array(e_rms)
         R_2 = get_raw_multiprocessing_array(R_2)
@@ -448,8 +466,8 @@ def add_precompute_results(
     args = (pix_l_counts, pix_s_counts, pix_l_cum_counts, pix_s_cum_counts,
             z_l, z_s, d_com_l, d_com_s, sin_ra_l, cos_ra_l, sin_dec_l,
             cos_dec_l, sin_ra_s, cos_ra_s, sin_dec_s, cos_dec_s, w_s, e_1, e_2,
-            z_l_max, f_bias, m, e_rms, R_2, R_11, R_12, R_21, R_22,
-            dist_3d_sq_bins, sum_1, sum_w_ls, sum_w_ls_e_t,
+            z_l_max, f_bias, z_bin, sigma_crit_eff, m, e_rms, R_2, R_11, R_12,
+            R_21, R_22, dist_3d_sq_bins, sum_1, sum_w_ls, sum_w_ls_e_t,
             sum_w_ls_e_t_sigma_crit, sum_w_ls_e_t_sigma_crit_f_bias,
             sum_w_ls_e_t_sigma_crit_sq, sum_w_ls_z_s, sum_w_ls_m,
             sum_w_ls_1_minus_e_rms_sq, sum_w_ls_A_p_R_2, sum_w_ls_R_T)

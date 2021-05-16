@@ -37,9 +37,9 @@ def precompute_engine(
         pix_s_cum_counts_in, z_l_in, z_s_in, d_com_l_in, d_com_s_in,
         sin_ra_l_in, cos_ra_l_in, sin_dec_l_in, cos_dec_l_in, sin_ra_s_in,
         cos_ra_s_in, sin_dec_s_in, cos_dec_s_in, w_s_in, e_1_in, e_2_in,
-        z_l_max_in, f_bias_in, m_in, e_rms_in, R_2_in, R_11_in, R_12_in,
-        R_21_in, R_22_in, dist_3d_sq_bins_in, sum_1_in, sum_w_ls_in,
-        sum_w_ls_e_t_in, sum_w_ls_e_t_sigma_crit_in,
+        z_l_max_in, f_bias_in, z_bin_in, sigma_crit_eff_in, m_in, e_rms_in,
+        R_2_in, R_11_in, R_12_in, R_21_in, R_22_in, dist_3d_sq_bins_in,
+        sum_1_in, sum_w_ls_in, sum_w_ls_e_t_in, sum_w_ls_e_t_sigma_crit_in,
         sum_w_ls_e_t_sigma_crit_f_bias_in, sum_w_ls_e_t_sigma_crit_sq_in,
         sum_w_ls_z_s_in, sum_w_ls_m_in, sum_w_ls_1_minus_e_rms_sq_in,
         sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, bins, bint comoving,
@@ -70,6 +70,15 @@ def precompute_engine(
     cdef double[::1] f_bias
     if has_f_bias:
         f_bias = f_bias_in
+
+    cdef bint has_sigma_crit_eff = sigma_crit_eff_in is not None
+    cdef int n_z_bins = 0
+    cdef double[::1] sigma_crit_eff
+    cdef long[::1] z_bin
+    if has_sigma_crit_eff:
+        n_z_bins = len(sigma_crit_eff_in) // len(z_l_in)
+        sigma_crit_eff = sigma_crit_eff_in
+        z_bin = z_bin_in
 
     cdef bint has_m = m_in is not None
     cdef double[::1] m
@@ -199,16 +208,20 @@ def precompute_engine(
                     if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
                         continue
 
-                    if z_l[i_l] < z_s[i_s] and not shear_mode:
+                    if shear_mode:
+                        w_ls = 1
+                        sigma_crit = 1
+                    elif has_sigma_crit_eff:
+                        sigma_crit = sigma_crit_eff[
+                            i_l * n_z_bins + z_bin[i_s]]
+                        w_ls = w_s[i_s] / sigma_crit / sigma_crit
+                    elif z_l[i_l] < z_s[i_s]:
                         sigma_crit = (sigma_crit_factor * (1 + z_l[i_l]) *
                             d_com_s[i_s] / d_com_l[i_l] /
                             (d_com_s[i_s] - d_com_l[i_l]))
                         if comoving:
                             sigma_crit /= (1.0 + z_l[i_l]) * (1.0 + z_l[i_l])
                         w_ls = w_s[i_s] / sigma_crit / sigma_crit
-                    elif shear_mode:
-                        w_ls = 1
-                        sigma_crit = 1
                     else:
                         sigma_crit = 0
                         w_ls = 0

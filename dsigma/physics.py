@@ -159,7 +159,7 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
 
     Returns
     -------
-    float or numpy array
+    sigma_crit_eff : float or numpy array
         Effective critical surface density for the lens redshift given the
         source redshift distribution.
 
@@ -178,7 +178,17 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
     sigma_crit = critical_surface_density(z_l, z_s, cosmology=cosmology,
                                           comoving=comoving, d_l=d_l, d_s=d_s)
 
-    return np.average(sigma_crit**-1, axis=-1, weights=n_s)**-1
+    if not np.isscalar(z_l):
+        sigma_crit_eff = np.repeat(np.inf, len(z_l))
+        mask = np.average(sigma_crit**-1, axis=-1, weights=n_s) == 0
+        sigma_crit_eff[~mask] = np.average(sigma_crit**-1, axis=-1,
+                                           weights=n_s)[~mask]**-1
+        return sigma_crit_eff
+    else:
+        if np.average(sigma_crit**-1, weights=n_s) > 0:
+            return np.average(sigma_crit**-1, weights=n_s)**-1
+        else:
+            return np.inf
 
 
 def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
