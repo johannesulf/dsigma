@@ -17,6 +17,7 @@ _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
                    comoving=False):
     """Estimate the angular scale in Mpc/degree at certain redshift.
+
     Parameters
     ----------
     cosmology : astropy.cosmology, optional
@@ -26,6 +27,7 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
     comoving : boolen
         Use comoving distance instead of physical distance when True.
         Default: False
+
     Returns
     -------
     float or numpy array
