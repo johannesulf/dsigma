@@ -278,7 +278,7 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         range(len(theta))]) * sigma_crit
 
 
-def excess_surface_density(table_l, table_r=None, rotation=False,
+def excess_surface_density(table_l, table_r=None,
                            photo_z_dilution_correction=False,
                            boost_correction=False,
                            scalar_shear_response_correction=False,
@@ -296,9 +296,6 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
         Precompute results for random lenses.
-    rotation : boolean, optional
-        If true, calculate the lensing signal for ellipicities rotated by 45
-        deg. Ideally, the result should be consistent with 0.
     photo_z_dilution_correction : boolean, optional
         If true, correct for photo-z biases. This can only be done if a
         calibration catalog has been provided in the Precomputation phase.
@@ -333,13 +330,10 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
     result['rp_min'] = table_l.meta['bins'][:-1]
     result['rp_max'] = table_l.meta['bins'][1:]
     result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
-    result['ds_raw'] = raw_excess_surface_density(
-        table_l, rotation=rotation)
-    result['ds'] = raw_excess_surface_density(
-        table_l, rotation=rotation)
-    result['et_raw'] = raw_tangential_shear(
-        table_l, rotation=rotation)
-    result['et'] = raw_tangential_shear(table_l, rotation=rotation)
+    result['ds_raw'] = raw_excess_surface_density(table_l)
+    result['ds'] = raw_excess_surface_density(table_l)
+    result['et_raw'] = raw_tangential_shear(table_l)
+    result['et'] = raw_tangential_shear(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
     result['z_s'] = mean_source_redshift(table_l)
 
