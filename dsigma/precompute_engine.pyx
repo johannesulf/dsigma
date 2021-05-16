@@ -147,7 +147,7 @@ def precompute_engine(
 
         # Check whether there is still a lens pixel in the queue.
         try:
-            i_pix_l = queue.get(timeout=0.1)
+            i_pix_l = queue.get()
         except Queue.Empty:
             break
 

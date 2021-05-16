@@ -1,4 +1,4 @@
-# dsigma: a galaxy-galaxy python package
+# dsigma: a galaxy-galaxy lensing python package
 
 
 [![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)

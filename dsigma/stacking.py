@@ -330,8 +330,8 @@ def excess_surface_density(table_l, table_r=None, rotation=False,
 
     result = Table()
 
-    result['rp_min'] = table_l.meta['rp_bins'][:-1]
-    result['rp_max'] = table_l.meta['rp_bins'][1:]
+    result['rp_min'] = table_l.meta['bins'][:-1]
+    result['rp_max'] = table_l.meta['bins'][1:]
     result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
     result['ds_raw'] = raw_excess_surface_density(
         table_l, rotation=rotation)
