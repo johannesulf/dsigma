@@ -1,10 +1,10 @@
-# dsigma: galaxy-galaxy lensing made easy
+# dsigma: a galaxy-galaxy python package
 
 
 [![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://raw.githubusercontent.com/johannesulf/dsigma/master/LICENSE)
 
-![plot](./docs/plot.png)
+![plot](https://raw.githubusercontent.com/johannesulf/dsigma/dsigma_dev/docs/plot.png)
 
 `dsigma` is an easy-to-use pipeline for analyzing galaxy-galaxy lensing. It is
 written in pure python, has a broadly applicable API and is optimized for
