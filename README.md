@@ -12,16 +12,22 @@ While originally intended to be used with the shape catalog of the
 Hyper-Suprime Cam (HSC) survey, it should work for other surveys, most
 prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
 
-### Authors
+---
+
+## Authors
 
 * Johannes Lange
 * Song Huang
 
-### Documentation
+---
+
+## Documentation
 
 A documentation for `dsigma` with concept introductions, examples and API
 documentation can be found at on [readthedocs](dsigma.readthedocs.io).
 
-### License
+---
+
+## License
 
 `dsigma` is licensed under the MIT License.
