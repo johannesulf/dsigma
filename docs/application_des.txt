@@ -215,12 +215,13 @@ we first define the lens-source separation cuts. We require that
     from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
 
     add_maximum_lens_redshift(table_s, dz_min=0.1)
+    add_maximum_lens_redshift(table_c, dz_min=0.1)
 
     rp_bins = np.logspace(-1, 1.6, 14)
-    table_l_pre = precompute_catalog(table_l, table_s, rp_bins, cosmology=Planck15,
-                                     comoving=True, table_c=table_c)
-    table_r_pre = precompute_catalog(table_r, table_s, rp_bins, cosmology=Planck15,
-                                     comoving=True, table_c=table_c)
+    add_precompute_results(table_l, table_s, rp_bins, cosmology=Planck15,
+                           comoving=True, table_c=table_c)
+    add_precompute_results(table_r, table_s, rp_bins, cosmology=Planck15,
+                           comoving=True, table_c=table_c)
 
 
 *******************
@@ -247,33 +248,33 @@ estimator.
     from dsigma.stacking import excess_surface_density
 
     # Drop all lenses that did not have any nearby source.
-    table_l_pre['n_s_tot'] = np.sum(table_l_pre['sum 1'], axis=1)
-    table_l_pre = table_l_pre[table_l_pre['n_s_tot'] > 0]
+    table_l['n_s_tot'] = np.sum(table_l['sum 1'], axis=1)
+    table_l = table_l[table_l['n_s_tot'] > 0]
 
-    table_r_pre['n_s_tot'] = np.sum(table_r_pre['sum 1'], axis=1)
-    table_r_pre = table_r_pre[table_r_pre['n_s_tot'] > 0]
+    table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
+    table_r = table_r[table_r['n_s_tot'] > 0]
 
-    add_continous_fields(table_l_pre, distance_threshold=2)
-    centers = jackknife_field_centers(table_l_pre, 100, weight='n_s_tot')
-    add_jackknife_fields(table_l_pre, centers)
-    add_jackknife_fields(table_r_pre, centers)
+    add_continous_fields(table_l, distance_threshold=2)
+    centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
+    add_jackknife_fields(table_l, centers)
+    add_jackknife_fields(table_r, centers)
 
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
     for lens_bin in range(3, len(z_bins) - 1):
-        mask_l = ((z_bins[lens_bin] <= table_l_pre['z']) &
-                  (table_l_pre['z'] < z_bins[lens_bin + 1]))
-        mask_r = ((z_bins[lens_bin] <= table_r_pre['z']) &
-                  (table_r_pre['z'] < z_bins[lens_bin + 1]))
-    
-        kwargs = {'return_table': True, 'photo_z_dilution_correction': True,
-                  'tensor_shear_response_correction': True,
-                  'random_subtraction': True, 'table_r': table_r_pre[mask_r]}
+        mask_l = ((z_bins[lens_bin] <= table_l['z']) &
+                  (table_l['z'] < z_bins[lens_bin + 1]))
+        mask_r = ((z_bins[lens_bin] <= table_r['z']) &
+                  (table_r['z'] < z_bins[lens_bin + 1]))
 
-        result = excess_surface_density(table_l_pre[mask_l], **kwargs)
+        kwargs = {'return_table': True, 'photo_z_dilution_correction': True,
+                  'matrix_shear_response_correction': True,
+                  'random_subtraction': True, 'table_r': table_r[mask_r]}
+
+        result = excess_surface_density(table_l[mask_l], **kwargs)
         kwargs['return_table'] = False
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
-            excess_surface_density, table_l_pre[mask_l], **kwargs)))
+            excess_surface_density, table_l[mask_l], **kwargs)))
 
         result.write('des_{}.csv'.format(lens_bin), overwrite=True)
 
