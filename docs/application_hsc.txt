@@ -106,8 +106,10 @@ the actual pre-computation.
     add_maximum_lens_redshift(table_c, dz_min=0.1, apply_z_low=True)
 
     rp_bins = np.logspace(-1, 1.6, 14)
-    add_precompute_results(table_l, table_s, rp_bins, table_c=table_c, cosmology=Planck15, comoving=True)
-    add_precompute_results(table_r, table_s, rp_bins, table_c=table_c, cosmology=Planck15, comoving=True)
+    add_precompute_results(table_l, table_s, rp_bins, table_c=table_c,
+                           cosmology=Planck15, comoving=True)
+    add_precompute_results(table_r, table_s, rp_bins, table_c=table_c,
+                           cosmology=Planck15, comoving=True)
 
 
 *******************

@@ -40,5 +40,11 @@ understandable by :code:`dsigma`.
     table_r = vstack([Table.read('random0_DR12v5_CMASSLOWZTOT_South.fits.gz'),
                       Table.read('random0_DR12v5_CMASSLOWZTOT_North.fits.gz')])
     table_r = dsigma_table(table_r, 'lens', z='Z', ra='RA', dec='DEC',
-                           w_sys=1)
+                           w_sys=1)[::5]
     table_r = table_r[table_r['z'] >= 0.15]
+
+Note that we only process every 5th random. This is done merely to reduce
+computation time and memory use. Even when only using every 5th random, we
+still have 10 times more randoms than lenses which should suffice
+`(Singh et al., 2017)
+<https://ui.adsabs.harvard.edu/abs/2017MNRAS.471.3827S/abstract>`_.

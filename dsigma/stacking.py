@@ -375,8 +375,7 @@ def excess_surface_density(table_l, table_r=None,
             raise Exception('Cannot subtract random results without ' +
                             'results from a random catalog.')
         result_r = excess_surface_density(
-            table_r, rotation=rotation,
-            photo_z_dilution_correction=photo_z_dilution_correction,
+            table_r, photo_z_dilution_correction=photo_z_dilution_correction,
             boost_correction=False,
             scalar_shear_response_correction=scalar_shear_response_correction,
             tensor_shear_response_correction=tensor_shear_response_correction,
