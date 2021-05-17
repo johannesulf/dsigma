@@ -203,7 +203,7 @@ def add_precompute_results(
         if 'z_bin' not in table_s.colnames:
             raise Exception('To use source redshift distributions, the ' +
                             'source table needs to have a `z_bin` column.')
-        if not np.issubdtype(table_s['z_bin'].data.dtype, np.int) or np.amin(
+        if not np.issubdtype(table_s['z_bin'].data.dtype, int) or np.amin(
                 table_s['z_bin']) < 0:
             raise Exception('The `z_bin` column in the source table must ' +
                             'contain only non-negative integers.')
