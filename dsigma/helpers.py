@@ -53,7 +53,7 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
 
     Returns
     -------
-    table : astropy.table.Table
+    table_out : astropy.table.Table
         Table with all necessary data to be parsed by dsigma.
     """
 
@@ -110,7 +110,7 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
             del keys['e_2']
             del keys['w']
             del keys['m']
-            keys.pop('sigma_rms', None)
+            keys.pop('e_rms', None)
             keys.pop('R_2', None)
         if e_2_convention is None:
             e_2_convention = getattr(surveys, survey.lower()).e_2_convention
@@ -133,25 +133,25 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
                             "the input table.")
 
     # Keep only those columns with relevant data.
-    keep_columns = []
-    for input_key in keys.values():
-        if not isinstance(input_key, numbers.Number):
-            keep_columns.append(input_key)
-
-    table.keep_columns(keep_columns)
+    table_out = Table()
 
     for output_key, input_key in keys.items():
         if isinstance(input_key, numbers.Number):
-            table[output_key] = input_key
+            table_out[output_key] = np.repeat(input_key, len(table))
         else:
-            table.rename_column(input_key, output_key)
+            if isinstance(table[input_key].data, np.ma.MaskedArray):
+                if np.ma.is_masked(table[input_key].data):
+                    raise RuntimeError('Input table contained masked data.')
+                table_out[output_key] = table[input_key].data.filled()
+            else:
+                table_out[output_key] = table[input_key].data
 
-    if e_2_convention == 'flipped':
-        table['e_2'] = - table['e_2']
+    if e_2_convention == 'flipped' and table_type == 'source':
+        table_out['e_2'] = - table_out['e_2']
         if verbose:
             print("Info: Flipping sign of e_2 component.")
 
-    return table
+    return table_out
 
 
 def spherical_to_cartesian(ra, dec):

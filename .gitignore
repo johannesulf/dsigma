@@ -1,4 +1,11 @@
+.spyproject
 __pycache__
 *.pyc
-_build
+*.so
+docs/_build
+MANIFEST
+build
+dist
+dsigma.egg-info/
+dsigma/precompute_engine.c
 

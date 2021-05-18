@@ -1,5 +1,6 @@
+##############
 Precomputation
-==============
+##############
 
 When calculating the total galaxy-galaxy lensing signal, we need to perform
 a summation over all lens-source pairs. That means we need to look at each
@@ -14,8 +15,10 @@ apply cuts on the lens sample. This can instead be done immediately before the
 stacking. Consequently, after performing the precomputation, we can easily
 derive lensing signals for arbitrary sub-samples of the lens catalog.
 
+
+****************
 Lens-Source Cuts
-----------------
+****************
 
 In principle, we can employ all sources with redshift :math:`z_{\mathrm{s}}`
 that places them behind the lens redshift :math:`z_{\mathrm{l}}`, i.e.
@@ -31,8 +34,10 @@ that :math:`z_{\mathrm{l}} < z_{\mathrm{s}} - \mathrm{max} (0.1, \sigma_z)`.
     for table in [table_s, table_c]:
         table = add_maximum_lens_redshift(table, dz_min=0.1, z_err_factor=1)
 
+
+**************
 Precomputation
---------------
+**************
 
 After defining lens-source cuts, we can run the precomputation. However, we
 must decide on cosmological parameters and the binning in projected radii.

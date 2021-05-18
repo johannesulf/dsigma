@@ -1,5 +1,6 @@
+####################
 Jackknife Resampling
-====================
+####################
 
 In addition to having a measurement of the total lensing signal, we would also
 like to know an associated uncertainty. This can be done with the jackknife
@@ -13,11 +14,13 @@ any observable :math:`d` can then be expressed as
     \sum\limits_{i=1}^{n_{\mathrm{jk}}} (d_i - d)^2,
 
 where :math:`d_i` is the observable computed from the entire sample except
-subsample :math:`i`. ``dsigma`` can be used to calculate jackknife subsamples
-and calculate the derived uncertainties.
+subsample :math:`i`. :code:`dsigma` can be used to calculate jackknife
+subsamples and calculate the derived uncertainties.
 
+
+****************
 Continous Fields
-----------------
+****************
 
 Many lensing surveys do not probe a single continous field of the sky.
 Instead, many distinct patches of the sky are surveyed. That adds slight
@@ -30,17 +33,19 @@ all continous fields.
 
     table_l = add_continous_fields(table_l, distance_threshold=1)
 
-That's all that's needed to calculate continous fields. Internally, ``dsigma``
-links all lenses closer than :math:`1^\circ` and defines continous fields
-as groups of lenses that can be linked together. Information about field
-association is stored in the ``field`` column. Of course, if such an
-assignment is already given in the original catalog, feel free to use it.
+That's all that's needed to calculate continous fields. Internally,
+:code:`dsigma` links all lenses closer than :math:`1^\circ` and defines
+continous fields as groups of lenses that can be linked together. Information
+about field association is stored in the ``field`` column. Of course, if such
+an assignment is already given in the original catalog, feel free to use it.
 
+
+****************
 Jackknife Fields
-----------------
+****************
 
 After determining continous fields, we are ready to calculate the jackknife
-subsamples. ``dsigma`` uses simple k-means clustering for that.
+subsamples. :code:`dsigma` uses simple k-means clustering for that.
 
 .. code-block:: python
 
@@ -58,8 +63,10 @@ subsamples. ``dsigma`` uses simple k-means clustering for that.
 In this case, we calculated 100 jackknife subsamples. Information about
 jackknife regions is stored in the ``field_jk`` column.
 
+
+**********
 Resampling
-----------
+**********
 
 We are now ready to derive uncertainties on any summary statistic derived from
 the entire lens sample. The following code calculates the covariance matrix on

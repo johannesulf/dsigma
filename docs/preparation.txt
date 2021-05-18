@@ -1,5 +1,6 @@
+################
 Data Preparation
-================
+################
 
 To calculate the galaxy-galaxy lensing signal, we need a lens and a source
 catalog. Fortunately, many data sets are publicly available, such as data from
@@ -9,26 +10,30 @@ a format that's understandable by ``dsigma``.
 Generally, ``dsigma`` expects all lens, source and calibration catalogs to be
 ``astropy`` tables with data stored in specific, pre-defined columns.
 
+
+************
 Lens Catalog
-------------
+************
 
 The following columns are required for lens catalogs.
 
-* ``ra``: right ascension
-* ``dec``: declination
+* ``ra``: right ascension in degrees
+* ``dec``: declination in degrees
 * ``z``: best-fit redshift
 * ``w_sys``: systematic weight :math:`w_{\mathrm{sys}}`
 
 The weight :math:`w_{\mathrm{sys}}` is often used to mitigate systematics in
 the lens selection.
 
+
+**************
 Source Catalog
---------------
+**************
 
 The following columns are required for source catalogs.
 
-* ``ra``: right ascension
-* ``dec``: declination
+* ``ra``: right ascension in degrees
+* ``dec``: declination in degrees
 * ``z``: best-fit photometric redshift
 * ``w``: inverse variance weight for galaxy shape
 * ``e_1``: + component of ellipticity
@@ -39,12 +44,15 @@ Additionally, the following columns may be used in the analysis.
 * ``z_low``: lower limit on the photometric redshift
 * ``z_err``: uncertainty on the photometric redshift
 * ``m``: multiplicative shear bias
-* ``sigma_rms``: root mean square ellipticity
+* ``e_rms``: root mean square ellipticity
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)
 * ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
+* ``z_bin``: tomographic redshift bin, non-negative and starts at 0
 
+
+*******************
 Calibration Catalog
--------------------
+*******************
 
 The following columns are required in (optional) calibration catalogs.
 

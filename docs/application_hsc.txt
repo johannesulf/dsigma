@@ -1,11 +1,14 @@
+#######################
 Hyper Suprime-Cam (HSC)
-=======================
+#######################
 
 In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
 shape catalogs from the HSC survey.
 
+
+********************
 Downloading the Data
---------------------
+********************
 
 First, we need to download the necessary HSC data files. Head over to the
 `HSC data release site <https://hsc-release.mtk.nao.ac.jp/doc/>`_ and register
@@ -14,7 +17,9 @@ publicly available data set is part of the public data release 2 (PDR2) and
 goes back to the internal S16A release.
 
 The following SQL script will return all the necessary data from the
-`CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_. ::
+`CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_.
+
+.. code-block:: sql
 
     SELECT
         meas.object_id, meas.ira, meas.idec,
@@ -54,11 +59,15 @@ ephor_ab/pdf-s17a_wide-9812.cat.fits>`_,
 cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/
 ephor_ab/pdf-s17a_wide-9813.cat.fits>`_.
 
+
+******************
 Preparing the Data
-------------------
+******************
 
 First, we must put the data into a format easily understandable by
-:code:`dsigma`. There are a number of helper functions to make this easy. ::
+:code:`dsigma`. There are a number of helper functions to make this easy.
+
+.. code-block:: python
 
     import numpy as np
     from astropy import units as u
@@ -78,28 +87,34 @@ First, we must put the data into a format easily understandable by
     table_c = dsigma_table(table_c, 'calibration', w_sys='SOM_weight',
                            w='weight_source', z_true='COSMOS_photoz', survey='HSC')
 
+
+************************
 Pre-Computing the Signal
-------------------------
+************************
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
 :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterwards, we run
-the actual pre-computation. ::
+the actual pre-computation.
+
+.. code-block:: python
 
     from astropy.cosmology import Planck15
-    from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
+    from dsigma.precompute import add_maximum_lens_redshift, add_precompute_results
 
     add_maximum_lens_redshift(table_s, dz_min=0.1, apply_z_low=True)
     add_maximum_lens_redshift(table_c, dz_min=0.1, apply_z_low=True)
 
     rp_bins = np.logspace(-1, 1.6, 14)
-    table_l_pre = precompute_catalog(table_l, table_s, rp_bins, table_c=table_c,
-                                     cosmology=Planck15, comoving=True)
-    table_r_pre = precompute_catalog(table_r, table_s, rp_bins, table_c=table_c,
-                                     cosmology=Planck15, comoving=True)
+    add_precompute_results(table_l, table_s, rp_bins, table_c=table_c,
+                           cosmology=Planck15, comoving=True)
+    add_precompute_results(table_r, table_s, rp_bins, table_c=table_c,
+                           cosmology=Planck15, comoving=True)
 
+
+*******************
 Stacking the Signal
--------------------
+*******************
 
 The total galaxy-galaxy lensing signal can be obtained with the following code.
 It first filters out all BOSS galaxies for which we couldn't find any source
@@ -114,48 +129,53 @@ a big impact on the signal but is also required for HSC data. The photo-z
 dilution correction is not strictly necessary but highly recommended. Finally,
 the random subtraction is also highly recommended but not always applied. Note
 that we don't apply a boost correction, but this is something that would also
-be possible.::
+be possible.
+
+.. code-block:: python
 
     from dsigma.jackknife import add_continous_fields, jackknife_field_centers
     from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
     from dsigma.stacking import excess_surface_density
 
     # Drop all lenses that did not have any nearby source.
-    table_l_pre['n_s_tot'] = np.sum(table_l_pre['sum 1'], axis=1)
-    table_l_pre = table_l_pre[table_l_pre['n_s_tot'] > 0]
+    table_l['n_s_tot'] = np.sum(table_l['sum 1'], axis=1)
+    table_l = table_l[table_l['n_s_tot'] > 0]
 
-    table_r_pre['n_s_tot'] = np.sum(table_r_pre['sum 1'], axis=1)
-    table_r_pre = table_r_pre[table_r_pre['n_s_tot'] > 0]
+    table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
+    table_r = table_r[table_r['n_s_tot'] > 0]
 
-    add_continous_fields(table_l_pre, distance_threshold=2)
-    centers = jackknife_field_centers(table_l_pre, 100, weight='n_s_tot')
-    add_jackknife_fields(table_l_pre, centers)
-    add_jackknife_fields(table_r_pre, centers)
+    add_continous_fields(table_l, distance_threshold=2)
+    centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
+    add_jackknife_fields(table_l, centers)
+    add_jackknife_fields(table_r, centers)
 
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
     for lens_bin in range(len(z_bins) - 1):
-        mask_l = ((z_bins[lens_bin] <= table_l_pre['z']) &
-                  (table_l_pre['z'] < z_bins[lens_bin + 1]))
-        mask_r = ((z_bins[lens_bin] <= table_r_pre['z']) &
-                  (table_r_pre['z'] < z_bins[lens_bin + 1]))
+        mask_l = ((z_bins[lens_bin] <= table_l['z']) &
+                  (table_l['z'] < z_bins[lens_bin + 1]))
+        mask_r = ((z_bins[lens_bin] <= table_r['z']) &
+                  (table_r['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True, 'shear_bias_correction': True,
+        kwargs = {'return_table': True,
+                  'scalar_shear_response_correction': True,
                   'shear_responsivity_correction': True,
-                  'selection_bias_correction': True,
+                  'hsc_selection_bias_correction': True,
                   'boost_correction': False, 'random_subtraction': True,
                   'photo_z_dilution_correction': True,
-                  'rotation': False, 'table_r': table_r_pre[mask_r]}
+                  'table_r': table_r[mask_r]}
 
-        result = excess_surface_density(table_l_pre[mask_l], **kwargs)
+        result = excess_surface_density(table_l[mask_l], **kwargs)
         kwargs['return_table'] = False
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
-            excess_surface_density, table_l_pre[mask_l], **kwargs)))
+            excess_surface_density, table_l[mask_l], **kwargs)))
     
         result.write('hsc_{}.csv'.format(lens_bin))
 
+
+****************
 Acknowledgements
-----------------
+****************
 
 When using the above data and algorithms, please make sure to cite
 `Mandelbaum et al. (2018a) <https://ui.adsabs.harvard.edu/abs/

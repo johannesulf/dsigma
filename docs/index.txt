@@ -1,0 +1,52 @@
+##############################################
+dsigma: a galaxy-galaxy lensing python package
+##############################################
+
+.. image:: plot.png
+   :width: 100 %
+   :align: center
+
+:code:`dsigma` is an easy-to-use python package for analyzing galaxy-galaxy
+lensing. It has a broadly applicable API and is optimized for computational
+efficiency. While originally intended to be used with the shape catalog of the
+Hyper-Suprime Cam (HSC) survey, it should work for other surveys, most
+prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
+
+*******
+Authors
+*******
+
+* Johannes Lange
+* Song Huang
+
+.. toctree::
+   :caption: Getting Started
+
+   installation
+   background
+
+.. toctree::
+   :caption: Workflow
+
+   preparation
+   precomputation
+   stacking
+   resampling
+
+.. toctree::
+   :caption: Applications
+
+   application_intro
+   application_des
+   application_hsc
+   application_kids
+
+.. toctree::
+   :caption: API Documentation
+
+   api/helpers
+   api/jackknife
+   api/physics
+   api/precompute
+   api/stacking
+   api/surveys

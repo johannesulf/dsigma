@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'dsigma'
-copyright = '2020, Johannes Lange'
+copyright = '2021, Johannes Lange'
 author = 'Johannes Lange'
 
 # The short X.Y version
@@ -54,8 +54,8 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
 
+source_suffix = '.txt'
 # The master toctree document.
 master_doc = 'index'
 
