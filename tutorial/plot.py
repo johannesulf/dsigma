@@ -12,8 +12,8 @@ for survey, color, offset in zip(survey_list, color_list, offset_list):
     rp = table['rp']
 
     plotline, caps, barlinecols = plt.errorbar(
-        rp * np.exp(1 + offset), rp * table['ds'],
-        yerr=table['ds_err'] * rp, fmt='.', color=color, label=survey)
+        rp * np.exp(offset), rp * table['ds'], yerr=table['ds_err'] * rp,
+        fmt='.', color=color, label=survey)
     plt.setp(barlinecols[0], capstyle='round')
 
 plt.axhline(0, ls='--', color='black')
