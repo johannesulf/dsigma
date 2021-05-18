@@ -6,7 +6,7 @@ Currently, the recommended version of :code:`dsigma` is the most recent version
 from the :code:`main` branch from the GitHub repository. The following install
 command via :code:`pip` should install the code and all its dependencies.
 
-.. code-block::
+.. code-block:: none
 
     python -m pip install git+https://github.com/johannesulf/dsigma.git@main
 
