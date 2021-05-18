@@ -3,8 +3,18 @@ from distutils.extension import Extension
 from distutils.command.sdist import sdist
 try:
     from Cython.Build import cythonize
+    USE_CYTHON = True
 except ImportError:
-    pass
+    USE_CYTHON = False
+
+ext = 'pyx' if USE_CYTHON else 'c'
+
+extensions = [Extension(
+    'dsigma.precompute_engine', ['dsigma/precompute_engine.{}'.format(ext)],
+    extra_compile_args=['-Ofast', '-march=native'])]
+
+if USE_CYTHON:
+    extensions = cythonize(extensions)
 
 
 class sdist_with_cythonize(sdist):
@@ -39,8 +49,6 @@ setup(
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
                       'healpy'],
     python_requires='>=3.4',
-    ext_modules=[Extension(
-        'dsigma.precompute_engine', ['dsigma/precompute_engine.c'],
-        extra_compile_args=['-Ofast', '-march=native'])],
+    ext_modules=extensions,
     cmdclass={'sdist': sdist_with_cythonize}
 )
