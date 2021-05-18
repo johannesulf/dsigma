@@ -35,7 +35,6 @@ jobs:
     - name: Test with pytest
       run: |
         pip install treecorr
-        cython dsigma/precompute_engine.pyx
         python setup.py build_ext --inplace
         pytest
 
