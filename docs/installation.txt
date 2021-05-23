@@ -2,17 +2,15 @@
 Installation
 ############
 
-Currently, the recommended version of :code:`dsigma` is the most recent version
-from the :code:`main` branch from the GitHub repository. The following install
-command via :code:`pip` should install the code and all its dependencies.
+The easiest way to install :code:`dsigma` is to use :code:`pip`. This will
+automatically install the package and all its dependencies.
 
 .. code-block:: none
 
-    python -m pip install git+https://github.com/johannesulf/dsigma.git@main
+    pip install dsigma
 
-The package is written in pure python so installion should be quick without
-the need to compile any code. The following packages are required for running
-:code:`dsigma`.
+The following packages will be installed alongside :code:`dsigma` if they are
+not installed already.
 
 * :code:`numpy`
 * :code:`scipy`
