@@ -24,7 +24,7 @@ prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
 ## Documentation
 
 A documentation for `dsigma` with concept introductions, examples and API
-documentation can be found at on [readthedocs](dsigma.readthedocs.io).
+documentation can be found at on [readthedocs](https://dsigma.readthedocs.io/).
 
 ---
 
