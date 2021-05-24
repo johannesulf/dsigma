@@ -1,5 +1,6 @@
 # dsigma: a galaxy-galaxy lensing python package
 
+[![PyPI version](https://badge.fury.io/py/dsigma.svg)](https://badge.fury.io/py/dsigma)
 [![GitHub Actions](https://github.com/johannesulf/dsigma/actions/workflows/build.yml/badge.svg)](https://github.com/johannesulf/dsigma/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/dsigma/badge/?version=latest)](https://dsigma.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
