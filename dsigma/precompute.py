@@ -3,7 +3,7 @@ import multiprocessing as mp
 import queue as Queue
 
 import numpy as np
-import healpy as hp
+from astropy_healpix import HEALPix
 from scipy.interpolate import interp1d
 
 from astropy.cosmology import FlatLambdaCDM
@@ -211,9 +211,10 @@ def add_precompute_results(
             raise Exception('The source table contains more redshift bins ' +
                             'than where passed via the nz argument.')
 
-    npix = hp.nside2npix(nside)
-    pix_l = hp.ang2pix(nside, table_l['ra'], table_l['dec'], lonlat=True)
-    pix_s = hp.ang2pix(nside, table_s['ra'], table_s['dec'], lonlat=True)
+    hp = HEALPix(nside, order='ring')
+    npix = hp.npix
+    pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
+    pix_s = hp.lonlat_to_healpix(table_s['ra'] * u.deg, table_s['dec'] * u.deg)
     argsort_pix_l = np.argsort(pix_l)
     argsort_pix_s = np.argsort(pix_s)
     pix_l_counts = np.ascontiguousarray(np.bincount(pix_l, minlength=npix))

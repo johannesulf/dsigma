@@ -1,5 +1,5 @@
 astropy
-healpy
+astropy-healpix
 numpy
 scikit-learn
 scipy

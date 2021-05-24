@@ -3,7 +3,8 @@
 
 import queue as Queue
 import numpy as np
-import healpy as hp
+from astropy_healpix import HEALPix
+from astropy import units as u
 from libc.math cimport sin, cos, sqrt, fmax
 from scipy.spatial import cKDTree
 
@@ -127,7 +128,11 @@ def precompute_engine(
     if has_R_matrix:
         sum_w_ls_R_T = sum_w_ls_R_T_in
 
-    x, y, z = hp.pix2vec(nside, np.arange(hp.nside2npix(nside)))
+    hp = HEALPix(nside, order='ring')
+    lon, lat = hp.healpix_to_lonlat(np.arange(hp.npix))
+    x = np.cos(lon) * np.cos(lat)
+    y = np.sin(lon) * np.cos(lat)
+    z = np.sin(lat)
     xyz = np.array([x, y, z]).T
     kdtree = cKDTree(xyz)
 
@@ -141,7 +146,7 @@ def precompute_engine(
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
     cdef double sin_2phi, cos_2phi, tan_phi, e_t
     cdef double w_ls, sigma_crit
-    cdef double max_pixrad = hp.max_pixrad(nside, degrees=True)
+    cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
 
     while True:
 
