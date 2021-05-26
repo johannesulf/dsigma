@@ -2,6 +2,9 @@
 Kilo-Degree Survey (KiDS)
 #########################
 
+.. note::
+    This guide has not been inspected or endorsed by the KiDS collaboration.
+
 In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
 shape catalogs from KiDS. We will work with the 4th data release but it
 should be straightforward to adjust the code to work with DR3 (KiDS-450) or

@@ -2,6 +2,9 @@
 Hyper Suprime-Cam (HSC)
 #######################
 
+.. note::
+    This guide has not been inspected or endorsed by the HSC collaboration.
+
 In this tutorial, we will learn how to cross-correlate BOSS lens galaxies with
 shape catalogs from the HSC survey.
 

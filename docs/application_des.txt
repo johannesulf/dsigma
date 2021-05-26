@@ -2,6 +2,9 @@
 Dark Energy Survey (DES)
 ########################
 
+.. note::
+    This guide has not been inspected or endorsed by the DES collaboration.
+
 Here, we we will show how to cross-correlate BOSS lens galaxies with shape
 catalogs from DES. We will work with the Y1 data release, the only release
 currently publicly available. The code will likely have to be adjusted for the
