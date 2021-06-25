@@ -10,8 +10,7 @@ __all__ = ['number_of_pairs', 'raw_tangential_shear',
            'boost_factor', 'scalar_shear_response_factor',
            'matrix_shear_response_factor', 'shear_responsivity_factor',
            'mean_lens_redshift', 'mean_source_redshift',
-           'mean_critical_surface_density', 'tangential_shear',
-           'excess_surface_density', 'shape_noise_error']
+           'tangential_shear', 'excess_surface_density', 'shape_noise_error']
 
 
 def number_of_pairs(table_l):
