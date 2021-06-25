@@ -3,6 +3,7 @@ from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
 from . import surveys
 from .physics import mpc_per_degree, lens_magnification_shear_bias
+from .physics import critical_surface_density
 
 __all__ = ['number_of_pairs', 'raw_tangential_shear',
            'raw_excess_surface_density', 'photo_z_dilution_factor',
@@ -218,26 +219,6 @@ def mean_source_redshift(table_l):
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def mean_critical_surface_density(table_l):
-    """Compute the weighted-average critical surface density.
-
-    Parameters
-    ----------
-    table_l : astropy.table.Table
-        Precompute results for the lenses.
-
-    Returns
-    -------
-    sigma_crit : numpy array
-        Mean critical surface_density in each bin.
-    """
-
-    return (
-        np.sum(table_l['sum w_ls sigma_crit'] * table_l['w_sys'][:, None],
-               axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
-
-
 def lens_magnification_bias(table_l, alpha_l, camb_results,
                             photo_z_dilution_correction=True):
     """Estimate the additive lens magnification bias.
@@ -260,22 +241,36 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         The lens magnification bias in each radial bin.
     """
 
+    cosmology = FlatLambdaCDM(H0=table_l.meta['H0'], Om0=table_l.meta['Om0'])
+
     z_l = mean_lens_redshift(table_l)
     z_s = mean_source_redshift(table_l)
-    sigma_crit = mean_critical_surface_density(table_l)
+    sigma_crit = critical_surface_density(
+        z_l, z_s, cosmology, comoving=table_l.meta['comoving'])
+ 
+    shear_mode = ('shear_mode' in table_l.meta.keys() and
+                  table_l.meta['shear_mode'])
 
     if photo_z_dilution_correction:
         sigma_crit = sigma_crit * photo_z_dilution_factor(table_l)
 
-    rp_bins = table_l.meta['rp_bins']
-    rp = 2.0 / 3.0 * np.diff(rp_bins**3) / np.diff(rp_bins**2)
-    cosmo = FlatLambdaCDM(H0=table_l.meta['H0'], Om0=table_l.meta['Om0'])
-    theta = np.deg2rad(rp / mpc_per_degree(
-        z_l, cosmology=cosmo, comoving=table_l.meta['comoving']))
+    bins = table_l.meta['bins']
 
-    return np.array([lens_magnification_shear_bias(
+    if shear_mode:
+        theta = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
+    else:
+        rp = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
+        theta = np.deg2rad(rp / mpc_per_degree(
+            z_l, cosmology=cosmology, comoving=table_l.meta['comoving']))
+
+    gamma = np.array([lens_magnification_shear_bias(
         theta[i], alpha_l, z_l[i], z_s[i], camb_results) for i in
-        range(len(theta))]) * sigma_crit
+        range(len(theta))])
+
+    if shear_mode:
+        return gamma
+    else:
+        return gamma * sigma_crit
 
 
 def tangential_shear(table_l, table_r=None, photo_z_dilution_correction=False,

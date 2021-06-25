@@ -528,5 +528,6 @@ def add_precompute_results(
     table_l.meta['H0'] = cosmology.H0.value
     table_l.meta['Ok0'] = cosmology.Ok0
     table_l.meta['Om0'] = cosmology.Om0
+    table_l.meta['shear_mode'] = shear_mode
 
     return table_l
