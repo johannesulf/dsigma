@@ -49,11 +49,11 @@ source catalogs.
 
     import numpy as np
     from astropy.cosmology import FlatLambdaCDM
-    from dsigma.precompute import precompute_catalog
+    from dsigma.precompute import add_precompute_results
 
     rp_bins = np.logspace(-1, 1, 11)
     cosmology = FlatLambdaCDM(H0=100, Om0=0.27)
-    
+
     # Perform the precomputation.
-    table_l = precompute_catalog(table_l, table_s, rp_bins,
-                                 cosmology=cosmology, comoving=True)
+    add_precompute_results(table_l, table_s, rp_bins, cosmology=cosmology,
+                           comoving=True)

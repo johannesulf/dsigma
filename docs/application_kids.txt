@@ -46,7 +46,7 @@ photometric redshift bin.
 
     table_s = Table.read('KiDS_DR4.1_ugriZYJHKs_SOM_gold_WL_cat.fits')
     table_s = dsigma_table(table_s, 'source', survey='KiDS')
-    
+
     table_s['z_bin'] = kids.tomographic_redshift_bin(table_s['z'], version='DR4')
     table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
     table_s = table_s[table_s['z_bin'] >= 0]
@@ -72,7 +72,7 @@ run the actual pre-computation.
 .. code-block:: python
 
     from astropy.cosmology import Planck15
-    from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
+    from dsigma.precompute import add_maximum_lens_redshift, add_precompute_results
 
     table_s['z'] = np.array([0.1, 0.3, 0.5, 0.7, 0.9])[table_s['z_bin']]
     add_maximum_lens_redshift(table_s, dz_min=0.1)

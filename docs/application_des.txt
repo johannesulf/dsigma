@@ -215,7 +215,7 @@ we first define the lens-source separation cuts. We require that
 .. code-block:: python
 
     from astropy.cosmology import Planck15
-    from dsigma.precompute import add_maximum_lens_redshift, precompute_catalog
+    from dsigma.precompute import add_maximum_lens_redshift, add_precompute_results
 
     add_maximum_lens_redshift(table_s, dz_min=0.1)
     add_maximum_lens_redshift(table_c, dz_min=0.1)
