@@ -35,98 +35,84 @@ cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 
 def precompute_engine(
         pix_l_counts_in, pix_s_counts_in, pix_l_cum_counts_in,
-        pix_s_cum_counts_in, z_l_in, z_s_in, d_com_l_in, d_com_s_in,
-        sin_ra_l_in, cos_ra_l_in, sin_dec_l_in, cos_dec_l_in, sin_ra_s_in,
-        cos_ra_s_in, sin_dec_s_in, cos_dec_s_in, w_s_in, e_1_in, e_2_in,
-        z_l_max_in, f_bias_in, z_bin_in, sigma_crit_eff_in, m_in, e_rms_in,
-        R_2_in, R_11_in, R_12_in, R_21_in, R_22_in, dist_3d_sq_bins_in,
-        sum_1_in, sum_w_ls_in, sum_w_ls_e_t_in, sum_w_ls_e_t_sigma_crit_in,
-        sum_w_ls_e_t_sigma_crit_f_bias_in, sum_w_ls_e_t_sigma_crit_sq_in,
-        sum_w_ls_z_s_in, sum_w_ls_m_in, sum_w_ls_1_minus_e_rms_sq_in,
-        sum_w_ls_A_p_R_2_in, sum_w_ls_R_T_in, bins, bint comoving,
-        bint shear_mode, int nside, queue):
+        pix_s_cum_counts_in, dist_3d_sq_bins_in,  table_l, table_s, table_r,
+        bins, bint comoving, bint shear_mode, int nside, queue):
 
     cdef long[::1] pix_l_counts = pix_l_counts_in
     cdef long[::1] pix_s_counts = pix_s_counts_in
     cdef long[::1] pix_l_cum_counts = pix_l_cum_counts_in
     cdef long[::1] pix_s_cum_counts = pix_s_cum_counts_in
-    cdef double[::1] z_l = z_l_in
-    cdef double[::1] z_s = z_s_in
-    cdef double[::1] d_com_l = d_com_l_in
-    cdef double[::1] d_com_s = d_com_s_in
-    cdef double[::1] sin_ra_l = sin_ra_l_in
-    cdef double[::1] cos_ra_l = cos_ra_l_in
-    cdef double[::1] sin_dec_l = sin_dec_l_in
-    cdef double[::1] cos_dec_l = cos_dec_l_in
-    cdef double[::1] sin_ra_s = sin_ra_s_in
-    cdef double[::1] cos_ra_s = cos_ra_s_in
-    cdef double[::1] sin_dec_s = sin_dec_s_in
-    cdef double[::1] cos_dec_s = cos_dec_s_in
-    cdef double[::1] w_s = w_s_in
-    cdef double[::1] e_1 = e_1_in
-    cdef double[::1] e_2 = e_2_in
-    cdef double[::1] z_l_max = z_l_max_in
+    cdef double[::1] z_l = table_l['z']
+    cdef double[::1] z_s = table_s['z']
+    cdef double[::1] d_com_l = table_l['d_com']
+    cdef double[::1] d_com_s = table_s['d_com']
+    cdef double[::1] sin_ra_l = table_l['sin ra']
+    cdef double[::1] cos_ra_l = table_l['cos ra']
+    cdef double[::1] sin_dec_l = table_l['sin dec']
+    cdef double[::1] cos_dec_l = table_l['cos dec']
+    cdef double[::1] sin_ra_s = table_s['sin ra']
+    cdef double[::1] cos_ra_s = table_s['cos ra']
+    cdef double[::1] sin_dec_s = table_s['sin dec']
+    cdef double[::1] cos_dec_s = table_s['cos dec']
+    cdef double[::1] w_s = table_s['w']
+    cdef double[::1] e_1 = table_s['e_1']
+    cdef double[::1] e_2 = table_s['e_2']
+    cdef double[::1] z_l_max = table_s['z_l_max']
 
-    cdef bint has_f_bias = f_bias_in is not None
-    cdef double[::1] f_bias
-    if has_f_bias:
-        f_bias = f_bias_in
-
-    cdef bint has_sigma_crit_eff = sigma_crit_eff_in is not None
+    cdef bint has_sigma_crit_eff = 'sigma_crit_eff' in table_l.keys()
     cdef int n_z_bins = 0
     cdef double[::1] sigma_crit_eff
     cdef long[::1] z_bin
     if has_sigma_crit_eff:
-        n_z_bins = len(sigma_crit_eff_in) // len(z_l_in)
-        sigma_crit_eff = sigma_crit_eff_in
-        z_bin = z_bin_in
+        n_z_bins = len(table_l['sigma_crit_eff']) // len(table_l['z'])
+        sigma_crit_eff = table_l['sigma_crit_eff']
+        z_bin = table_s['z_bin']
 
-    cdef bint has_m = m_in is not None
+    cdef bint has_m = 'm' in table_s.keys()
     cdef double[::1] m
     if has_m:
-        m = m_in
+        m = table_s['m']
 
-    cdef bint has_e_rms = e_rms_in is not None
+    cdef bint has_e_rms = 'e_rms' in table_s.keys()
     cdef double[::1] e_rms
     if has_e_rms:
-        e_rms = e_rms_in
+        e_rms = table_s['e_rms']
 
-    cdef bint has_R_2 = R_2_in is not None
+    cdef bint has_R_2 = 'R_2' in table_s.keys()
     cdef double[::1] R_2
     if has_R_2:
-        R_2 = R_2_in
+        R_2 = table_s['R_2']
 
-    cdef bint has_R_matrix = R_11_in is not None
+    cdef bint has_R_matrix = 'R_11' in table_s.keys()
     cdef double[::1] R_11, R_12, R_21, R_22
     if has_R_matrix:
-        R_11 = R_11_in
-        R_12 = R_12_in
-        R_21 = R_21_in
-        R_22 = R_22_in
+        R_11 = table_s['R_11']
+        R_12 = table_s['R_12']
+        R_21 = table_s['R_21']
+        R_22 = table_s['R_22']
 
     cdef double[::1] dist_3d_sq_bins = dist_3d_sq_bins_in
 
-    cdef long[::1] sum_1 = sum_1_in
-    cdef double[::1] sum_w_ls = sum_w_ls_in
-    cdef double[::1] sum_w_ls_e_t = sum_w_ls_e_t_in
-    cdef double[::1] sum_w_ls_e_t_sigma_crit = sum_w_ls_e_t_sigma_crit_in
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_f_bias
-    if has_f_bias:
-        sum_w_ls_e_t_sigma_crit_f_bias = sum_w_ls_e_t_sigma_crit_f_bias_in
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = sum_w_ls_e_t_sigma_crit_sq_in
-    cdef double[::1] sum_w_ls_z_s = sum_w_ls_z_s_in
+    cdef long[::1] sum_1 = table_r['sum 1']
+    cdef double[::1] sum_w_ls = table_r['sum w_ls']
+    cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r[
+        'sum w_ls e_t sigma_crit']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = table_r[
+        'sum (w_ls e_t sigma_crit)^2']
+    cdef double[::1] sum_w_ls_z_s = table_r['sum w_ls z_s']
     cdef double[::1] sum_w_ls_m
     if has_m:
-        sum_w_ls_m = sum_w_ls_m_in
+        sum_w_ls_m = table_r['sum w_ls m']
     cdef double[::1] sum_w_ls_1_minus_e_rms_sq
     if has_e_rms:
-        sum_w_ls_1_minus_e_rms_sq = sum_w_ls_1_minus_e_rms_sq_in
+        sum_w_ls_1_minus_e_rms_sq = table_r['sum w_ls (1 - e_rms^2)']
     cdef double[::1] sum_w_ls_A_p_R_2
     if has_R_2:
-        sum_w_ls_A_p_R_2 = sum_w_ls_A_p_R_2_in
+        sum_w_ls_A_p_R_2 = table_r['sum w_ls A p(R_2=0.3)']
     cdef double[::1] sum_w_ls_R_T
     if has_R_matrix:
-        sum_w_ls_R_T = sum_w_ls_R_T_in
+        sum_w_ls_R_T = table_r['sum w_ls R_T']
 
     hp = HEALPix(nside, order='ring')
     lon, lat = hp.healpix_to_lonlat(np.arange(hp.npix))
@@ -214,7 +200,7 @@ def precompute_engine(
                         continue
 
                     if shear_mode:
-                        w_ls = 1
+                        w_ls = w_s[i_s]
                         sigma_crit = 1
                     elif has_sigma_crit_eff:
                         sigma_crit = sigma_crit_eff[
@@ -264,9 +250,6 @@ def precompute_engine(
                             if not shear_mode:
                                 sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
                                     w_ls * e_t * sigma_crit)
-                                if has_f_bias:
-                                    sum_w_ls_e_t_sigma_crit_f_bias[offset_result + i_bin] += (
-                                        w_ls * e_t * sigma_crit * f_bias[i_l])
                                 sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
                                     w_ls * e_t * sigma_crit)**2
                             sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]

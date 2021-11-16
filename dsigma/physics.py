@@ -92,7 +92,7 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
     return cos_2phi, sin_2phi
 
 
-def critical_surface_density(z_l, z_s, cosmology, comoving=True, d_l=None,
+def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
                              d_s=None):
     """The critical surface density for a given lens and source redshift.
 
@@ -102,8 +102,9 @@ def critical_surface_density(z_l, z_s, cosmology, comoving=True, d_l=None,
         Redshift of lens.
     z_s : float or numpy array
         Redshift of source.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations. Only used if comoving distances
+        are not passed.
     comoving : boolean, optional
         Flag for using comoving instead of physical units.
     d_l : float or numpy array
@@ -242,7 +243,7 @@ def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
     ell_min = 0
     ell_max = np.amax(jn_zeros(2, bessel_function_zeros)) / theta
     z_min = 0
-    z_max = z_l
+    z_max = min(z_l, z_s)
 
     z, w_z = np.polynomial.legendre.leggauss(n_z)
     z = (z_max - z_min) / 2.0 * z + (z_max + z_min) / 2.0
