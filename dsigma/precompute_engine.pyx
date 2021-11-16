@@ -96,10 +96,11 @@ def precompute_engine(
     cdef long[::1] sum_1 = table_r['sum 1']
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
     cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
-    cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r[
-        'sum w_ls e_t sigma_crit']
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = table_r[
-        'sum (w_ls e_t sigma_crit)^2']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit
+    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq
+    if 'sum w_ls e_t sigma_crit' in table_r.keys():
+        sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
+        sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
     cdef double[::1] sum_w_ls_z_s = table_r['sum w_ls z_s']
     cdef double[::1] sum_w_ls_m
     if has_m:

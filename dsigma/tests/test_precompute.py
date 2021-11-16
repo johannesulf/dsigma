@@ -45,7 +45,7 @@ def test_add_precompute_results_treecorr():
                              ra_units='deg', dec_units='deg')
     cat_s = treecorr.Catalog(ra=table_s['ra'], dec=table_s['dec'],
                              g1=table_s['e_1'], g2=table_s['e_2'],
-                             ra_units='deg', dec_units='deg')
+                             ra_units='deg', dec_units='deg', w=table_s['w'])
 
     ng = treecorr.NGCorrelation(
         max_sep=np.amax(theta_bins), min_sep=np.amin(theta_bins),
