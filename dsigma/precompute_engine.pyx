@@ -36,7 +36,7 @@ cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 def precompute_engine(
         pix_l_counts_in, pix_s_counts_in, pix_l_cum_counts_in,
         pix_s_cum_counts_in, dist_3d_sq_bins_in,  table_l, table_s, table_r,
-        bins, bint comoving, bint shear_mode, int nside, queue):
+        bins, bint comoving, bint shear_mode, int nside, queue, pbar):
 
     cdef long[::1] pix_l_counts = pix_l_counts_in
     cdef long[::1] pix_s_counts = pix_s_counts_in
@@ -271,5 +271,8 @@ def precompute_engine(
                             break
 
                         i_bin -= 1
+
+        if pbar is not None:
+            pbar.update(1)
 
     return 0

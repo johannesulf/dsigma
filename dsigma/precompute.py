@@ -6,6 +6,8 @@ import numpy as np
 from astropy_healpix import HEALPix
 from scipy.interpolate import interp1d
 
+from tqdm import tqdm
+
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 
@@ -250,7 +252,7 @@ def get_raw_multiprocessing_array(array):
 def add_precompute_results(
         table_l, table_s, bins, table_c=None, table_n=None,
         cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
-        shear_mode=False, nside=256, n_jobs=1):
+        shear_mode=False, nside=256, n_jobs=1, progress_bar=False):
     """For all lenses in the catalog, perform the precomputation of lensing
     statistics.
 
@@ -287,6 +289,9 @@ def add_precompute_results(
         It has to be a power of 2. This number likely impacts performance.
     n_jobs : int, optional
         Number of jobs to run at the same time.
+    progress_bar : boolean, option
+        Whether to show a progress bar for the main loop over lens pixels.
+        Default is false.
 
     Returns
     -------
@@ -472,6 +477,11 @@ def add_precompute_results(
 
     dist_3d_sq_bins = np.minimum(4 * np.sin(theta / 2.0)**2, 2.0)
 
+    if progress_bar:
+        pbar = tqdm(total=np.sum(pix_l_counts > 0))
+    else:
+        pbar = None
+
     # When running in parrallel, replace numpy arrays with shared-memory
     # multiprocessing arrays.
     if n_jobs > 1:
@@ -496,7 +506,7 @@ def add_precompute_results(
 
     args = (pix_l_counts, pix_s_counts, pix_l_cum_counts, pix_s_cum_counts,
             dist_3d_sq_bins, table_engine_l, table_engine_s, table_engine_r,
-            bins, comoving, shear_mode, nside, queue)
+            bins, comoving, shear_mode, nside, queue, pbar)
 
     if n_jobs == 1:
         precompute_engine(*args)
@@ -508,6 +518,9 @@ def add_precompute_results(
             processes.append(process)
         for i in range(n_jobs):
             processes[i].join()
+
+    if progress_bar:
+        pbar.close()
 
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
     for key in table_engine_r.keys():

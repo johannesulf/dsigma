@@ -28,7 +28,7 @@ with open('README.md', 'r') as fstream:
 
 setup(
     name='dsigma',
-    version='0.6.0-dev2',
+    version='0.6.0-dev3',
     description=('A Galaxy-Galaxy Lensing Pipeline'),
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -47,7 +47,7 @@ setup(
     author_email='jolange@ucsc.edu',
     packages=find_packages(),
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
-                      'astropy-healpix'],
+                      'astropy-healpix', 'tqdm'],
     python_requires='>=3.4',
     ext_modules=extensions,
     cmdclass={'sdist': sdist_with_cythonize}
