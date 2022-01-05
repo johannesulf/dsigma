@@ -1,5 +1,6 @@
-astropy
-astropy-healpix
 numpy
-scikit-learn
+astropy
 scipy
+scikit-learn
+astropy-healpix
+tqdm
