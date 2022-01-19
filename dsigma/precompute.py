@@ -172,7 +172,8 @@ def mean_photo_z_offset(z_l, table_c=None, table_n=None, table_s=None,
 
     mask = z_l_max < z_l
 
-    return np.average(z_s - z_s_true, weights=w * (~mask), axis=-1)
+    return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
+        w * (~mask), axis=-1)
 
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
