@@ -194,8 +194,7 @@ def mean_lens_redshift(table_l):
     """
 
     return (
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None] *
-               table_l['z'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls z_l'] * table_l['w_sys'][:, None], axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
