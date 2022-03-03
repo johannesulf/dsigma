@@ -72,24 +72,23 @@ def tomographic_redshift_bin(z_s, version=default_version):
     return z_bin
 
 
-def multiplicative_shear_bias(z_s, version=default_version):
+def multiplicative_shear_bias(z_bin, version=default_version):
     """For many version of KiDS, the multiplicative shear bias is not estimated
     on the basis of individual sources but for broad photometric redshift
     bins. This function returns the multiplicative bias :math:`m` as a function
-    of source photometric redshift.
+    of the bin.
 
     Parameters
     ----------
-    z_s : numpy array
-        Photometric redshifts.
+    z_bin : numpy array
+        Tomographic redshift bin.
     version : string
         Which catalog version to use.
 
     Returns
     -------
     m : numpy array
-        The multiplicative shear bias corresponding to each photometric
-        redshift.
+        The multiplicative shear bias corresponding to each tomographic bin.
     """
 
     if version == 'DR3':
@@ -103,8 +102,6 @@ def multiplicative_shear_bias(z_s, version=default_version):
             m = np.array([-0.017, -0.008, -0.015, 0.010, 0.006])
         else:
             m = np.array([-0.009, -0.011, -0.015, 0.002, 0.007])
-
-        z_bin = tomographic_redshift_bin(z_s, version=version)
 
         return np.where(z_bin != -1, m[z_bin], np.nan)
 

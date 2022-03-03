@@ -83,8 +83,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
                    axis=-1))
 
 
-def mean_photo_z_offset(z_l, table_c=None, table_n=None, table_s=None,
-                        cosmology=None):
+def mean_photo_z_offset(z_l, table_c, cosmology):
     """Calculate the mean offset of source photometric redshifts compared
     to true redshifts.
 
@@ -94,10 +93,6 @@ def mean_photo_z_offset(z_l, table_c=None, table_n=None, table_s=None,
         Redshift(s) of the lens.
     table_c : astropy.table.Table, optional
         Photometric redshift calibration catalog.
-    table_n : astropy.table.Table, optional
-        Source redshift distributions.
-    table_s : astropy.table.Table, optional
-        Catalog of sources.
     cosmology : astropy.cosmology
         Cosmology to assume for calculations.
 
@@ -106,69 +101,31 @@ def mean_photo_z_offset(z_l, table_c=None, table_n=None, table_s=None,
         The mean source redshift offset for the lens redshift(s).
     """
 
-    if table_c is not None and table_s is None:
+    if 'z_l_max' not in table_c.colnames:
+        warnings.warn('No lens-source cut given in calibration catalog. ' +
+                      'Will use z_l < z_s.', RuntimeWarning)
+        table_c['z_l_max'] = table_c['z']
 
-        if 'z_l_max' not in table_c.colnames:
-            warnings.warn('No lens-source cut given in calibration catalog. ' +
-                          'Will use z_l < z_s.', RuntimeWarning)
-            table_c['z_l_max'] = table_c['z']
+    z_s = table_c['z']
+    z_s_true = table_c['z_true']
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
+    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(
+        u.Mpc).value
+    z_l_max = table_c['z_l_max']
+    w = table_c['w_sys'] * table_c['w']
 
-        z_s = table_c['z']
-        z_s_true = table_c['z_true']
-        d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-        d_s = cosmology.comoving_transverse_distance(table_c['z']).to(
-            u.Mpc).value
-        z_l_max = table_c['z_l_max']
-        w = table_c['w_sys'] * table_c['w']
+    if not np.isscalar(z_l):
+        shape = (len(z_l), len(table_c))
+        z_s = np.tile(z_s, len(z_l)).reshape(shape)
+        z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(shape)
+        z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
+        w = np.tile(w, len(z_l)).reshape(shape)
+        z_l = np.repeat(z_l, len(table_c)).reshape(shape)
+        d_l = np.repeat(d_l, len(table_c)).reshape(shape)
 
-        if not np.isscalar(z_l):
-            shape = (len(z_l), len(table_c))
-            z_s = np.tile(z_s, len(z_l)).reshape(shape)
-            z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-            d_s = np.tile(d_s, len(z_l)).reshape(shape)
-            z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-            w = np.tile(w, len(z_l)).reshape(shape)
-            z_l = np.repeat(z_l, len(table_c)).reshape(shape)
-            d_l = np.repeat(d_l, len(table_c)).reshape(shape)
-
-        sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-        w = w / sigma_crit**2
-
-    elif table_c is None and table_n is not None:
-
-        if 'z_l_max' not in table_s.colnames:
-            warnings.warn('No lens-source cut given in source catalog. Will ' +
-                          'use z_l < z_s.', RuntimeWarning)
-            table_s['z_l_max'] = table_s['z']
-
-        n_bins = table_n['n'].data.shape[1]
-        sigma_crit_eff = np.zeros(n_bins if np.isscalar(z_l) else
-                                  (n_bins, len(z_l)))
-        z_true_mean = np.zeros(n_bins)
-        for i in range(n_bins):
-            sigma_crit_eff[i] = effective_critical_surface_density(
-                z_l, table_n['z'], table_n['n'][:, i], cosmology=cosmology)
-            z_true_mean[i] = np.average(
-                table_n['z'], weights=table_n['n'][:, i])
-
-        z_s = table_s['z']
-        z_s_true = z_true_mean[table_s['z_bin']]
-        z_l_max = table_s['z_l_max']
-        w = table_s['w']
-
-        if not np.isscalar(z_l):
-            shape = (len(z_l), len(table_s))
-            z_s = np.tile(z_s, len(z_l)).reshape(shape)
-            z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-            z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-            w = np.tile(w, len(z_l)).reshape(shape)
-            z_l = np.repeat(z_l, len(table_s)).reshape(shape)
-            sigma_crit = np.vstack([sigma_crit_eff[:, i][table_s['z_bin']]
-                                    for i in range(len(z_l))])
-        else:
-            sigma_crit = sigma_crit_eff[table_s['z_bin']]
-
-        w = w / sigma_crit**2
+    sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+    w = w / sigma_crit**2
 
     mask = z_l_max < z_l
 
@@ -426,13 +383,6 @@ def add_precompute_results(
             sigma_crit_eff, dtype=np.float64)
         table_engine_s['z_bin'] = np.ascontiguousarray(
             table_s['z_bin'][argsort_pix_s], dtype=int)
-        dz_s_interp = mean_photo_z_offset(
-            z_interp, table_n=table_n, table_s=table_s, cosmology=cosmology)
-        dz_s_interp = interp1d(
-            z_interp, dz_s_interp, kind='cubic', bounds_error=False,
-            fill_value=(dz_s_interp[0], dz_s_interp[-1]))
-        table_engine_l['delta z_s'] = np.ascontiguousarray(
-            dz_s_interp(np.array(table_engine_l['z'])), dtype=np.float64)
     elif table_c is not None and table_s is not None:
         raise Exception('table_c and table_n cannot both be given.')
 
