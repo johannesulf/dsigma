@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 from astropy_healpix import HEALPix
 from astropy import units as u
-from libc.math cimport sin, cos, sqrt, fmax
+from libc.math cimport sin, cos, sqrt, fmax, pow
 from scipy.spatial import cKDTree
 
 from astropy import constants as c
@@ -36,7 +36,7 @@ cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 
 def precompute_engine(
         u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins_in,
-        table_l, table_s, table_r, bins, bint comoving, bint shear_mode,
+        table_l, table_s, table_r, bins, bint comoving, float weighting,
         int nside, queue, progress_bar):
 
     cdef double[::1] z_l = table_l['z']
@@ -198,23 +198,19 @@ def precompute_engine(
                     if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
                         continue
 
-                    if shear_mode:
-                        w_ls = w_s[i_s]
-                        sigma_crit = 1
-                    elif has_sigma_crit_eff:
+                    if has_sigma_crit_eff:
                         sigma_crit = sigma_crit_eff[
                             i_l * n_z_bins + z_bin[i_s]]
-                        w_ls = w_s[i_s] / sigma_crit / sigma_crit
                     elif z_l[i_l] < z_s[i_s]:
                         sigma_crit = (sigma_crit_factor * (1 + z_l[i_l]) *
                             d_com_s[i_s] / d_com_l[i_l] /
                             (d_com_s[i_s] - d_com_l[i_l]))
                         if comoving:
                             sigma_crit /= (1.0 + z_l[i_l]) * (1.0 + z_l[i_l])
-                        w_ls = w_s[i_s] / sigma_crit / sigma_crit
                     else:
-                        sigma_crit = 0
-                        w_ls = 0
+                        sigma_crit = float('inf')
+
+                    w_ls = w_s[i_s] * pow(sigma_crit, weighting)
 
                     sin_ra_l_minus_ra_s = (sin_ra_l[i_l] * cos_ra_s[i_s] -
                                            cos_ra_l[i_l] * sin_ra_s[i_s])
@@ -246,11 +242,10 @@ def precompute_engine(
                             sum_1[offset_result + i_bin] += 1
                             sum_w_ls[offset_result + i_bin] += w_ls
                             sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
-                            if not shear_mode:
-                                sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
-                                    w_ls * e_t * sigma_crit)
-                                sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
-                                    w_ls * e_t * sigma_crit)**2
+                            sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
+                                w_ls * e_t * sigma_crit)
+                            sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
+                                w_ls * e_t * sigma_crit)**2
                             sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
                             if has_m:
                                 sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]

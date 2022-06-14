@@ -1,3 +1,5 @@
+"""Module for pre-computing lensing results."""
+
 import warnings
 import multiprocessing as mp
 import queue as Queue
@@ -8,6 +10,7 @@ from scipy.interpolate import interp1d
 
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
+from astropy.units import UnitConversionError
 
 from .physics import critical_surface_density
 from .physics import effective_critical_surface_density
@@ -19,6 +22,23 @@ __all__ = ["photo_z_dilution_factor", "mean_photo_z_offset",
 
 
 def parallel_compute(f, x, n_jobs):
+    """Compute a function in parrallel.
+
+    Parameters
+    ----------
+    f : function
+        Function that takes one argument and has one return value.
+    x : numpy.ndarray
+        Inputs for which the function should be evaluated.
+    n_jobs : int
+        Number of jobs.
+
+    Returns
+    -------
+    y : numpy.ndarray
+        Outputs of the function. Has the same ordering as `x`.
+
+    """
     with mp.Pool(n_jobs) as pool:
         y = np.concatenate(pool.map(f, np.array_split(x, n_jobs)))
     return y
@@ -39,8 +59,8 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
     Returns
     -------
         The photo-z bias factor, `f_bias`, for the lens redshift(s).
-    """
 
+    """
     if 'z_l_max' not in table_c.colnames:
         warnings.warn('No lens-source cut given in calibration catalog. Will' +
                       ' use z_l < z_s.', RuntimeWarning)
@@ -82,8 +102,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
 
 
 def mean_photo_z_offset(z_l, table_c, cosmology):
-    """Calculate the mean offset of source photometric redshifts compared
-    to true redshifts.
+    """Calculate the mean offset of source photometric redshifts.
 
     Parameters
     ----------
@@ -97,8 +116,8 @@ def mean_photo_z_offset(z_l, table_c, cosmology):
     Returns
     -------
         The mean source redshift offset for the lens redshift(s).
-    """
 
+    """
     if 'z_l_max' not in table_c.colnames:
         warnings.warn('No lens-source cut given in calibration catalog. ' +
                       'Will use z_l < z_s.', RuntimeWarning)
@@ -133,7 +152,9 @@ def mean_photo_z_offset(z_l, table_c, cosmology):
 
 def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
                               apply_z_low=False):
-    r"""For each source in the table, determine the maximum lens redshift
+    r"""Add the maximum lens redshift for each source.
+
+    For each source in the table, determine the maximum lens redshift
     :math:`z_{\mathrm{max}}`. During the precomputation phase, only lens-source
     pairs with :math:`z_{\mathrm{l}} \leq z_{\mathrm{max}}` are being used. The
     maximum redshift is the minimum of the following three quantities where
@@ -162,8 +183,8 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
     table_s : astropy.table.Table
         Table with the maximum lens redshfit assigned to the :code:`z_l_max`
         column.
-    """
 
+    """
     z_l_max = table_s['z'] - dz_min
 
     if z_err_factor > 0:
@@ -179,8 +200,7 @@ def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
 
 
 def get_raw_multiprocessing_array(array):
-    """ To save memeory, use shared-memory multiprocessing arrays. This
-    function converts an integer or float numpy array into such an array.
+    """Convert a numpy array into a shared-memory multiprocessing array.
 
     Parameters
     ----------
@@ -193,7 +213,6 @@ def get_raw_multiprocessing_array(array):
         Output array. None if input is None.
 
     """
-
     if array is None:
         return None
 
@@ -208,9 +227,8 @@ def get_raw_multiprocessing_array(array):
 def add_precompute_results(
         table_l, table_s, bins, table_c=None, table_n=None,
         cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
-        shear_mode=False, nside=256, n_jobs=1, progress_bar=False):
-    """For all lenses in the catalog, perform the precomputation of lensing
-    statistics.
+        weighting=-2, nside=256, n_jobs=1, progress_bar=False):
+    """For all lenses in the catalog, precompute the lensing statistics.
 
     Parameters
     ----------
@@ -233,12 +251,8 @@ def add_precompute_results(
     comoving : boolean, optional
         Whether to use comoving or physical quantities. Only relevant if
         `shear_mode` is not active.
-    shear_mode : boolean, optional
-        If true, bins are assumed to be in degrees. Also, the individual
-        weights of lens-source pairs are only determined by the source weight,
-        not also by the critical surface density. Finally, all lens-source
-        pairs will be analzyed unless a lens-source cut was previously
-        specified. This mode is useful for calculating tangential shear.
+    weighting : float, optional
+        TBD
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determines the number of pixels.
@@ -253,34 +267,38 @@ def add_precompute_results(
     -------
     table_l : astropy.table.Table
         Lens catalog with the pre-computation results attached to the table.
-    """
 
+    Raises
+    ------
+    ValueError
+        If there are problems in the input.
+
+    """
     try:
         assert cosmology.Ok0 == 0
     except AssertionError:
-        raise Exception('Currently, dsigma does not support non-flat ' +
-                        'cosmologies.')
+        raise ValueError('dsigma does not support non-flat cosmologies.')
 
     if np.any(table_l['z'] < 0):
-        raise Exception('Input lens redshifts must all be non-negative.')
+        raise ValueError('Input lens redshifts must all be non-negative.')
     if not isinstance(nside, int) or not np.isin(nside, 2**np.arange(15)):
-        raise Exception('nside must be a positive power of 2 but received ' +
-                        '{}.'.format(nside))
+        raise ValueError('nside must be a positive power of 2. Received ' +
+                         '{}.'.format(nside))
     if not isinstance(n_jobs, int) or n_jobs < 1:
-        raise Exception('Illegal number of jobs. Expected positive integer ' +
-                        'but received {}.'.format(n_jobs))
+        raise ValueError('Number of jobs must be positive integer. Received ' +
+                         '{}.'.format(n_jobs))
 
     if table_n is not None:
         if 'z_bin' not in table_s.colnames:
-            raise Exception('To use source redshift distributions, the ' +
-                            'source table needs to have a `z_bin` column.')
+            raise ValueError('To use source redshift distributions, the ' +
+                             'source table needs to have a `z_bin` column.')
         if not np.issubdtype(table_s['z_bin'].data.dtype, int) or np.amin(
                 table_s['z_bin']) < 0:
-            raise Exception('The `z_bin` column in the source table must ' +
-                            'contain only non-negative integers.')
+            raise ValueError('The `z_bin` column in the source table must ' +
+                             'contain only non-negative integers.')
         if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:
-            raise Exception('The source table contains more redshift bins ' +
-                            'than where passed via the nz argument.')
+            raise ValueError('The source table contains more redshift bins ' +
+                             'than where passed via the nz argument.')
 
     hp = HEALPix(nside, order='ring')
     pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
@@ -318,12 +336,9 @@ def add_precompute_results(
                 table_s[key][argsort_pix_s], dtype=np.float64)
 
     if 'z_l_max' not in table_s.colnames:
-        if not shear_mode:
-            warnings.warn('No lens-source cut given in source catalog. Will' +
-                          ' use z_l < z_s.', RuntimeWarning)
-            z_l_max = table_s['z']
-        if shear_mode:
-            z_l_max = np.repeat(1e4, len(table_s))
+        warnings.warn('No lens-source cut given in source catalog. Will use ' +
+                      'z_l < z_s.', RuntimeWarning)
+        z_l_max = table_s['z']
     else:
         z_l_max = table_s['z_l_max']
 
@@ -383,17 +398,14 @@ def add_precompute_results(
         table_engine_s['z_bin'] = np.ascontiguousarray(
             table_s['z_bin'][argsort_pix_s], dtype=int)
     elif table_c is not None and table_s is not None:
-        raise Exception('table_c and table_n cannot both be given.')
+        raise ValueError('table_c and table_n cannot both be given.')
 
     # Create arrays that will hold the final results.
     table_engine_r = {}
     n_results = len(table_l) * (len(bins) - 1)
 
-    key_list = ['sum 1', 'sum w_ls', 'sum w_ls e_t', 'sum w_ls z_s']
-
-    if not shear_mode:
-        key_list.append('sum w_ls e_t sigma_crit')
-        key_list.append('sum (w_ls e_t sigma_crit)^2')
+    key_list = ['sum 1', 'sum w_ls', 'sum w_ls e_t', 'sum w_ls z_s',
+                'sum w_ls e_t sigma_crit', 'sum (w_ls e_t sigma_crit)^2']
 
     if 'm' in table_s.colnames:
         key_list.append('sum w_ls m')
@@ -416,16 +428,18 @@ def add_precompute_results(
     z_l = np.array(table_engine_l['z'])
     d_com_l = np.array(table_engine_l['d_com'])
 
-    if not shear_mode:
-        theta = (np.tile(bins, len(table_l)) /
-                 np.repeat(d_com_l, len(bins))).flatten()
-    else:
-        theta = np.tile(np.deg2rad(bins), len(table_l))
+    if not isinstance(bins, u.quantity.Quantity):
+        bins = bins * u.Mpc
 
-    if not shear_mode and not comoving:
-        theta *= (1 + np.repeat(z_l, len(bins))).flatten()
+    try:
+        theta_bins = np.tile(bins.to(u.rad).value, len(table_l))
+    except UnitConversionError:
+        theta_bins = (np.tile(bins.to(u.Mpc).value, len(table_l)) /
+                      np.repeat(d_com_l, len(bins))).flatten()
+        if not comoving:
+            theta_bins *= (1 + np.repeat(z_l, len(bins))).flatten()
 
-    dist_3d_sq_bins = np.minimum(4 * np.sin(theta / 2.0)**2, 2.0)
+    dist_3d_sq_bins = np.minimum(4 * np.sin(theta_bins / 2.0)**2, 2.0)
 
     # When running in parrallel, replace numpy arrays with shared-memory
     # multiprocessing arrays.
@@ -447,7 +461,7 @@ def add_precompute_results(
 
     args = (u_pix_l.tolist(), n_pix_l, u_pix_s.tolist(), n_pix_s,
             dist_3d_sq_bins, table_engine_l, table_engine_s, table_engine_r,
-            bins, comoving, shear_mode, nside, queue, progress_bar)
+            bins, comoving, weighting, nside, queue, progress_bar)
 
     if n_jobs == 1:
         precompute_engine(*args)
@@ -486,6 +500,6 @@ def add_precompute_results(
     table_l.meta['H0'] = cosmology.H0.value
     table_l.meta['Ok0'] = cosmology.Ok0
     table_l.meta['Om0'] = cosmology.Om0
-    table_l.meta['shear_mode'] = shear_mode
+    table_l.meta['weighting'] = weighting
 
     return table_l
