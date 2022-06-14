@@ -3,6 +3,7 @@
 
 import queue as Queue
 import numpy as np
+from tqdm import tqdm
 from astropy_healpix import HEALPix
 from astropy import units as u
 from libc.math cimport sin, cos, sqrt, fmax
@@ -34,14 +35,10 @@ cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 
 
 def precompute_engine(
-        pix_l_counts_in, pix_s_counts_in, pix_l_cum_counts_in,
-        pix_s_cum_counts_in, dist_3d_sq_bins_in,  table_l, table_s, table_r,
-        bins, bint comoving, bint shear_mode, int nside, queue, pbar):
+        u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins_in,
+        table_l, table_s, table_r, bins, bint comoving, bint shear_mode,
+        int nside, queue, progress_bar):
 
-    cdef long[::1] pix_l_counts = pix_l_counts_in
-    cdef long[::1] pix_s_counts = pix_s_counts_in
-    cdef long[::1] pix_l_cum_counts = pix_l_cum_counts_in
-    cdef long[::1] pix_s_cum_counts = pix_s_cum_counts_in
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
     cdef double[::1] d_com_l = table_l['d_com']
@@ -125,8 +122,8 @@ def precompute_engine(
 
     cdef long i_l, i_l_min, i_l_max
     cdef long i_s, i_s_min, i_s_max
-    cdef long i_pix_l, i_pix_s
-    cdef long[::1] i_pix_s_list
+    cdef long pix_l, pix_s
+    cdef long[::1] pix_s_list
     cdef long i_bin, n_bins = len(bins) - 1
     cdef long offset_bin, offset_result
     cdef double dist_3d_sq_max, dist_3d_sq_ls
@@ -135,23 +132,23 @@ def precompute_engine(
     cdef double w_ls, sigma_crit
     cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
 
+    if progress_bar:
+        pbar = tqdm(total=len(u_pix_l))
+
     while True:
 
         # Check whether there is still a lens pixel in the queue.
         try:
-            i_pix_l = queue.get(timeout=0.5)
+            job = queue.get(timeout=0.5)
+            pix_l = u_pix_l[job]
         except Queue.Empty:
             break
 
-        # Go to next pixel if current pixel does not contain any lenses.
-        if pix_l_counts[i_pix_l] == 0:
-            continue
-
-        if i_pix_l == 0:
+        if job == 0:
             i_l_min = 0
         else:
-            i_l_min = pix_l_cum_counts[i_pix_l - 1]
-        i_l_max = pix_l_cum_counts[i_pix_l]
+            i_l_min = n_pix_l[job - 1]
+        i_l_max = n_pix_l[job]
 
         # Find the maximum angular search radius.
         dist_3d_sq_max = 0.0
@@ -163,22 +160,23 @@ def precompute_engine(
                            4 * sqrt(dist_3d_sq_max) * deg2rad * max_pixrad)
 
         # Get list of all source pixels that could contain suitable sources.
-        i_pix_s_list = np.fromiter(
-            kdtree.query_ball_point(xyz[i_pix_l], sqrt(dist_3d_sq_max)),
+        pix_s_list = np.fromiter(
+            kdtree.query_ball_point(xyz[pix_l], sqrt(dist_3d_sq_max)),
             dtype=long)
 
         # Loop over all suitable source pixels.
-        for i_pix_s in i_pix_s_list:
+        for pix_s in pix_s_list:
 
+            try:
+                index = u_pix_s.index(pix_s)
+                if index == 0:
+                    i_s_min = 0
+                else:
+                    i_s_min = n_pix_s[index - 1]
+                i_s_max = n_pix_s[index]
             # Go to next pixel if current pixel does not contain any sources.
-            if pix_s_counts[i_pix_s] == 0:
+            except ValueError:
                 continue
-
-            if i_pix_s == 0:
-                i_s_min = 0
-            else:
-                i_s_min = pix_s_cum_counts[i_pix_s - 1]
-            i_s_max = pix_s_cum_counts[i_pix_s]
 
             # Loop over all lenses in the pixel.
             for i_l in range(i_l_min, i_l_max):
@@ -272,7 +270,11 @@ def precompute_engine(
 
                         i_bin -= 1
 
-        if pbar is not None:
-            pbar.update(1)
+        if progress_bar:
+            pbar.update(job + 1 - pbar.n)
+
+    if progress_bar:
+        pbar.update(len(u_pix_l) - pbar.n)
+        pbar.close()
 
     return 0

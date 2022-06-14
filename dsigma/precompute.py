@@ -6,8 +6,6 @@ import numpy as np
 from astropy_healpix import HEALPix
 from scipy.interpolate import interp1d
 
-from tqdm import tqdm
-
 from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 
@@ -285,15 +283,16 @@ def add_precompute_results(
                             'than where passed via the nz argument.')
 
     hp = HEALPix(nside, order='ring')
-    npix = hp.npix
     pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
     pix_s = hp.lonlat_to_healpix(table_s['ra'] * u.deg, table_s['dec'] * u.deg)
     argsort_pix_l = np.argsort(pix_l)
     argsort_pix_s = np.argsort(pix_s)
-    pix_l_counts = np.ascontiguousarray(np.bincount(pix_l, minlength=npix))
-    pix_s_counts = np.ascontiguousarray(np.bincount(pix_s, minlength=npix))
-    pix_l_cum_counts = np.ascontiguousarray(np.cumsum(pix_l_counts))
-    pix_s_cum_counts = np.ascontiguousarray(np.cumsum(pix_s_counts))
+    u_pix_l, n_pix_l = np.unique(pix_l, return_counts=True)
+    u_pix_l = np.ascontiguousarray(u_pix_l)
+    n_pix_l = np.ascontiguousarray(np.cumsum(n_pix_l))
+    u_pix_s, n_pix_s = np.unique(pix_s, return_counts=True)
+    u_pix_s = np.ascontiguousarray(u_pix_s)
+    n_pix_s = np.ascontiguousarray(np.cumsum(n_pix_s))
 
     table_engine_l = {}
     table_engine_s = {}
@@ -428,19 +427,10 @@ def add_precompute_results(
 
     dist_3d_sq_bins = np.minimum(4 * np.sin(theta / 2.0)**2, 2.0)
 
-    if progress_bar:
-        pbar = tqdm(total=np.sum(pix_l_counts > 0))
-    else:
-        pbar = None
-
     # When running in parrallel, replace numpy arrays with shared-memory
     # multiprocessing arrays.
     if n_jobs > 1:
         dist_3d_sq_bins = get_raw_multiprocessing_array(dist_3d_sq_bins)
-        pix_l_counts = get_raw_multiprocessing_array(pix_l_counts)
-        pix_s_counts = get_raw_multiprocessing_array(pix_s_counts)
-        pix_l_cum_counts = get_raw_multiprocessing_array(pix_l_cum_counts)
-        pix_s_cum_counts = get_raw_multiprocessing_array(pix_s_cum_counts)
         for table_engine in [table_engine_l, table_engine_s, table_engine_r]:
             for key in table_engine.keys():
                 table_engine[key] = get_raw_multiprocessing_array(
@@ -452,12 +442,12 @@ def add_precompute_results(
     else:
         queue = mp.Queue()
 
-    for pix in np.unique(pix_l):
-        queue.put(pix)
+    for i in range(len(u_pix_l)):
+        queue.put(i)
 
-    args = (pix_l_counts, pix_s_counts, pix_l_cum_counts, pix_s_cum_counts,
+    args = (u_pix_l.tolist(), n_pix_l, u_pix_s.tolist(), n_pix_s,
             dist_3d_sq_bins, table_engine_l, table_engine_s, table_engine_r,
-            bins, comoving, shear_mode, nside, queue, pbar)
+            bins, comoving, shear_mode, nside, queue, progress_bar)
 
     if n_jobs == 1:
         precompute_engine(*args)
@@ -465,13 +455,14 @@ def add_precompute_results(
         processes = []
         for i in range(n_jobs):
             process = mp.Process(target=precompute_engine, args=(*args, ))
+            if i == 0:
+                args = list(args)
+                args[-1] = False
+                args = tuple(args)
             process.start()
             processes.append(process)
         for i in range(n_jobs):
             processes[i].join()
-
-    if progress_bar:
-        pbar.close()
 
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
     for key in table_engine_r.keys():
