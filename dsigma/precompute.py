@@ -372,13 +372,15 @@ def add_precompute_results(
             dz_s_interp(np.array(table_engine_l['z'])), dtype=np.float64)
 
     elif table_c is None and table_n is not None:
-        z_min = np.amin(table_l['z'])
-        z_max = np.amax(table_l['z'])
-        z_interp = np.linspace(
-            z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
         n_bins = table_n['n'].data.shape[1]
         sigma_crit_eff = np.zeros(len(table_l) * n_bins, dtype=np.float64)
         for i in range(n_bins):
+            z_min = np.amin(table_l['z'])
+            z_max = min(np.amax(table_l['z']),
+                        np.amax(table_n['z'][table_n['n'][:, i] > 0]))
+            z_interp = np.linspace(
+                z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
+
             sigma_crit_eff_inv_interp = effective_critical_surface_density(
                 z_interp, table_n['z'], table_n['n'][:, i],
                 cosmology=cosmology, comoving=comoving)**-1

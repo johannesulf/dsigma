@@ -212,6 +212,9 @@ def precompute_engine(
 
                     w_ls = w_s[i_s] * pow(sigma_crit, weighting)
 
+                    if w_ls == 0:
+                        continue
+
                     sin_ra_l_minus_ra_s = (sin_ra_l[i_l] * cos_ra_s[i_s] -
                                            cos_ra_l[i_l] * sin_ra_s[i_s])
                     cos_ra_l_minus_ra_s = (cos_ra_l[i_l] * cos_ra_s[i_s] +

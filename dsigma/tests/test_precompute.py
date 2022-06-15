@@ -54,8 +54,7 @@ def test_add_precompute_results_treecorr():
     ng.process(cat_l, cat_s)
 
     table_l = precompute.add_precompute_results(
-        table_l, table_s, theta_bins * u.deg, nside=32, weighting=0,
-        progress_bar=True, n_jobs=5)
+        table_l, table_s, theta_bins * u.deg, nside=32, weighting=0)
 
     assert np.all(np.array(ng.npairs, dtype=int) == number_of_pairs(table_l))
     assert np.all(np.isclose(ng.xi, raw_tangential_shear(table_l), atol=1e-9,
@@ -143,4 +142,4 @@ def test_add_precompute_results_nz():
     # that we won't encounter in real-world applications.
     assert np.all(np.isclose(
         raw_excess_surface_density(table_l),
-        raw_excess_surface_density(table_l_nz), atol=1e-2, rtol=0))
+        raw_excess_surface_density(table_l_nz), atol=1e-9, rtol=0))
