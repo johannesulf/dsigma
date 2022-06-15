@@ -21,40 +21,21 @@ __all__ = ["photo_z_dilution_factor", "mean_photo_z_offset",
            "add_precompute_results", "add_maximum_lens_redshift"]
 
 
-def parallel_compute(f, x, n_jobs):
-    """Compute a function in parrallel.
-
-    Parameters
-    ----------
-    f : function
-        Function that takes one argument and has one return value.
-    x : numpy.ndarray
-        Inputs for which the function should be evaluated.
-    n_jobs : int
-        Number of jobs.
-
-    Returns
-    -------
-    y : numpy.ndarray
-        Outputs of the function. Has the same ordering as `x`.
-
-    """
-    with mp.Pool(n_jobs) as pool:
-        y = np.concatenate(pool.map(f, np.array_split(x, n_jobs)))
-    return y
-
-
-def photo_z_dilution_factor(z_l, table_c, cosmology):
+def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
     """Calculate the photo-z bias as a function of the lens redshift.
 
     Parameters
     ----------
-    z_l : float or numpy array
+    z_l : float or numpy.ndarray
         Redshift(s) of the lens.
     table_c : astropy.table.Table
         Photometric redshift calibration catalog.
     cosmology : astropy.cosmology
         Cosmology to assume for calculations.
+    weighting : float, optional
+        The exponent of weighting of each lens-source pair by the critical
+        surface density. A natural choice is -2 which minimizes shape noise.
+        Default is -2.
 
     Returns
     -------
@@ -89,29 +70,34 @@ def photo_z_dilution_factor(z_l, table_c, cosmology):
     sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
     sigma_crit_true = critical_surface_density(z_l, z_s_true, d_l=d_l,
                                                d_s=d_s_true)
-    mask = z_l_max < z_l
+
+    mask = (z_l_max < z_l) & (z_l > z_s)
 
     if np.any(np.all(mask, axis=-1)):
         warnings.warn('Could not find valid calibration sources for some ' +
                       'lens redshifts. The f_bias correction may be ' +
                       'undefined.', RuntimeWarning)
 
-    return (np.sum((w / sigma_crit_phot**2) * (~mask), axis=-1) /
-            np.sum((w / sigma_crit_phot / sigma_crit_true) * (~mask),
-                   axis=-1))
+    return (np.sum((w * sigma_crit_phot**weighting) * (~mask), axis=-1) /
+            np.sum((w * sigma_crit_phot**(weighting + 1) / sigma_crit_true) *
+                   (~mask), axis=-1))
 
 
-def mean_photo_z_offset(z_l, table_c, cosmology):
+def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
     """Calculate the mean offset of source photometric redshifts.
 
     Parameters
     ----------
-    z_l : float or numpy array
+    z_l : float or numpy.ndarray
         Redshift(s) of the lens.
     table_c : astropy.table.Table, optional
         Photometric redshift calibration catalog.
     cosmology : astropy.cosmology
         Cosmology to assume for calculations.
+    weighting : float, optional
+        The exponent of weighting of each lens-source pair by the critical
+        surface density. A natural choice is -2 which minimizes shape noise.
+        Default is -2.
 
     Returns
     -------
@@ -142,9 +128,9 @@ def mean_photo_z_offset(z_l, table_c, cosmology):
         d_l = np.repeat(d_l, len(table_c)).reshape(shape)
 
     sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    w = w / sigma_crit**2
+    w = w * sigma_crit**weighting
 
-    mask = z_l_max < z_l
+    mask = (z_l_max < z_l) & (z_l > z_s)
 
     return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
         w * (~mask), axis=-1)
@@ -204,7 +190,7 @@ def get_raw_multiprocessing_array(array):
 
     Parameters
     ----------
-    array : numpy array or None
+    array : numpy.ndarray or None
         Input array.
 
     Returns
@@ -236,32 +222,34 @@ def add_precompute_results(
         Catalog of lenses.
     table_s : astropy.table.Table
         Catalog of sources.
-    bins : numpy array
-        Bins in radius to use for the stacking. By default, these are in
-        projected distance and Mpc. However, if `shear_mode` is set to True,
-        these will be assumed to be angular separations in degrees.
+    bins : numpy.ndarray or u.quantity.Quantity
+        Bins in radius to use for the stacking. If a numpy array, bins are
+        assumed to be in Mpc. If an astropy quantity, one can pass both length
+        units, e.g. kpc and Mpc, as well as angular units, i.e. deg and rad.
     table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog. Only used if
-        `shear_mode` is not active.
+        Additional photometric redshift calibration catalog. Default is None.
     table_n : astropy.table.Table, optional
-        Source redshift distributions. Only used if `shear_mode` is not active.
+        Source redshift distributions. Default is None.
     cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations. Only relevant if `shear_mode` is
-        not active.
+        Cosmology to assume for calculations. Default is a flat LambdaCDM
+        cosmology with h=1 and Om0=0.3.
     comoving : boolean, optional
-        Whether to use comoving or physical quantities. Only relevant if
-        `shear_mode` is not active.
+        Whether to use comoving or physical quantities for radial bins (if
+        given in physical units) and the excess surface density. Default is
+        True.
     weighting : float, optional
-        TBD
+        The exponent of weighting of each lens-source pair by the critical
+        surface density. A natural choice is -2 which minimizes shape noise.
+        Default is -2.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determines the number of pixels.
-        It has to be a power of 2. This number likely impacts performance.
+        It has to be a power of 2. May impact performance. Default is 256.
     n_jobs : int, optional
-        Number of jobs to run at the same time.
+        Number of jobs to run at the same time. Default is 1.
     progress_bar : boolean, option
         Whether to show a progress bar for the main loop over lens pixels.
-        Default is false.
+        Default is False.
 
     Returns
     -------
@@ -348,23 +336,31 @@ def add_precompute_results(
     for table, argsort_pix, table_engine in zip(
             [table_l, table_s], [argsort_pix_l, argsort_pix_s],
             [table_engine_l, table_engine_s]):
-        table_engine['d_com'] = np.ascontiguousarray(parallel_compute(
-            cosmology.comoving_transverse_distance, table['z'], n_jobs).to(
-                u.Mpc).value[argsort_pix], dtype=np.float64)
+
+        z_min = np.amin(table['z'])
+        z_max = np.amax(table['z'])
+        z_interp = np.linspace(
+            z_min, z_max, max(10, int((z_max - z_min) / 0.0001)))
+
+        table_engine['d_com'] = np.ascontiguousarray(interp1d(
+            z_interp, cosmology.comoving_transverse_distance(z_interp).to(
+                u.Mpc).value)(table['z'])[argsort_pix])
 
     if table_c is not None and table_n is None:
         z_min = np.amin(table_l['z'])
         z_max = np.amax(table_l['z'])
         z_interp = np.linspace(
             z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
-        f_bias_interp = photo_z_dilution_factor(z_interp, table_c, cosmology)
+        f_bias_interp = photo_z_dilution_factor(
+            z_interp, table_c, cosmology, weighting=weighting)
         f_bias_interp = interp1d(
             z_interp, f_bias_interp, kind='cubic', bounds_error=False,
             fill_value=(f_bias_interp[0], f_bias_interp[-1]))
         table_engine_l['f_bias'] = np.ascontiguousarray(
             f_bias_interp(np.array(table_engine_l['z'])), dtype=np.float64)
         dz_s_interp = mean_photo_z_offset(
-            z_interp, table_c=table_c, cosmology=cosmology)
+            z_interp, table_c=table_c, cosmology=cosmology,
+            weighting=weighting)
         dz_s_interp = interp1d(
             z_interp, dz_s_interp, kind='cubic', bounds_error=False,
             fill_value=(dz_s_interp[0], dz_s_interp[-1]))

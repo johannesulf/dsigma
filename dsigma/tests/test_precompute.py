@@ -6,6 +6,7 @@ from astropy.cosmology import FlatLambdaCDM
 from dsigma import precompute
 from dsigma.stacking import number_of_pairs, raw_tangential_shear
 from dsigma.stacking import raw_excess_surface_density, photo_z_dilution_factor
+from dsigma.stacking import excess_surface_density
 
 
 def get_test_catalogs(n_l, n_s):
@@ -89,7 +90,7 @@ def test_add_precompute_results_little_h():
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.add_precompute_results(
-        table_l.copy(), table_s, rp_bins, cosmology=cosmology, nside=32)
+        table_l, table_s, rp_bins, cosmology=cosmology, nside=32)
     table_l_h = precompute.add_precompute_results(
         table_l.copy(), table_s, rp_bins / h, cosmology=cosmology_h, nside=32)
 
@@ -99,7 +100,7 @@ def test_add_precompute_results_little_h():
         raw_excess_surface_density(table_l_h) / h, atol=1e-9, rtol=0))
 
 
-def test_add_precompute_results_f_bias():
+def test_add_precompute_results_f_bias_1():
 
     table_l, table_s = get_test_catalogs(1000, 10000)
     table_c = Table()
@@ -111,10 +112,35 @@ def test_add_precompute_results_f_bias():
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.add_precompute_results(
-        table_l.copy(), table_s, rp_bins, table_c=table_c, nside=32)
+        table_l, table_s, rp_bins, table_c=table_c, nside=32)
     f_bias = photo_z_dilution_factor(table_l)
 
     assert np.all(np.isclose(f_bias, 1.0, rtol=0, atol=1e-12))
+
+
+def test_add_precompute_results_f_bias_2():
+
+    table_l, table_s = get_test_catalogs(1000, 10000)
+    table_s['z'] = 0.5
+    table_l['z'] = 0.2 + np.random.random(len(table_l)) * 1e-9
+    table_c = Table()
+    table_c['z'] = np.ones(1) * 0.5
+    table_c['z_true'] = 0.7
+    table_c['w'] = 1.0
+    table_c['w_sys'] = 1.0
+    table_c['z_l_max'] = table_c['z']
+
+    rp_bins = np.logspace(0, 1, 11)
+    table_l = precompute.add_precompute_results(
+        table_l, table_s, rp_bins, table_c=table_c, nside=32)
+    ds_1 = excess_surface_density(table_l, photo_z_dilution_correction=True)
+
+    table_s['z'] = 0.7
+    table_l = precompute.add_precompute_results(
+        table_l, table_s, rp_bins, nside=32)
+    ds_2 = excess_surface_density(table_l)
+
+    assert np.all(np.isclose(ds_1, ds_2, rtol=0, atol=1e-6))
 
 
 def test_add_precompute_results_nz():
@@ -132,7 +158,7 @@ def test_add_precompute_results_nz():
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.add_precompute_results(
-        table_l.copy(), table_s, rp_bins, nside=32)
+        table_l, table_s, rp_bins, nside=32)
     table_l_nz = precompute.add_precompute_results(
         table_l.copy(), table_s, rp_bins, table_n=table_n, nside=32)
 
@@ -142,4 +168,4 @@ def test_add_precompute_results_nz():
     # that we won't encounter in real-world applications.
     assert np.all(np.isclose(
         raw_excess_surface_density(table_l),
-        raw_excess_surface_density(table_l_nz), atol=1e-9, rtol=0))
+        raw_excess_surface_density(table_l_nz), atol=1e-6, rtol=0))
