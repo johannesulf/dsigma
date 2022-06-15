@@ -22,7 +22,7 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
     ----------
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations.
-    z : float or numpy array
+    z : float or numpy.ndarray
         Redshift of the object.
     comoving : boolen
         Use comoving distance instead of physical distance when True.
@@ -30,10 +30,10 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
 
     Returns
     -------
-    float or numpy array
+    float or numpy.ndarray
         Physical scale in unit of Mpc/degree.
-    """
 
+    """
     if comoving:
         return (cosmology.comoving_transverse_distance(z).to(u.Mpc).value *
                 np.deg2rad(1))
@@ -47,19 +47,19 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
 
     Parameters
     ----------
-    ra_l, dec_l : float or numpy array
+    ra_l, dec_l : float or numpy.ndarray
         Coordinates of the lens galaxies in degrees.
-    ra_s, dec_s : float or numpy array
+    ra_s, dec_s : float or numpy.ndarray
         Coordinates of the source galaxies in degrees.
 
     Returns
     -------
-    cos_2phi, sin_2phi : float or numpy array
+    cos_2phi, sin_2phi : float or numpy.ndarray
         The :math:`\cos` and :math:`\sin` of :math:`2 \phi`, where
         :math:`\phi` is the angle measured from right ascension direction to a
         line connecting the lens and source galaxies.
-    """
 
+    """
     # Convert everything into radians.
     ra_l, dec_l = np.deg2rad(ra_l), np.deg2rad(dec_l)
     ra_s, dec_s = np.deg2rad(ra_s), np.deg2rad(dec_s)
@@ -94,33 +94,32 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
 
 def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
                              d_s=None):
-    """The critical surface density for a given lens and source redshift.
+    """Compute the critical surface density.
 
     Parameters
     ----------
-    z_l : float or numpy array
+    z_l : float or numpy.ndarray
         Redshift of lens.
-    z_s : float or numpy array
+    z_s : float or numpy.ndarray
         Redshift of source.
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations. Only used if comoving distances
         are not passed.
     comoving : boolean, optional
         Flag for using comoving instead of physical units.
-    d_l : float or numpy array
+    d_l : float or numpy.ndarray
         Comoving transverse distance to the lens. If not given, it is
         calculated from the redshift provided.
-    d_s : float or numpy array
+    d_s : float or numpy.ndarray
         Comoving transverse distance to the source. If not given, it is
         calculated from the redshift provided.
 
     Returns
     -------
-    float or numpy array
+    sigma_crit : float or numpy.ndarray
         Critical surface density for each lens-source pair.
 
     """
-
     if d_l is None:
         d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     if d_s is None:
@@ -143,16 +142,15 @@ def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
 
 def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
                                        comoving=True):
-    """The effective critical surface density for a given lens redshift and
-    source redshift distribution.
+    """Compute the effective critical surface density.
 
     Parameters
     ----------
-    z_l : float or numpy array
+    z_l : float or numpy.ndarray
         Redshift of lens.
-    z_s : numpy array
-        Potential redshifts of sources.
-    n_s : numpy array
+    z_s : numpy.ndarray
+        Redshifts of sources.
+    n_s : numpy.ndarray
         Fraction of source galaxies in each redshift bin. Does not need to be
         normalized.
     cosmology : astropy.cosmology
@@ -162,12 +160,11 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
 
     Returns
     -------
-    sigma_crit_eff : float or numpy array
+    sigma_crit_eff : float or numpy.ndarray
         Effective critical surface density for the lens redshift given the
         source redshift distribution.
 
     """
-
     d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
 
@@ -197,8 +194,9 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
 def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
                                   n_z=10, n_ell=200, bessel_function_zeros=100,
                                   k_max=1e3):
-    r"""The lens magnification bias to the mean tangential shear. This function
-    is based on equations (13) and (14) in Unruh et al. (2020).
+    r"""Compute the lens magnification bias to the mean tangential shear.
+
+    This function is based on equations (13) and (14) in Unruh et al. (2020).
 
     Parameters
     ----------
@@ -233,10 +231,10 @@ def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
 
     Returns
     -------
-    float
+    et_lm : float
         Bias in the mean tangential shear due to lens magnification effects.
-    """
 
+    """
     camb_interp = camb_results.get_matter_power_interpolator(
         hubble_units=False, k_hunit=False)
 

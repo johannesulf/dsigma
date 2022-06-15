@@ -1,3 +1,5 @@
+"""Module with functions specific to the Dark Energy Survey."""
+
 import numpy as np
 
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
@@ -10,7 +12,24 @@ e_2_convention = 'standard'
 
 
 def default_column_keys(version=default_version):
+    """Return a dictionary of default column keys.
 
+    Parameters
+    ----------
+    version : string or None, optional
+        Version of the catalog.
+
+    Returns
+    -------
+    keys : dict
+        Dictionary of default column keys.
+
+    Raises
+    ------
+    ValueError
+        If `version` does not correspond to a known catalog version.
+
+    """
     if version == 'Y1':
         keys = {
             'ra': 'ra',
@@ -52,7 +71,7 @@ def default_column_keys(version=default_version):
             'flags_select_2p': 'flags_select_2p',
             'flags_select_2m': 'flags_select_2m'}
     else:
-        raise RuntimeError(
+        raise ValueError(
             "Unkown version of DES. Supported versions are {}.".format(
                 known_versions))
 
@@ -60,31 +79,36 @@ def default_column_keys(version=default_version):
 
 
 def tomographic_redshift_bin(z_s, version=default_version):
-    """DES analyses work in pre-defined tomographic redshift bins. This
-    function returns the photometric redshift bin as a function of photometric
-    redshift.
+    """Return the photometric redshift bin.
 
     Parameters
     ----------
-    z_s : numpy array
+    z_s : numpy.ndarray
         Photometric redshifts.
-    version : string
+    version : string, optional
         Which catalog version to use.
 
     Returns
     -------
-    z_bin : numpy array
+    z_bin : numpy.ndarray
         The tomographic redshift bin corresponding to each photometric
         redshift. Returns -1 in case a redshift does not fall into any bin.
-    """
 
+    Raises
+    ------
+    ValueError
+        If the `version` does not correspond to a known catalog version or
+        if tomographic bins were not assigned based on photometric redshifts
+        for the given catalog version.
+
+    """
     if version == 'Y1':
         z_bins = [0.2, 0.43, 0.63, 0.9, 1.3]
     elif version == 'Y3':
-        raise RuntimeError('DES Y3 assigns redshift bins based on colors, ' +
-                           'not photometric redshifts.')
+        raise ValueError('DES Y3 assigns redshift bins based on colors, ' +
+                         'not photometric redshifts.')
     else:
-        raise RuntimeError(
+        raise ValueError(
             "Unkown version of DES. Supported versions are {}.".format(
                 known_versions))
 
@@ -96,7 +120,9 @@ def tomographic_redshift_bin(z_s, version=default_version):
 
 
 def multiplicative_shear_bias(z_bin, version=default_version):
-    """For DES Y3, we can define a blending-related multiplicative shear bias.
+    """Return the multiplicative shear bias.
+
+    For DES Y3, we can define a blending-related multiplicative shear bias.
     This function returns the multiplicative bias :math:`m` as a function
     of the bin. The values can be computed from the blending-corrected Y3
     redshift distributions and are, as expected, very similar to the values in
@@ -105,19 +131,26 @@ def multiplicative_shear_bias(z_bin, version=default_version):
 
     Parameters
     ----------
-    z_bin : numpy array
+    z_bin : numpy.ndarray
         Tomographic redshift bin.
-    version : string
+    version : string, optional
         Which catalog version to use.
 
     Returns
     -------
-    m : numpy array
+    m : numpy.ndarray
         The multiplicative shear bias corresponding to each tomographic bin.
-    """
 
+    Raises
+    ------
+    ValueError
+        If the `version` does not correspond to a known catalog version or
+        multiplicative shear biases cannot be defined for this version of the
+        catalog.
+
+    """
     if version == 'Y1':
-        raise RuntimeError(
+        raise ValueError(
             'For Y1, we cannot define a multiplicative shear bias.')
 
     elif version == 'Y3':
@@ -125,28 +158,29 @@ def multiplicative_shear_bias(z_bin, version=default_version):
         return np.where(z_bin != -1, m[z_bin], np.nan)
 
     else:
-        raise RuntimeError(
+        raise ValueError(
             "Unkown version of DES. Supported versions are {}.".format(
                 known_versions))
 
 
 def selection_response(table_s, version=default_version):
-    """Calculate the DES selection response. See Sheldon & Huff (2017) and
-    McClintock et al. (2018) for details.
+    """Calculate the DES selection response.
+
+    See Sheldon & Huff (2017) and McClintock et al. (2018) for details.
 
     Parameters
     ----------
     table_s : astropy.table.Table
         Catalog of sources.
-    version : string
+    version : string, optional
         Which catalog version to use.
 
     Returns
     -------
-    R_sel : numpy array
+    R_sel : numpy.ndarray
         2x2 matrix containing the selection response.
-    """
 
+    """
     R_sel = np.zeros((2, 2))
 
     for i in range(2):

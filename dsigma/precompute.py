@@ -39,6 +39,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
 
     Returns
     -------
+    f_bias : float or numpy.ndarray
         The photo-z bias factor, `f_bias`, for the lens redshift(s).
 
     """
@@ -101,6 +102,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
 
     Returns
     -------
+    dz : float or numpy.ndarray
         The mean source redshift offset for the lens redshift(s).
 
     """

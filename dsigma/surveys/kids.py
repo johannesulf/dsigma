@@ -1,3 +1,5 @@
+"""Module with functions specific to the Kilo Degree Survey."""
+
 import numpy as np
 
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
@@ -10,7 +12,24 @@ e_2_convention = 'standard'
 
 
 def default_column_keys(version=default_version):
+    """Return a dictionary of default column keys.
 
+    Parameters
+    ----------
+    version : string or None, optional
+        Version of the catalog.
+
+    Returns
+    -------
+    keys : dict
+        Dictionary of default column keys.
+
+    Raises
+    ------
+    ValueError
+        If `version` does not correspond to a known catalog version.
+
+    """
     if version == 'DR3':
         keys = {
             'ra': 'RAJ2000',
@@ -40,7 +59,7 @@ def default_column_keys(version=default_version):
             'e_2': 'e2',
             'w': 'weight'}
     else:
-        raise RuntimeError(
+        raise ValueError(
             "Unkown version of KiDS. Supported versions are {}.".format(
                 known_versions))
 
@@ -48,24 +67,22 @@ def default_column_keys(version=default_version):
 
 
 def tomographic_redshift_bin(z_s, version=default_version):
-    """KiDS KV450 and DR4 analyses work in pre-defined tomographic redshift
-    bins. This function returns the photometric redshift bin as a function of
-    photometric redshift.
+    """Return the photometric redshift bin.
 
     Parameters
     ----------
-    z_s : numpy array
+    z_s : numpy.ndarray
         Photometric redshifts.
-    version : string
-        Which catalog version to use.
+    version : string, optional
+        Which catalog version to use. Currently ignored.
 
     Returns
     -------
-    z_bin : numpy array
+    z_bin : numpy.ndarray
         The tomographic redshift bin corresponding to each photometric
         redshift. Returns -1 in case a redshift does not fall into any bin.
-    """
 
+    """
     z_bin = np.digitize(z_s, [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]) - 1
     z_bin = np.where((z_s < 0.1) | (z_s >= 1.2), -1, z_bin)
 
@@ -73,28 +90,37 @@ def tomographic_redshift_bin(z_s, version=default_version):
 
 
 def multiplicative_shear_bias(z_bin, version=default_version):
-    """For many version of KiDS, the multiplicative shear bias is not estimated
+    """Return the multiplicative shear bias.
+
+    For many version of KiDS, the multiplicative shear bias is not estimated
     on the basis of individual sources but for broad photometric redshift
     bins. This function returns the multiplicative bias :math:`m` as a function
     of the bin.
 
     Parameters
     ----------
-    z_bin : numpy array
+    z_bin : numpy.ndarray
         Tomographic redshift bin.
     version : string
         Which catalog version to use.
 
     Returns
     -------
-    m : numpy array
+    m : numpy.ndarray
         The multiplicative shear bias corresponding to each tomographic bin.
-    """
 
+    Raises
+    ------
+    ValueError
+        If the `version` does not correspond to a known catalog version or
+        multiplicative shear biases cannot be defined for this version of the
+        catalog.
+
+    """
     if version == 'DR3':
 
-        raise RuntimeError('For DR3, the multiplicative shear bias is ' +
-                           'defined for each object individually.')
+        raise ValueError('For DR3, the multiplicative shear bias is ' +
+                         'defined for each object individually.')
 
     elif version in ['KV450', 'DR4']:
 
@@ -106,6 +132,6 @@ def multiplicative_shear_bias(z_bin, version=default_version):
         return np.where(z_bin != -1, m[z_bin], np.nan)
 
     else:
-        raise RuntimeError(
+        raise ValueError(
             "Unkown version of KiDS. Supported versions are {}.".format(
                 known_versions))

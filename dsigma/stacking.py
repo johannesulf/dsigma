@@ -1,3 +1,5 @@
+"""Module for stacking lensing results after pre-computation."""
+
 import numpy as np
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
@@ -23,10 +25,10 @@ def number_of_pairs(table_l):
 
     Returns
     -------
-    n_pairs : numpy array
+    n_pairs : numpy.ndarray
         The number of lens-source pairs in each radial bin.
-    """
 
+    """
     return np.sum(table_l['sum 1'].data, axis=0)
 
 
@@ -40,10 +42,10 @@ def raw_tangential_shear(table_l):
 
     Returns
     -------
-    delta_sigma : numpy array
+    delta_sigma : numpy.ndarray
         The raw, uncorrected tangential shear in each radial bin.
-    """
 
+    """
     return (np.sum(table_l['sum w_ls e_t'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
             np.sum(table_l['sum w_ls'].data * table_l['w_sys'].data[:, None],
@@ -60,10 +62,10 @@ def raw_excess_surface_density(table_l):
 
     Returns
     -------
-    delta_sigma : numpy array
+    delta_sigma : numpy.ndarray
         The raw, uncorrected excess surface density in each radial bin.
-    """
 
+    """
     return (np.sum(table_l['sum w_ls e_t sigma_crit'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
             np.sum(table_l['sum w_ls'].data *
@@ -82,8 +84,8 @@ def photo_z_dilution_factor(table_l):
     -------
     f_bias : float
         Photometric redshift bias :math:`f_{\mathrm{bias}}`.
-    """
 
+    """
     return (np.sum(table_l['sum w_ls e_t sigma_crit f_bias'].data *
                    table_l['w_sys'].data[:, None], axis=0) /
             np.sum(table_l['sum w_ls e_t sigma_crit'].data *
@@ -91,7 +93,9 @@ def photo_z_dilution_factor(table_l):
 
 
 def boost_factor(table_l, table_r):
-    """Compute the boost factor by comparing the number of lens-source pairs
+    """Compute the boost factor.
+
+    Boost factor is computed by comparing the number of lens-source pairs
     in real lenses and random lenses.
 
     Parameters
@@ -103,10 +107,10 @@ def boost_factor(table_l, table_r):
 
     Returns
     -------
-    b : numpy array
+    b : numpy.ndarray
         Boost factor in each radial bin.
-    """
 
+    """
     return (
         np.sum(table_l['sum w_ls'].data *
                table_l['w_sys'].data[:, None], axis=0) /
@@ -117,8 +121,10 @@ def boost_factor(table_l, table_r):
 
 
 def scalar_shear_response_factor(table_l):
-    r"""Compute the mean :math:`m` factor such that :math:`\gamma_{\mathrm obs}
-    = (1 + m) \gamma_{\mathrm intrinsic}`.
+    r"""Compute the mean shear response.
+
+    The shear response factor :math:`m` is defined such that
+    :math:`\gamma_{\mathrm obs} = (1 + m) \gamma_{\mathrm intrinsic}`.
 
     Parameters
     ----------
@@ -127,10 +133,10 @@ def scalar_shear_response_factor(table_l):
 
     Returns
     -------
-    m : numpy array
+    m : numpy.ndarray
         Multiplicative shear bias in each radial bin.
-    """
 
+    """
     return (
         np.sum(table_l['sum w_ls m'].data *
                table_l['w_sys'].data[:, None], axis=0) /
@@ -139,7 +145,9 @@ def scalar_shear_response_factor(table_l):
 
 
 def matrix_shear_response_factor(table_l):
-    r"""Compute the mean tangential response :math:`R_t` factor such that
+    r"""Compute the mean tangential response.
+
+    The tangential shear response factor:math:`R_t` is defined such that
     :math:`\gamma_{\mathrm obs} = R_t \gamma_{\mathrm intrinsic}`.
 
     Parameters
@@ -149,10 +157,10 @@ def matrix_shear_response_factor(table_l):
 
     Returns
     -------
-    r_t : numpy array
+    r_t : numpy.ndarray
         Tangential shear response factor in each radial bin.
-    """
 
+    """
     return (
         np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
                axis=0) /
@@ -169,10 +177,10 @@ def shear_responsivity_factor(table_l):
 
     Returns
     -------
-    r : numpy array
+    r : numpy.ndarray
         Shear responsitivity factor in each radial bin.
-    """
 
+    """
     return (
         np.sum(table_l['sum w_ls (1 - e_rms^2)'] *
                table_l['w_sys'][:, None], axis=0) /
@@ -189,10 +197,10 @@ def mean_lens_redshift(table_l):
 
     Returns
     -------
-    z_l : numpy array
+    z_l : numpy.ndarray
         Mean lens redshift in each bin.
-    """
 
+    """
     return (
         np.sum(table_l['sum w_ls z_l'] * table_l['w_sys'][:, None], axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
@@ -207,16 +215,16 @@ def mean_source_redshift(table_l, photo_z_correction=False):
         Precompute results for the lenses.
     photo_z_correction : boolean, optional
         By default, this function returns the average photometric source
-        redshift. If true and a calibration catalog or source redshift
+        redshift. If True and a calibration catalog or source redshift
         distribution has been provided at the precompute stage, estimate the
-        intrinsic source redshift distribution.
+        intrinsic source redshift distribution. Default is False.
 
     Returns
     -------
-    z_s : numpy array
+    z_s : numpy.ndarray
         Mean source redshift in each bin.
-    """
 
+    """
     if not photo_z_correction:
         key_num = 'sum w_ls z_s'
     else:
@@ -240,15 +248,15 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
     camb_results : camb.results.CAMBdata
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
-    photo_z_dilution_correction : boolean, optional
+    photo_z_correction : boolean, optional
         Whether to correct for photo-z dilution and offsets.
 
     Returns
     -------
-    ds_lm : numpy array
+    ds_lm : numpy.ndarray
         The lens magnification bias in each radial bin.
-    """
 
+    """
     cosmology = FlatLambdaCDM(H0=table_l.meta['H0'], Om0=table_l.meta['Om0'])
 
     z_l = mean_lens_redshift(table_l)
@@ -289,48 +297,57 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         return gamma * sigma_crit
 
 
-def tangential_shear(table_l, table_r=None, photo_z_dilution_correction=False,
-                     boost_correction=False,
+def tangential_shear(table_l, table_r=None, boost_correction=False,
                      scalar_shear_response_correction=False,
                      matrix_shear_response_correction=False,
                      shear_responsivity_correction=False,
                      hsc_selection_bias_correction=False,
                      random_subtraction=False, return_table=False):
-    """Compute the total excess surface density signal (including all
-    corrections) from precompute results.
+    """Compute the mean tangential shear with corrections, if applicable.
 
     Parameters
     ----------
     table_l : astropy.table.Table
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
-        Precompute results for random lenses.
+        Precompute results for random lenses. Default is None.
     boost_correction : boolean, optional
-        If true, calculate and apply a boost factor correction. This can only
-        be done if a random catalog is provided.
+        If True, calculate and apply a boost factor correction. This can only
+        be done if a random catalog is provided. Default is False.
     scalar_shear_response_correction : boolean or string, optional
         Whether to correct for the multiplicative shear bias (scalar form).
+        Default is False.
     matrix_shear_response_correction : boolean or string, optional
         Whether to correct for the multiplicative shear bias (tensor form).
+        Default is False.
     shear_responsivity_correction : boolean, optional
-        If true, correct for the shear responsivity.
+        If True, correct for the shear responsivity. Default is False.
     hsc_selection_bias_correction : boolean, optional
-        If true, correct for the multiplicative selection bias in HSC.
+        If True, correct for the multiplicative selection bias in HSC. Default
+        is False.
     random_subtraction : boolean, optional
-        If true, subtract the signal around randoms. This can only be done if
-        a random catalog is provided.
+        If True, subtract the signal around randoms. This can only be done if
+        a random catalog is provided. Default is False.
     return_table : boolean, optional
-        If true, return a table with many intermediate steps of the
-        computation. Otherwise, a simple array with just the final excess
-        surface density is returned.
+        If True, return a table with many intermediate steps of the
+        computation. Otherwise, a simple array with just the final tangential
+        shearis returned. Default is False.
 
     Returns
     -------
-    delta_sigma : numpy array or astropy.table.Table
-        The excess surface density in each radial bin specified in the
-        precomputation phase.
-    """
+    e_t : numpy.ndarray or astropy.table.Table
+        The tangential shear in each radial bin specified in the precomputation
+        phase. If `return_table` is True, will return a table with detailed
+        information for each radial bin. The final result is in the column
+        `et`.
 
+    Raises
+    ------
+    ValueError
+        If boost or random subtraction correction are requested but no random
+        catalog is provided.
+
+    """
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]
@@ -344,8 +361,8 @@ def tangential_shear(table_l, table_r=None, photo_z_dilution_correction=False,
 
     if boost_correction:
         if table_r is None:
-            raise Exception('Cannot compute boost factor correction without ' +
-                            'results from a random catalog.')
+            raise ValueError('Cannot compute boost factor correction without' +
+                             ' results from a random catalog.')
         result['b'] = boost_factor(table_l, table_r)
         result['et'] *= result['b']
 
@@ -368,8 +385,8 @@ def tangential_shear(table_l, table_r=None, photo_z_dilution_correction=False,
 
     if random_subtraction:
         if table_r is None:
-            raise Exception('Cannot subtract random results without ' +
-                            'results from a random catalog.')
+            raise ValueError('Cannot subtract random results without ' +
+                             'results from a random catalog.')
         result['et_r'] = excess_surface_density(
             table_r, boost_correction=False,
             scalar_shear_response_correction=scalar_shear_response_correction,
@@ -380,7 +397,7 @@ def tangential_shear(table_l, table_r=None, photo_z_dilution_correction=False,
         result['et'] -= result['et_r']
 
     if not return_table:
-        return result['et']
+        return result['et'].data
 
     return result
 
@@ -394,44 +411,55 @@ def excess_surface_density(table_l, table_r=None,
                            hsc_selection_bias_correction=False,
                            random_subtraction=False,
                            return_table=False):
-    """Compute the total excess surface density signal (including all
-    corrections) from precompute results.
+    """Compute the mean excess surface density with corrections, if applicable.
 
     Parameters
     ----------
     table_l : astropy.table.Table
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
-        Precompute results for random lenses.
+        Precompute results for random lenses. Default is None.
     photo_z_dilution_correction : boolean, optional
-        If true, correct for photo-z biases. This can only be done if a
+        If True, correct for photo-z biases. This can only be done if a
         calibration catalog has been provided in the Precomputation phase.
+        Default is False.
     boost_correction : boolean, optional
         If true, calculate and apply a boost factor correction. This can only
-        be done if a random catalog is provided.
+        be done if a random catalog is provided. Default is False.
     scalar_shear_response_correction : boolean or string, optional
         Whether to correct for the multiplicative shear bias (scalar form).
+        Default is False.
     matrix_shear_response_correction : boolean or string, optional
         Whether to correct for the multiplicative shear bias (tensor form).
+        Default is False.
     shear_responsivity_correction : boolean, optional
-        If true, correct for the shear responsivity.
+        If True, correct for the shear responsivity. Default is False.
     hsc_selection_bias_correction : boolean, optional
-        If true, correct for the multiplicative selection bias in HSC.
+        If True, correct for the multiplicative selection bias in HSC. Default
+        is False.
     random_subtraction : boolean, optional
-        If true, subtract the signal around randoms. This can only be done if
-        a random catalog is provided.
+        If True, subtract the signal around randoms. This can only be done if
+        a random catalog is provided. Default is False.
     return_table : boolean, optional
-        If true, return a table with many intermediate steps of the
+        If True, return a table with many intermediate steps of the
         computation. Otherwise, a simple array with just the final excess
-        surface density is returned.
+        surface density is returned. Default is False.
 
     Returns
     -------
-    delta_sigma : numpy array or astropy.table.Table
+    delta_sigma : numpy.ndarray or astropy.table.Table
         The excess surface density in each radial bin specified in the
-        precomputation phase.
-    """
+        precomputation phase. If `return_table` is True, will return a table
+        with detailed information for each radial bin. The final result is in
+        the column `ds`.
 
+    Raises
+    ------
+    ValueError
+        If boost or random subtraction correction are requested but no random
+        catalog is provided.
+
+    """
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]
@@ -445,8 +473,8 @@ def excess_surface_density(table_l, table_r=None,
 
     if boost_correction:
         if table_r is None:
-            raise Exception('Cannot compute boost factor correction without ' +
-                            'results from a random catalog.')
+            raise ValueError('Cannot compute boost factor correction without' +
+                             ' results from a random catalog.')
         result['b'] = boost_factor(table_l, table_r)
         result['ds'] *= result['b']
 
@@ -473,8 +501,8 @@ def excess_surface_density(table_l, table_r=None,
 
     if random_subtraction:
         if table_r is None:
-            raise Exception('Cannot subtract random results without ' +
-                            'results from a random catalog.')
+            raise ValueError('Cannot subtract random results without ' +
+                             'results from a random catalog.')
         result['ds_r'] = excess_surface_density(
             table_r, photo_z_dilution_correction=photo_z_dilution_correction,
             boost_correction=False,
@@ -486,22 +514,23 @@ def excess_surface_density(table_l, table_r=None,
         result['ds'] -= result['ds_r']
 
     if not return_table:
-        return result['ds']
+        return result['ds'].data
 
     return result
 
 
 def shape_noise_error(table_l, table_r=None, **kwargs):
-    """Analytically estimate the shape noise error for the excess surface
-    density. Note that on large scales, there is additional cosmic variance
-    error. Thus, jackknife re-sampling should be used for those scales.
+    """Analytically estimate the shape noise for the excess surface density.
+
+    Note that on large scales, there is additional cosmic variance error. Thus,
+    jackknife re-sampling should be used for those scales.
 
     Parameters
     ----------
     table_l : astropy.table.Table
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
-        Precompute results for random lenses.
+        Precompute results for random lenses. Default is None.
     kwargs : dict
         Additional keyword arguments to be passed to the
         `excess_surface_density` function. This is used to calculate correction
@@ -509,10 +538,10 @@ def shape_noise_error(table_l, table_r=None, **kwargs):
 
     Returns
     -------
-    delta_sigma_error : numpy array
+    delta_sigma_error : numpy.ndarray
         Shape noise error estimate for the excess surface density.
-    """
 
+    """
     kwargs['return_table'] = True
     table = excess_surface_density(table_l, **kwargs)
     correction_factor = table['ds'] / table['ds_raw']
