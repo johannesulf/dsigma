@@ -1,3 +1,5 @@
+import os
+import re
 from setuptools import setup, find_packages
 from distutils.extension import Extension
 from distutils.command.sdist import sdist
@@ -26,9 +28,13 @@ class sdist_with_cythonize(sdist):
 with open('README.md', 'r') as fstream:
     long_description = fstream.read()
 
+init = open(os.path.join((os.path.dirname(os.path.realpath(__file__))),
+                         'dsigma', '__init__.py')).read()
+version = re.search('^__version__ = "([A-Za-z0-9.-]+)"', init, re.M).group(1)
+
 setup(
     name='dsigma',
-    version='0.6.0-dev7',
+    version=version,
     description=('A Galaxy-Galaxy Lensing Pipeline'),
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -36,15 +42,12 @@ setup(
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Astronomy',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
     ],
     keywords='astronomy, weak-lensing',
     url='https://github.com/johannesulf/dsigma',
-    author='Johannes Lange, Song Huang',
-    author_email='jolange@ucsc.edu',
+    author='Johannes U. Lange, Song Huang',
+    author_email='julange@stanford.edu',
     packages=find_packages(),
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
                       'astropy-healpix', 'tqdm'],

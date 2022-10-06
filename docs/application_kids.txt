@@ -42,10 +42,13 @@ photometric redshift bin.
     from dsigma.surveys import kids
 
     table_s = Table.read('KiDS_DR4.1_ugriZYJHKs_SOM_gold_WL_cat.fits')
+    select = ((table_s['MASK'] == 0) & (table_s['weight'] > 0) &
+              (table_s['model_SNratio'] > 0))
+    table_s = table_s[select]
     table_s = dsigma_table(table_s, 'source', survey='KiDS')
     
     table_s['z_bin'] = kids.tomographic_redshift_bin(table_s['z'], version='DR4')
-    table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
+    table_s['m'] = kids.multiplicative_shear_bias(table_s['z_bin'], version='DR4')
     table_s = table_s[table_s['z_bin'] >= 0]
 
     fname = ('K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2' +
