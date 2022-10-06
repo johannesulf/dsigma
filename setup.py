@@ -13,7 +13,7 @@ ext = 'pyx' if USE_CYTHON else 'c'
 
 extensions = [Extension(
     'dsigma.precompute_engine', ['dsigma/precompute_engine.{}'.format(ext)],
-    extra_compile_args=['-Ofast', '-march=native'])]
+    extra_compile_args=['-O3', '-march=native'])]
 
 if USE_CYTHON:
     extensions = cythonize(extensions)
