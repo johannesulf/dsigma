@@ -1,3 +1,5 @@
+"""Module with functions specific to the CFHTLenS survey."""
+
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
            'default_column_keys']
 
@@ -7,6 +9,19 @@ known_versions = [None, ]
 
 
 def default_column_keys(version=None):
+    """Return a dictionary of default column keys.
+
+    Parameters
+    ----------
+    version : optional
+        Ignored.
+
+    Returns
+    -------
+    keys : dict
+        Dictionary of default column keys.
+
+    """
     keys = {
         'ra': 'ALPHA_J2000',
         'dec': 'DELTA_J2000',

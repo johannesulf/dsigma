@@ -1,4 +1,4 @@
-"""Jackknife resampling functions."""
+"""Module containing jackknife resampling functions."""
 
 import numpy as np
 import astropy.units as u
@@ -18,7 +18,9 @@ __all__ = ['add_continous_fields', 'transfer_continous_fields',
 
 
 def add_continous_fields(table, n_samples=10000, distance_threshold=1):
-    """Many surveys target specific patches of the sky that are not connected.
+    """Determine continues fields through agglomerative clustering.
+
+    Many surveys target specific patches of the sky that are not connected.
     For assigning jackknife regions, it is often useful to know which objects
     belong to which continous field. If this is not given in the input catalog,
     then this function uses agglomerative clustering algorithm to link nearby
@@ -32,18 +34,17 @@ def add_continous_fields(table, n_samples=10000, distance_threshold=1):
     n_samples : int, optional
         How many points of the original sample to use in the clustering. Note
         that the clustering algorithm can use large amounts of memory for
-        n_samples being larger than a few thousand. Use with caution!
-    distance_threshold : astropy.units.quantity.Quantity
+        n_samples being larger than a few thousand. Default is 10000.
+    distance_threshold : float or astropy.units.quantity.Quantity, optional
         The angular separation used to link points. If no unit is given, it is
-        interpreted in degrees.
+        interpreted as degrees. Default is 1.
 
     Returns
     -------
     table : astropy.table.Table
-        Catalog with the continous fields written to the column ``field``.
+        Catalog with the continous fields written to the column `field`.
 
     """
-
     if not isinstance(distance_threshold, u.quantity.Quantity):
         distance_threshold *= u.deg
 
@@ -62,8 +63,10 @@ def add_continous_fields(table, n_samples=10000, distance_threshold=1):
 
 
 def transfer_continous_fields(table_1, table_2):
-    """Transfer the field names from one table to another by looking for
-    closest neighbors. The field names are stored in the 'field' column.
+    """Transfer the field names from one table to another.
+
+    The functions works by by looking for closest neighbors between the two
+    catalogs. The field names are stored in the `field` column.
 
     Parameters
     ----------
@@ -77,9 +80,9 @@ def transfer_continous_fields(table_1, table_2):
     Returns
     -------
     table_2 : astropy.table.Table
-        Catalog with the continous fields written to the column ``field``.
-    """
+        Catalog with the continous fields written to the column `field`.
 
+    """
     coord_1 = SkyCoord(table_1['ra'], table_1['dec'], unit='deg')
     coord_2 = SkyCoord(table_2['ra'], table_2['dec'], unit='deg')
 
@@ -101,13 +104,13 @@ def _jackknife_fields_per_field(table, n_jk):
 
     Returns
     -------
-    unique_fields : numpy array
+    unique_fields : numpy.ndarray
         The unique field IDs in the input table.
-    n_jk_per_field : numpy array
+    n_jk_per_field : numpy.ndarray
         The number of jackknife regions in each of the fields. Has the same
         shape as unique_fields.
-    """
 
+    """
     unique_fields, counts = np.unique(table['field'], return_counts=True)
     if n_jk < len(unique_fields):
         raise RuntimeError('The number of jackknife regions cannot be ' +
@@ -127,9 +130,10 @@ def _jackknife_fields_per_field(table, n_jk):
     return unique_fields, n_jk_per_field
 
 
-def jackknife_field_centers(table, n_jk, optimize=False, weight=None):
-    """Compute the centers (in cartesian coordinates on a unit sphere) for
-    jackknife regions.
+def jackknife_field_centers(table, n_jk, weight=None):
+    """Compute the centers for jackknife regions.
+
+    The centers are defined in cartesian coordinates on a unit sphere.
 
     Parameters
     ----------
@@ -140,15 +144,15 @@ def jackknife_field_centers(table, n_jk, optimize=False, weight=None):
         Total number of jackknife fields.
     weight : string, optional
         Name of the column to be used as weight when calculating jackknife
-        field centers.
+        field centers. Default is None.
 
     Returns
     -------
-    centers : numpy array
+    centers : numpy.ndarray
         The coordinates of the centers of the jackknife regions. The array has
         shape (n_jk, 3).
-    """
 
+    """
     unique_fields, n_jk_per_field = _jackknife_fields_per_field(table, n_jk)
 
     centers = None
@@ -171,23 +175,24 @@ def jackknife_field_centers(table, n_jk, optimize=False, weight=None):
 
 
 def add_jackknife_fields(table, centers):
-    """Assign jackknife regions to all objects in the table. The jackknife
-    number is assigned to the column 'field_jk'.
+    """Assign jackknife regions to all objects in the table.
+
+    The jackknife number is assigned to the column 'field_jk'.
 
     Parameters
     ----------
     table : astropy.table.Table
         Catalog containing objects. The catalog needs to have coordinates.
-    centers : numpy array
+    centers : numpy.ndarray
         The coordinates of the centers of the jackknife regions. The array has
         shape (n_jk, 3).
 
     Returns
     -------
     table : astropy.table.Table
-        Catalog with the jackknife fields written to the column ``field_jk``.
-    """
+        Catalog with the jackknife fields written to the column `field_jk`.
 
+    """
     x, y, z = spherical_to_cartesian(table['ra'].data, table['dec'].data)
     kdtree = cKDTree(centers)
     table['field_jk'] = kdtree.query(np.vstack([x, y, z]).T)[1]
@@ -196,7 +201,9 @@ def add_jackknife_fields(table, centers):
 
 
 def compress_jackknife_fields(table):
-    """After assigning jackknife fields, for most applications, we do not need
+    """Sum together all lenses in each jackknife field.
+
+    After assigning jackknife fields, for most applications, we do not need
     information on individual objects anymore. Compress the information in each
     jackknife field by taking weighted averages. The only exception is the
     weight column where the sum is taken.
@@ -212,8 +219,8 @@ def compress_jackknife_fields(table):
     table_jk : astropy.table.Table
         Catalog containing the information for each jackknife field. It has
         exactly as many rows as there are jackknife fields.
-    """
 
+    """
     all_field_jk = np.unique(table['field_jk'])
     table_jk = Table(table[:len(all_field_jk)], copy=True)
 
@@ -236,20 +243,21 @@ def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
 
     Parameters
     ----------
-    cor : numpy array
+    cor : numpy.ndarray
         Correlation matrix.
-    sigma : int, optional
+    sigma : int
         Scale of the gaussian filter.
     exclude_diagonal : boolean, optional
         Whether to exclude the diagonal from the smoothing. That is what should
-        be done generally because the diagonal is 1 by definition.
+        be done generally because the diagonal is 1 by definition. Default is
+        True.
 
     Returns
     -------
-    cor_new : numpy array
+    cor_new : numpy.ndarray
         Smoothed correlation matrix.
-    """
 
+    """
     n_dim = len(np.diag(cor))
     cor_new = np.copy(cor)
 
@@ -271,14 +279,13 @@ def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
     return cor_new
 
 
-def jackknife_resampling(function, table_l, table_r=None, table_l_2=None,
+def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
                          table_r_2=None, **kwargs):
-    """Compute the covariance of the output of a function from jackknife
-    re-sampling.
+    """Compute the covariance of a function from jackknife re-sampling.
 
     Parameters
     ----------
-    function :
+    f : function
         Function that returns a result for which we want to have uncertainties.
         The function must take exactly one positional argument, the lens table.
         Additionally, it can have several additional keyword arguments.
@@ -287,23 +294,25 @@ def jackknife_resampling(function, table_l, table_r=None, table_l_2=None,
         regions assigned to it.
     table_r : optional, astropy.table.Table, optional
         Precompute results for random lenses. The input function must accept
-        the random lens table via the 'table_r' keyword argument.
+        the random lens table via the `table_r` keyword argument. Default
+        is None.
     table_l_2 : optional, astropy.table.Table
         Precompute results for a second set of lenses.The input function must
-        accept the second lens table via the 'table_l_2' keyword argument.
+        accept the second lens table via the `table_l_2` keyword argument.
+        Default is None.
     table_r_2 : optional, astropy.table.Table, optional
         Precompute results for a second set of random lenses. The input
-        function must accept the second random lens table via the 'table_r_2'
-        keyword argument.
-    kwargs : dict
+        function must accept the second random lens table via the `table_r_2`
+        keyword argument. Default is None.
+    kwargs : dict, optional
         Additional keyword arguments to be passed to the function.
 
     Returns
     -------
-    cov : numpy array
+    cov : numpy.ndarray
         Covariance matrix of the result derived from jackknife re-sampling.
-    """
 
+    """
     samples = []
 
     for field_jk in np.unique(table_l['field_jk']):
@@ -315,7 +324,7 @@ def jackknife_resampling(function, table_l, table_r=None, table_l_2=None,
             if table is not None:
                 kwargs[name] = table[table['field_jk'] != field_jk]
 
-        samples.append(function(table_l[mask_l], **kwargs))
+        samples.append(f(table_l[mask_l], **kwargs))
 
     return ((len(np.unique(table_l['field_jk'])) - 1) *
             np.cov(np.array(samples), rowvar=False, ddof=0))
