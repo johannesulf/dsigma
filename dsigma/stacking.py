@@ -542,21 +542,19 @@ def shape_noise_error(table_l, table_r=None, **kwargs):
         Shape noise error estimate for the excess surface density.
 
     """
+    random_subtraction = kwargs['random_subtraction']
     kwargs['return_table'] = True
-    table = excess_surface_density(table_l, **kwargs)
+    kwargs['random_subtraction'] = False
+    table = excess_surface_density(table_l, table_r=table_r, **kwargs)
     correction_factor = table['ds'] / table['ds_raw']
 
     error = (np.sqrt(np.sum(table_l['sum (w_ls e_t sigma_crit)^2'] *
                             table_l['w_sys'][:, None], axis=0)) /
-             np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+             np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0) *
+             correction_factor)
 
-    if table_r is not None:
-        table = excess_surface_density(table_r, **kwargs)
-        correction_factor = table['ds'] / table['ds_raw']
-        error_r = (np.sqrt(np.sum(table_r['sum (w_ls e_t sigma_crit)^2'] *
-                                  table_r['w_sys'][:, None], axis=0)) /
-                   np.sum(table_r['sum w_ls'] * table_r['w_sys'][:, None],
-                          axis=0))
-        error = np.sqrt(error**2 + error_r**2)
+    if random_subtraction:
+        kwargs['boost_correction'] = False
+        error = np.sqrt(error**2 + shape_noise_error(table_r, **kwargs)**2)
 
-    return error * correction_factor
+    return error
