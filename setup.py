@@ -47,7 +47,7 @@ setup(
     keywords='astronomy, weak-lensing',
     url='https://github.com/johannesulf/dsigma',
     author='Johannes U. Lange, Song Huang',
-    author_email='julange@stanford.edu',
+    author_email='julange.astro@proton.me',
     packages=find_packages(),
     install_requires=['numpy', 'astropy', 'scipy', 'scikit-learn',
                       'astropy-healpix', 'tqdm'],
