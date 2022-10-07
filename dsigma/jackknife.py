@@ -6,7 +6,7 @@ from astropy.coordinates import SkyCoord
 from sklearn.cluster import AgglomerativeClustering, MiniBatchKMeans
 from scipy.spatial import cKDTree
 from astropy.table import Table
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 from .helpers import spherical_to_cartesian
 
