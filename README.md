@@ -5,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/dsigma?color=blue)](https://pypi.org/project/dsigma/)
 [![License: MIT](https://img.shields.io/github/license/johannesulf/dsigma?color=blue)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
 ![Language: Python](https://img.shields.io/github/languages/top/johannesulf/dsigma)
+[![ASCL](https://img.shields.io/badge/ascl-2204.006-orange.svg?style=flat)](https://ascl.net/2204.006)
 
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
 
@@ -23,6 +24,12 @@ prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
 
 A documentation for `dsigma` with concept introductions, examples and API
 documentation can be found at on [readthedocs](https://dsigma.readthedocs.io/).
+
+## Attribution
+
+`dsigma` is listed in the [Astronomy Source Code Library](https://ascl.net/2204.006).
+If you find the code useful in your research, please cite
+[Lange & Huang (2022)](https://ui.adsabs.harvard.edu/abs/2022ascl.soft04006L/abstract).
 
 ## License
 
