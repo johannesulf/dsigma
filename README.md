@@ -1,13 +1,11 @@
 ![logo](https://raw.githubusercontent.com/johannesulf/dsigma/documentation/docs/dsigma.png)
 
-<div align="center">
 [![Unit Testing Status](https://img.shields.io/github/workflow/status/johannesulf/dsigma/tests?label=tests)](https://github.com/johannesulf/dsigma/actions)
 [![Documentation Status](https://img.shields.io/readthedocs/dsigma)](https://dsigma.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/dsigma?color=blue)](https://pypi.org/project/dsigma/)
 [![License: MIT](https://img.shields.io/github/license/johannesulf/dsigma?color=blue)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
 ![Language: Python](https://img.shields.io/github/languages/top/johannesulf/dsigma)
 [![ASCL](https://img.shields.io/badge/ascl-2204.006-orange.svg?style=flat)](https://ascl.net/2204.006)
-</div>
 
 `dsigma` is an easy-to-use python package for analyzing galaxy-galaxy lensing.
 It has a broadly applicable API and is optimized for computational efficiency.
