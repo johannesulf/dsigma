@@ -7,9 +7,9 @@
 ![Language: Python](https://img.shields.io/github/languages/top/johannesulf/dsigma)
 [![ASCL](https://img.shields.io/badge/ascl-2204.006-orange.svg?style=flat)](https://ascl.net/2204.006)
 
-![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
+`dsigma` is an easy-to-use python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a broadly applicable API and can utilize data from the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper-Suprime Cam (HSC) lensing surveys, among others. With core computations written in C, `dsigma` is very fast. Additionally, `dsigma` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics. Below is a plot showing the excess surface density around galaxies in the CMASS sample calculated with `dsigma`.
 
-`dsigma` is an easy-to-use python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a broadly applicable API and can utilize data from the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper-Suprime Cam (HSC) lensing surveys, among others. With core computations written in C, `dsigma` is very fast. Additionally, `dsigma` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics.
+![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
 
 ## Authors
 
