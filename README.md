@@ -7,13 +7,9 @@
 ![Language: Python](https://img.shields.io/github/languages/top/johannesulf/dsigma)
 [![ASCL](https://img.shields.io/badge/ascl-2204.006-orange.svg?style=flat)](https://ascl.net/2204.006)
 
-`dsigma` is an easy-to-use python package for analyzing galaxy-galaxy lensing.
-It has a broadly applicable API and is optimized for computational efficiency.
-While originally intended to be used with the shape catalog of the
-Hyper-Suprime Cam (HSC) survey, it should work for other surveys, most
-prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
-
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
+
+`dsigma` is an easy-to-use python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a broadly applicable API and can utilize data from the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper-Suprime Cam (HSC) lensing surveys, among others. With core computations written in C, `dsigma` is very fast. Additionally, `dsigma` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics.
 
 ## Authors
 
@@ -22,8 +18,11 @@ prominently the Dark Energy Survey (DES) and the Kilo-Degree Survey (KiDS).
 
 ## Documentation
 
-A documentation for `dsigma` with concept introductions, examples and API
-documentation can be found at on [readthedocs](https://dsigma.readthedocs.io/).
+Documentation for `dsigma` with concept introductions, examples, and API documentation is available on [readthedocs](https://dsigma.readthedocs.io/).
+
+## Attribution
+
+`dsigma` is listed in the [Astronomy Source Code Library](https://ascl.net/2204.006). If you find the code useful in your research, please cite [Lange & Huang (2022)](https://ui.adsabs.harvard.edu/abs/2022ascl.soft04006L/abstract).
 
 ## License
 
