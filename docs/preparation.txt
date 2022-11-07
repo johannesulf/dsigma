@@ -2,13 +2,9 @@
 Data Preparation
 ################
 
-To calculate the galaxy-galaxy lensing signal, we need a lens and a source
-catalog. Fortunately, many data sets are publicly available, such as data from
-HSC or CFHTLenS. Once we have obtained the data, we need to convert it into
-a format that's understandable by ``dsigma``.
+We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Fortunately, many data sets are publicly available, such as data from HSC or CFHTLenS. Once we have obtained the data, we need to convert it into a format understandable by ``dsigma``.
 
-Generally, ``dsigma`` expects all lens, source and calibration catalogs to be
-``astropy`` tables with data stored in specific, pre-defined columns.
+Generally, ``dsigma`` expects all lens, source, and calibration catalogs to be ``astropy`` tables with data stored in specific, pre-defined columns.
 
 
 ************
@@ -22,8 +18,7 @@ The following columns are required for lens catalogs.
 * ``z``: best-fit redshift
 * ``w_sys``: systematic weight :math:`w_{\mathrm{sys}}`
 
-The weight :math:`w_{\mathrm{sys}}` is often used to mitigate systematics in
-the lens selection.
+The weight :math:`w_{\mathrm{sys}}` is often used to mitigate systematics in the lens selection.
 
 
 **************
@@ -61,7 +56,4 @@ The following columns are required in (optional) calibration catalogs.
 * ``w``: inverse variance weight for galaxy shape
 * ``w_sys``: systematic weight :math:`w_{\mathrm{sys}}`
 
-The weight :math:`w_{\mathrm{sys}}` is used to offset, for example, color
-differences between the source and the calibration catalog. Additionally, the
-columns ``z_low`` and ``z_err`` may also be present in the calibration catalog
-with the same meaning as in the source catalog.
+The weight :math:`w_{\mathrm{sys}}` is used to offset, for example, color differences between the source and the calibration catalog. Additionally, the columns ``z_low`` and ``z_err`` may also be present in the calibration catalog with the same meaning as in the source catalog.
