@@ -75,6 +75,7 @@ html_logo = 'dsigma.png'
 html_theme_options = {
     'logo_only': True,
     'display_version': False,
+    'titles_only': True,
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
