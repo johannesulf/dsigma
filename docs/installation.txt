@@ -2,15 +2,13 @@
 Installation
 ############
 
-The easiest way to install :code:`dsigma` is to use :code:`pip`. This will
-automatically install the package and all its dependencies.
+The easiest way to install :code:`dsigma` is to use :code:`pip`. This will automatically install the package and all its dependencies.
 
 .. code-block:: none
 
     pip install dsigma
 
-The following packages will be installed alongside :code:`dsigma` if they are
-not installed already.
+The following packages will be installed alongside :code:`dsigma` if not installed already.
 
 * :code:`numpy`
 * :code:`scipy`
@@ -18,7 +16,4 @@ not installed already.
 * :code:`scikit-learn`
 * :code:`healpy`
 
-Additionally, for calculating the lens magnification bias, installation of
-the Cosmic Microwave Background (CMB) code :code:`camb` is recommended.
-However,  this is no hard requirement and :code:`dsigma` will run fine without
-it.
+Additionally, for calculating the lens magnification bias, the installation of the Cosmic Microwave Background (CMB) code :code:`camb` is recommended. However,  this is no hard requirement and :code:`dsigma` will run fine without it.
