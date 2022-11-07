@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/johannesulf/dsigma/documentation/docs/dsigma.png)
+![logo](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/dsigma.png)
 
 [![Unit Testing Status](https://img.shields.io/github/workflow/status/johannesulf/dsigma/tests?label=tests)](https://github.com/johannesulf/dsigma/actions)
 [![Documentation Status](https://img.shields.io/readthedocs/dsigma)](https://dsigma.readthedocs.io/en/latest/)
