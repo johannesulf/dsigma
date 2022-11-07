@@ -19,6 +19,22 @@ Authors
 * Johannes Lange
 * Song Huang
 
+***********
+Attribution
+***********
+
+:code:`dsigma` is listed in the `Astronomy Source Code Library <https://ascl.net/2204.006>`_. If you find the code useful in your research, please cite `Lange & Huang (2022) <https://ui.adsabs.harvard.edu/abs/2022ascl.soft04006L/abstract>`_.
+
+*******
+License
+*******
+
+:code:`dsigma` is licensed under the MIT License.
+
+********
+Contents
+********
+
 .. toctree::
    :caption: Getting Started
    :maxdepth: 1
