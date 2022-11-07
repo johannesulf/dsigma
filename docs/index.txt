@@ -31,10 +31,6 @@ License
 
 :code:`dsigma` is licensed under the MIT License.
 
-********
-Contents
-********
-
 .. toctree::
    :caption: Getting Started
    :maxdepth: 1
