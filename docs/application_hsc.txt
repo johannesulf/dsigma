@@ -15,6 +15,7 @@ Downloading the Data
 First, we need to download the necessary HSC data files. Head to the `HSC data release site <https://hsc-release.mtk.nao.ac.jp/doc/>`_ and register for an account if you haven't done so already. As of September 2020, the only publicly available data set is part of the public data release 2 (PDR2) and goes back to the internal S16A release.
 
 The following SQL script will return all the necessary data from the `CAS search <https://hsc-release.mtk.nao.ac.jp/datasearch/>`_. Make sure to select PDR1 as the release; otherwise, the SQL command will fail. Also, choose FITS as the output format.
+
 .. code-block:: sql
 
     SELECT
