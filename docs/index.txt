@@ -21,12 +21,14 @@ Authors
 
 .. toctree::
    :caption: Getting Started
+   :maxdepth: 1
 
    installation
    background
 
 .. toctree::
    :caption: Workflow
+   :maxdepth: 1
 
    preparation
    precomputation
@@ -35,6 +37,7 @@ Authors
 
 .. toctree::
    :caption: Applications
+   :maxdepth: 1
 
    application_intro
    application_des
@@ -43,6 +46,7 @@ Authors
 
 .. toctree::
    :caption: API Documentation
+   :maxdepth: 1
 
    api/helpers
    api/jackknife
