@@ -19,9 +19,9 @@ cdef double deg2rad = np.pi / 180.0
 
 cdef double x_1, x_2, y_1, y_2, z_1, z_2
 
-cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
-                double cos_dec_1, double sin_ra_2, double cos_ra_2,
-                double sin_dec_2, double cos_dec_2):
+cdef double dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
+                       double cos_dec_1, double sin_ra_2, double cos_ra_2,
+                       double sin_dec_2, double cos_dec_2):
 
     x_1 = cos_ra_1 * cos_dec_1
     y_1 = sin_ra_1 * cos_dec_1
@@ -131,6 +131,7 @@ def precompute_engine(
     cdef double sin_2phi, cos_2phi, tan_phi, e_t
     cdef double w_ls, sigma_crit
     cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
+    cdef double inf = float('inf')
 
     if progress_bar:
         pbar = tqdm(total=len(u_pix_l))
@@ -195,7 +196,16 @@ def precompute_engine(
                         cos_dec_l[i_l], sin_ra_s[i_s], cos_ra_s[i_s],
                         sin_dec_s[i_s], cos_dec_s[i_s])
 
-                    if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
+                    i_bin = n_bins
+                    while i_bin >= 0:
+                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
+                            break
+                        i_bin -= 1
+
+                    if i_bin == n_bins or i_bin < 0:
+                        continue
+
+                    if w_s[i_s] == 0:
                         continue
 
                     if has_sigma_crit_eff:
@@ -208,9 +218,17 @@ def precompute_engine(
                         if comoving:
                             sigma_crit /= (1.0 + z_l[i_l]) * (1.0 + z_l[i_l])
                     else:
-                        sigma_crit = float('inf')
+                        if weighting < 0:
+                            continue
+                        else:
+                            sigma_crit = inf
 
-                    w_ls = w_s[i_s] * pow(sigma_crit, weighting)
+                    if weighting == 0:
+                        w_ls = w_s[i_s]
+                    elif weighting == -2:
+                         w_ls = w_s[i_s] / sigma_crit / sigma_crit
+                    else:
+                        w_ls = w_s[i_s] * pow(sigma_crit, weighting)
 
                     if w_ls == 0:
                         continue
@@ -221,52 +239,40 @@ def precompute_engine(
                                            sin_ra_l[i_l] * sin_ra_s[i_s])
 
                     if cos_dec_l[i_l] * sin_ra_l_minus_ra_s == 0:
-
                         cos_2phi = -1
                         sin_2phi = 0
-
                     else:
-
                         tan_phi = (
                             (cos_dec_s[i_s] * sin_dec_l[i_l] - sin_dec_s[i_s] *
                              cos_dec_l[i_l] * cos_ra_l_minus_ra_s) /
                             (cos_dec_l[i_l] * sin_ra_l_minus_ra_s))
-
                         cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
                         sin_2phi = 2.0 * tan_phi / (1.0 + tan_phi * tan_phi)
 
                     e_t = - e_1[i_s] * cos_2phi + e_2[i_s] * sin_2phi
 
-                    # Loop over bins going from the outermost inwards.
-                    i_bin = n_bins - 1
-                    while i_bin >= 0:
-
-                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
-                            sum_1[offset_result + i_bin] += 1
-                            sum_w_ls[offset_result + i_bin] += w_ls
-                            sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
-                            sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)
-                            sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)**2
-                            sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
-                            if has_m:
-                                sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
-                            if has_e_rms:
-                                sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
-                                    w_ls * (1 - e_rms[i_s]**2))
-                            if has_R_2 and R_2[i_s] <= 0.31:
-                                sum_w_ls_A_p_R_2[offset_result + i_bin] += (
-                                    0.00865 * w_ls / 0.01)
-                            if has_R_matrix:
-                                sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
-                                    R_11[i_s] * cos_2phi**2 +
-                                    R_22[i_s] * sin_2phi**2 +
-                                    (R_12[i_s] + R_21[i_s]) * sin_2phi *
-                                    cos_2phi)
-                            break
-
-                        i_bin -= 1
+                    sum_1[offset_result + i_bin] += 1
+                    sum_w_ls[offset_result + i_bin] += w_ls
+                    sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
+                    sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
+                        w_ls * e_t * sigma_crit)
+                    sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
+                        w_ls * e_t * sigma_crit)**2
+                    sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
+                    if has_m:
+                        sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
+                    if has_e_rms:
+                        sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
+                            w_ls * (1 - e_rms[i_s]**2))
+                    if has_R_2 and R_2[i_s] <= 0.31:
+                        sum_w_ls_A_p_R_2[offset_result + i_bin] += (
+                            0.00865 * w_ls / 0.01)
+                    if has_R_matrix:
+                        sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
+                            R_11[i_s] * cos_2phi**2 +
+                            R_22[i_s] * sin_2phi**2 +
+                            (R_12[i_s] + R_21[i_s]) * sin_2phi *
+                            cos_2phi)
 
         if progress_bar:
             pbar.update(job + 1 - pbar.n)
