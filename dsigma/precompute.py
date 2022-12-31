@@ -459,9 +459,9 @@ def add_precompute_results(
     for i in range(len(u_pix_l)):
         queue.put(i)
 
-    args = (u_pix_l.tolist(), n_pix_l, u_pix_s.tolist(), n_pix_s,
-            dist_3d_sq_bins, table_engine_l, table_engine_s, table_engine_r,
-            bins, comoving, weighting, nside, queue, progress_bar)
+    args = (u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins,
+            table_engine_l, table_engine_s, table_engine_r, bins, comoving,
+            weighting, nside, queue, progress_bar)
 
     if n_jobs == 1:
         precompute_engine(*args)
