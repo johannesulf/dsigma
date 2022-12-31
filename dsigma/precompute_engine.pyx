@@ -131,7 +131,7 @@ def precompute_engine(
     cdef double sin_2phi, cos_2phi, tan_phi, e_t
     cdef double w_ls, sigma_crit
     cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
-    cdef double inf = float('inf')
+    cdef double inf = float('inf'), summand
 
     if progress_bar:
         pbar = tqdm(total=len(u_pix_l))
@@ -252,27 +252,28 @@ def precompute_engine(
                     e_t = - e_1[i_s] * cos_2phi + e_2[i_s] * sin_2phi
 
                     sum_1[offset_result + i_bin] += 1
-                    sum_w_ls[offset_result + i_bin] += w_ls
-                    sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
-                    sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
-                        w_ls * e_t * sigma_crit)
-                    sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
-                        w_ls * e_t * sigma_crit)**2
+                    summand = w_ls
+                    sum_w_ls[offset_result + i_bin] += summand
+                    summand *= e_t
+                    sum_w_ls_e_t[offset_result + i_bin] += summand
+                    summand *= sigma_crit
+                    sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += summand
+                    summand *= summand
+                    sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += summand
                     sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
                     if has_m:
                         sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
                     if has_e_rms:
                         sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
-                            w_ls * (1 - e_rms[i_s]**2))
+                            w_ls * (1 - e_rms[i_s] * e_rms[i_s]))
                     if has_R_2 and R_2[i_s] <= 0.31:
                         sum_w_ls_A_p_R_2[offset_result + i_bin] += (
                             0.00865 * w_ls / 0.01)
                     if has_R_matrix:
                         sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
-                            R_11[i_s] * cos_2phi**2 +
-                            R_22[i_s] * sin_2phi**2 +
-                            (R_12[i_s] + R_21[i_s]) * sin_2phi *
-                            cos_2phi)
+                            R_11[i_s] * cos_2phi * cos_2phi +
+                            R_22[i_s] * sin_2phi * sin_2phi +
+                            (R_12[i_s] + R_21[i_s]) * sin_2phi * cos_2phi)
 
         if progress_bar:
             pbar.update(job + 1 - pbar.n)
