@@ -128,7 +128,7 @@ def precompute_engine(
     cdef long offset_bin, offset_result
     cdef double dist_3d_sq_max, dist_3d_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
-    cdef double sin_2phi, cos_2phi, tan_phi, e_t
+    cdef double sin_2phi, cos_2phi, tan_phi, tan_phi_num, tan_phi_den, e_t
     cdef double w_ls, sigma_crit
     cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
     cdef double inf = float('inf'), summand
@@ -237,15 +237,14 @@ def precompute_engine(
                                            cos_ra_l[i_l] * sin_ra_s[i_s])
                     cos_ra_l_minus_ra_s = (cos_ra_l[i_l] * cos_ra_s[i_s] +
                                            sin_ra_l[i_l] * sin_ra_s[i_s])
-
-                    if cos_dec_l[i_l] * sin_ra_l_minus_ra_s == 0:
+                    tan_phi_num = (cos_dec_s[i_s] * sin_dec_l[i_l] - sin_dec_s[i_s] *
+                                   cos_dec_l[i_l] * cos_ra_l_minus_ra_s)
+                    tan_phi_den = cos_dec_l[i_l] * sin_ra_l_minus_ra_s
+                    if tan_phi_den == 0:
                         cos_2phi = -1
                         sin_2phi = 0
                     else:
-                        tan_phi = (
-                            (cos_dec_s[i_s] * sin_dec_l[i_l] - sin_dec_s[i_s] *
-                             cos_dec_l[i_l] * cos_ra_l_minus_ra_s) /
-                            (cos_dec_l[i_l] * sin_ra_l_minus_ra_s))
+                        tan_phi = tan_phi_num / tan_phi_den
                         cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
                         sin_2phi = 2.0 * tan_phi / (1.0 + tan_phi * tan_phi)
 
