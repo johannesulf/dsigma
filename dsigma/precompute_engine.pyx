@@ -17,27 +17,26 @@ cdef double sigma_crit_factor = (
     1e-6 * c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 cdef double deg2rad = np.pi / 180.0
 
-cdef double x_1, x_2, y_1, y_2, z_1, z_2
+cdef double dx, dy, dz
 
 cdef double dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
                        double cos_dec_1, double sin_ra_2, double cos_ra_2,
                        double sin_dec_2, double cos_dec_2):
 
-    x_1 = cos_ra_1 * cos_dec_1
-    y_1 = sin_ra_1 * cos_dec_1
-    z_1 = sin_dec_1
-    x_2 = cos_ra_2 * cos_dec_2
-    y_2 = sin_ra_2 * cos_dec_2
-    z_2 = sin_dec_2
+    dx = cos_ra_1 * cos_dec_1 - cos_ra_2 * cos_dec_2
+    dy = sin_ra_1 * cos_dec_1 - sin_ra_2 * cos_dec_2
+    dz = sin_dec_1 - sin_dec_2
 
-    return ((x_1 - x_2) * (x_1 - x_2) + (y_1 - y_2) * (y_1 - y_2) +
-            (z_1 - z_2) * (z_1 - z_2))
+    return dx * dx + dy * dy + dz * dz
 
 
 def precompute_engine(
-        u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins_in,
+        u_pix_l, n_pix_l_in, u_pix_s, n_pix_s_in, dist_3d_sq_bins_in,
         table_l, table_s, table_r, bins, bint comoving, float weighting,
         int nside, queue, progress_bar):
+
+    cdef long[::1] n_pix_l = n_pix_l_in
+    cdef long[::1] n_pix_s = n_pix_s_in
 
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
@@ -120,7 +119,7 @@ def precompute_engine(
     kdtree = cKDTree(xyz_s)
 
     cdef long pix_l, i_l, i_l_min, i_l_max
-    cdef long pix_s, i_s, i_s_min, i_s_max
+    cdef long pix_s, i_pix_s, l_pix_s, i_s, i_s_min, i_s_max
     cdef long[::1] pix_s_list
     cdef long i_bin, n_bins = len(bins) - 1
     cdef long offset_bin, offset_result
@@ -161,10 +160,12 @@ def precompute_engine(
         pix_s_list = np.fromiter(
             kdtree.query_ball_point(xyz_l[pix_l], sqrt(dist_3d_sq_max)),
             dtype=long)
+        l_pix_s = len(pix_s_list)
 
         # Loop over all suitable source pixels.
-        for pix_s in pix_s_list:
+        for i_pix_s in range(l_pix_s):
 
+            pix_s = pix_s_list[i_pix_s]
             if pix_s == 0:
                 i_s_min = 0
             else:
