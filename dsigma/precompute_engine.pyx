@@ -17,27 +17,26 @@ cdef double sigma_crit_factor = (
     1e-6 * c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 cdef double deg2rad = np.pi / 180.0
 
-cdef double x_1, x_2, y_1, y_2, z_1, z_2
+cdef double dx, dy, dz
 
-cdef dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
-                double cos_dec_1, double sin_ra_2, double cos_ra_2,
-                double sin_dec_2, double cos_dec_2):
+cdef double dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
+                       double cos_dec_1, double sin_ra_2, double cos_ra_2,
+                       double sin_dec_2, double cos_dec_2):
 
-    x_1 = cos_ra_1 * cos_dec_1
-    y_1 = sin_ra_1 * cos_dec_1
-    z_1 = sin_dec_1
-    x_2 = cos_ra_2 * cos_dec_2
-    y_2 = sin_ra_2 * cos_dec_2
-    z_2 = sin_dec_2
+    dx = cos_ra_1 * cos_dec_1 - cos_ra_2 * cos_dec_2
+    dy = sin_ra_1 * cos_dec_1 - sin_ra_2 * cos_dec_2
+    dz = sin_dec_1 - sin_dec_2
 
-    return ((x_1 - x_2) * (x_1 - x_2) + (y_1 - y_2) * (y_1 - y_2) +
-            (z_1 - z_2) * (z_1 - z_2))
+    return dx * dx + dy * dy + dz * dz
 
 
 def precompute_engine(
-        u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins_in,
+        u_pix_l, n_pix_l_in, u_pix_s, n_pix_s_in, dist_3d_sq_bins_in,
         table_l, table_s, table_r, bins, bint comoving, float weighting,
         int nside, queue, progress_bar):
+
+    cdef long[::1] n_pix_l = n_pix_l_in
+    cdef long[::1] n_pix_s = n_pix_s_in
 
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
@@ -93,11 +92,8 @@ def precompute_engine(
     cdef long[::1] sum_1 = table_r['sum 1']
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
     cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
-    cdef double[::1] sum_w_ls_e_t_sigma_crit
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq
-    if 'sum w_ls e_t sigma_crit' in table_r.keys():
-        sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
-        sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
     cdef double[::1] sum_w_ls_z_s = table_r['sum w_ls z_s']
     cdef double[::1] sum_w_ls_m
     if has_m:
@@ -118,19 +114,21 @@ def precompute_engine(
     y = np.sin(lon) * np.cos(lat)
     z = np.sin(lat)
     xyz = np.array([x, y, z]).T
-    kdtree = cKDTree(xyz)
+    xyz_l = xyz[u_pix_l]
+    xyz_s = xyz[u_pix_s]
+    kdtree = cKDTree(xyz_s)
 
-    cdef long i_l, i_l_min, i_l_max
-    cdef long i_s, i_s_min, i_s_max
-    cdef long pix_l, pix_s
+    cdef long pix_l, i_l, i_l_min, i_l_max
+    cdef long pix_s, i_pix_s, l_pix_s, i_s, i_s_min, i_s_max
     cdef long[::1] pix_s_list
     cdef long i_bin, n_bins = len(bins) - 1
     cdef long offset_bin, offset_result
     cdef double dist_3d_sq_max, dist_3d_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
-    cdef double sin_2phi, cos_2phi, tan_phi, e_t
+    cdef double sin_2phi, cos_2phi, tan_phi, tan_phi_num, tan_phi_den, e_t
     cdef double w_ls, sigma_crit
     cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
+    cdef double inf = float('inf'), summand
 
     if progress_bar:
         pbar = tqdm(total=len(u_pix_l))
@@ -139,16 +137,15 @@ def precompute_engine(
 
         # Check whether there is still a lens pixel in the queue.
         try:
-            job = queue.get(timeout=0.5)
-            pix_l = u_pix_l[job]
+            pix_l = queue.get(timeout=0.5)
         except Queue.Empty:
             break
 
-        if job == 0:
+        if pix_l == 0:
             i_l_min = 0
         else:
-            i_l_min = n_pix_l[job - 1]
-        i_l_max = n_pix_l[job]
+            i_l_min = n_pix_l[pix_l - 1]
+        i_l_max = n_pix_l[pix_l]
 
         # Find the maximum angular search radius.
         dist_3d_sq_max = 0.0
@@ -161,22 +158,19 @@ def precompute_engine(
 
         # Get list of all source pixels that could contain suitable sources.
         pix_s_list = np.fromiter(
-            kdtree.query_ball_point(xyz[pix_l], sqrt(dist_3d_sq_max)),
+            kdtree.query_ball_point(xyz_l[pix_l], sqrt(dist_3d_sq_max)),
             dtype=long)
+        l_pix_s = len(pix_s_list)
 
         # Loop over all suitable source pixels.
-        for pix_s in pix_s_list:
+        for i_pix_s in range(l_pix_s):
 
-            try:
-                index = u_pix_s.index(pix_s)
-                if index == 0:
-                    i_s_min = 0
-                else:
-                    i_s_min = n_pix_s[index - 1]
-                i_s_max = n_pix_s[index]
-            # Go to next pixel if current pixel does not contain any sources.
-            except ValueError:
-                continue
+            pix_s = pix_s_list[i_pix_s]
+            if pix_s == 0:
+                i_s_min = 0
+            else:
+                i_s_min = n_pix_s[pix_s - 1]
+            i_s_max = n_pix_s[pix_s]
 
             # Loop over all lenses in the pixel.
             for i_l in range(i_l_min, i_l_max):
@@ -195,7 +189,16 @@ def precompute_engine(
                         cos_dec_l[i_l], sin_ra_s[i_s], cos_ra_s[i_s],
                         sin_dec_s[i_s], cos_dec_s[i_s])
 
-                    if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + n_bins]:
+                    i_bin = n_bins
+                    while i_bin >= 0:
+                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
+                            break
+                        i_bin -= 1
+
+                    if i_bin == n_bins or i_bin < 0:
+                        continue
+
+                    if w_s[i_s] == 0:
                         continue
 
                     if has_sigma_crit_eff:
@@ -208,9 +211,17 @@ def precompute_engine(
                         if comoving:
                             sigma_crit /= (1.0 + z_l[i_l]) * (1.0 + z_l[i_l])
                     else:
-                        sigma_crit = float('inf')
+                        if weighting < 0:
+                            continue
+                        else:
+                            sigma_crit = inf
 
-                    w_ls = w_s[i_s] * pow(sigma_crit, weighting)
+                    if weighting == 0:
+                        w_ls = w_s[i_s]
+                    elif weighting == -2:
+                         w_ls = w_s[i_s] / sigma_crit / sigma_crit
+                    else:
+                        w_ls = w_s[i_s] * pow(sigma_crit, weighting)
 
                     if w_ls == 0:
                         continue
@@ -219,57 +230,45 @@ def precompute_engine(
                                            cos_ra_l[i_l] * sin_ra_s[i_s])
                     cos_ra_l_minus_ra_s = (cos_ra_l[i_l] * cos_ra_s[i_s] +
                                            sin_ra_l[i_l] * sin_ra_s[i_s])
-
-                    if cos_dec_l[i_l] * sin_ra_l_minus_ra_s == 0:
-
+                    tan_phi_num = (cos_dec_s[i_s] * sin_dec_l[i_l] - sin_dec_s[i_s] *
+                                   cos_dec_l[i_l] * cos_ra_l_minus_ra_s)
+                    tan_phi_den = cos_dec_l[i_l] * sin_ra_l_minus_ra_s
+                    if tan_phi_den == 0:
                         cos_2phi = -1
                         sin_2phi = 0
-
                     else:
-
-                        tan_phi = (
-                            (cos_dec_s[i_s] * sin_dec_l[i_l] - sin_dec_s[i_s] *
-                             cos_dec_l[i_l] * cos_ra_l_minus_ra_s) /
-                            (cos_dec_l[i_l] * sin_ra_l_minus_ra_s))
-
+                        tan_phi = tan_phi_num / tan_phi_den
                         cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
                         sin_2phi = 2.0 * tan_phi / (1.0 + tan_phi * tan_phi)
 
                     e_t = - e_1[i_s] * cos_2phi + e_2[i_s] * sin_2phi
 
-                    # Loop over bins going from the outermost inwards.
-                    i_bin = n_bins - 1
-                    while i_bin >= 0:
-
-                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
-                            sum_1[offset_result + i_bin] += 1
-                            sum_w_ls[offset_result + i_bin] += w_ls
-                            sum_w_ls_e_t[offset_result + i_bin] += w_ls * e_t
-                            sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)
-                            sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += (
-                                w_ls * e_t * sigma_crit)**2
-                            sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
-                            if has_m:
-                                sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
-                            if has_e_rms:
-                                sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
-                                    w_ls * (1 - e_rms[i_s]**2))
-                            if has_R_2 and R_2[i_s] <= 0.31:
-                                sum_w_ls_A_p_R_2[offset_result + i_bin] += (
-                                    0.00865 * w_ls / 0.01)
-                            if has_R_matrix:
-                                sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
-                                    R_11[i_s] * cos_2phi**2 +
-                                    R_22[i_s] * sin_2phi**2 +
-                                    (R_12[i_s] + R_21[i_s]) * sin_2phi *
-                                    cos_2phi)
-                            break
-
-                        i_bin -= 1
+                    sum_1[offset_result + i_bin] += 1
+                    summand = w_ls
+                    sum_w_ls[offset_result + i_bin] += summand
+                    summand *= e_t
+                    sum_w_ls_e_t[offset_result + i_bin] += summand
+                    summand *= sigma_crit
+                    sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += summand
+                    summand *= summand
+                    sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += summand
+                    sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
+                    if has_m:
+                        sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
+                    if has_e_rms:
+                        sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
+                            w_ls * (1 - e_rms[i_s] * e_rms[i_s]))
+                    if has_R_2 and R_2[i_s] <= 0.31:
+                        sum_w_ls_A_p_R_2[offset_result + i_bin] += (
+                            0.00865 * w_ls / 0.01)
+                    if has_R_matrix:
+                        sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
+                            R_11[i_s] * cos_2phi * cos_2phi +
+                            R_22[i_s] * sin_2phi * sin_2phi +
+                            (R_12[i_s] + R_21[i_s]) * sin_2phi * cos_2phi)
 
         if progress_bar:
-            pbar.update(job + 1 - pbar.n)
+            pbar.update(pix_l + 1 - pbar.n)
 
     if progress_bar:
         pbar.update(len(u_pix_l) - pbar.n)
