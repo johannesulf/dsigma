@@ -93,11 +93,8 @@ def precompute_engine(
     cdef long[::1] sum_1 = table_r['sum 1']
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
     cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
-    cdef double[::1] sum_w_ls_e_t_sigma_crit
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq
-    if 'sum w_ls e_t sigma_crit' in table_r.keys():
-        sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
-        sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
+    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
     cdef double[::1] sum_w_ls_z_s = table_r['sum w_ls z_s']
     cdef double[::1] sum_w_ls_m
     if has_m:
@@ -122,9 +119,9 @@ def precompute_engine(
     xyz_s = xyz[u_pix_s]
     kdtree = cKDTree(xyz_s)
 
-    cdef long group_l, i_l, i_l_min, i_l_max
-    cdef long group_s, i_s, i_s_min, i_s_max
-    cdef long[::1] group_s_list
+    cdef long pix_l, i_l, i_l_min, i_l_max
+    cdef long pix_s, i_s, i_s_min, i_s_max
+    cdef long[::1] pix_s_list
     cdef long i_bin, n_bins = len(bins) - 1
     cdef long offset_bin, offset_result
     cdef double dist_3d_sq_max, dist_3d_sq_ls
@@ -141,15 +138,15 @@ def precompute_engine(
 
         # Check whether there is still a lens pixel in the queue.
         try:
-            group_l = queue.get(timeout=0.5)
+            pix_l = queue.get(timeout=0.5)
         except Queue.Empty:
             break
 
-        if group_l == 0:
+        if pix_l == 0:
             i_l_min = 0
         else:
-            i_l_min = n_pix_l[group_l - 1]
-        i_l_max = n_pix_l[group_l]
+            i_l_min = n_pix_l[pix_l - 1]
+        i_l_max = n_pix_l[pix_l]
 
         # Find the maximum angular search radius.
         dist_3d_sq_max = 0.0
@@ -161,18 +158,18 @@ def precompute_engine(
                            4 * sqrt(dist_3d_sq_max) * deg2rad * max_pixrad)
 
         # Get list of all source pixels that could contain suitable sources.
-        group_s_list = np.fromiter(
-            kdtree.query_ball_point(xyz_l[group_l], sqrt(dist_3d_sq_max)),
+        pix_s_list = np.fromiter(
+            kdtree.query_ball_point(xyz_l[pix_l], sqrt(dist_3d_sq_max)),
             dtype=long)
 
         # Loop over all suitable source pixels.
-        for group_s in group_s_list:
+        for pix_s in pix_s_list:
 
-            if group_s == 0:
+            if pix_s == 0:
                 i_s_min = 0
             else:
-                i_s_min = n_pix_s[group_s - 1]
-            i_s_max = n_pix_s[group_s]
+                i_s_min = n_pix_s[pix_s - 1]
+            i_s_max = n_pix_s[pix_s]
 
             # Loop over all lenses in the pixel.
             for i_l in range(i_l_min, i_l_max):
@@ -270,7 +267,7 @@ def precompute_engine(
                             (R_12[i_s] + R_21[i_s]) * sin_2phi * cos_2phi)
 
         if progress_bar:
-            pbar.update(group_l + 1 - pbar.n)
+            pbar.update(pix_l + 1 - pbar.n)
 
     if progress_bar:
         pbar.update(len(u_pix_l) - pbar.n)
