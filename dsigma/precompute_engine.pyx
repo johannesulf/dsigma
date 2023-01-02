@@ -93,7 +93,6 @@ def precompute_engine(
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
     cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
     cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
-    cdef double[::1] sum_w_ls_e_t_sigma_crit_sq = table_r['sum (w_ls e_t sigma_crit)^2']
     cdef double[::1] sum_w_ls_z_s = table_r['sum w_ls z_s']
     cdef double[::1] sum_w_ls_m
     if has_m:
@@ -250,8 +249,6 @@ def precompute_engine(
                     sum_w_ls_e_t[offset_result + i_bin] += summand
                     summand *= sigma_crit
                     sum_w_ls_e_t_sigma_crit[offset_result + i_bin] += summand
-                    summand *= summand
-                    sum_w_ls_e_t_sigma_crit_sq[offset_result + i_bin] += summand
                     sum_w_ls_z_s[offset_result + i_bin] += w_ls * z_s[i_s]
                     if has_m:
                         sum_w_ls_m[offset_result + i_bin] += w_ls * m[i_s]
