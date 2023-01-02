@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dsigma"
+version = "0.6.1"
+authors = [{name = "Johannes U. Lange", email = "julange.astro@pm.me"},
+           {name = "Song Huang"}]
+readme = "README.md"
+keywords = ["astronomy", "weak-lensing"]
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: MIT License"]
+dependencies = ["numpy", "astropy", "scipy", "scikit-learn", "astropy-healpix",
+                "tqdm"]
+
+[project.urls]
+Home = "https://dsigma.readthedocs.io"
+
+[tool.setuptools]
+packages = ["dsigma", "dsigma.surveys"]
