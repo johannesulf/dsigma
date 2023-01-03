@@ -3,7 +3,7 @@
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from sklearn.cluster import AgglomerativeClustering, MiniBatchKMeans
+from sklearn.cluster import DBSCAN, MiniBatchKMeans
 from scipy.spatial import cKDTree
 from astropy.table import Table
 from scipy.ndimage import gaussian_filter
@@ -11,85 +11,8 @@ from scipy.ndimage import gaussian_filter
 from .helpers import spherical_to_cartesian
 
 
-__all__ = ['add_continous_fields', 'transfer_continous_fields',
-           'jackknife_field_centers', 'add_jackknife_fields',
-           'compress_jackknife_fields', 'smooth_correlation_matrix',
-           'jackknife_resampling']
-
-
-def add_continous_fields(table, n_samples=10000, distance_threshold=1):
-    """Determine continues fields through agglomerative clustering.
-
-    Many surveys target specific patches of the sky that are not connected.
-    For assigning jackknife regions, it is often useful to know which objects
-    belong to which continous field. If this is not given in the input catalog,
-    then this function uses agglomerative clustering algorithm to link nearby
-    objects and estimate the fields from the data itself. The resulting labels
-    are assigned to the 'field' column.
-
-    Parameters
-    ----------
-    table : astropy.table.Table
-        Catalog containing objects. The catalog needs to have coordinates.
-    n_samples : int, optional
-        How many points of the original sample to use in the clustering. Note
-        that the clustering algorithm can use large amounts of memory for
-        n_samples being larger than a few thousand. Default is 10000.
-    distance_threshold : float or astropy.units.quantity.Quantity, optional
-        The angular separation used to link points. If no unit is given, it is
-        interpreted as degrees. Default is 1.
-
-    Returns
-    -------
-    table : astropy.table.Table
-        Catalog with the continous fields written to the column `field`.
-
-    """
-    if not isinstance(distance_threshold, u.quantity.Quantity):
-        distance_threshold *= u.deg
-
-    mask = np.random.random(size=len(table)) < n_samples / len(table)
-    x, y, z = spherical_to_cartesian(table['ra'][mask].data,
-                                     table['dec'][mask].data)
-    distance_threshold = np.sqrt(
-        2 - 2 * np.cos(distance_threshold.to(u.rad).value))
-    table['field'] = np.repeat(-1, len(table))
-    table['field'][mask] = AgglomerativeClustering(
-        distance_threshold=distance_threshold, n_clusters=None,
-        linkage='single').fit_predict(np.vstack((x, y, z)).T)
-    table = transfer_continous_fields(table[mask], table)
-
-    return table
-
-
-def transfer_continous_fields(table_1, table_2):
-    """Transfer the field names from one table to another.
-
-    The functions works by by looking for closest neighbors between the two
-    catalogs. The field names are stored in the `field` column.
-
-    Parameters
-    ----------
-    table_1 : astropy.table.Table
-        Catalog containing the fields to be transferred. The catalog needs to
-        have coordinates and field IDs.
-    table_2 : astropy.table.Table
-        Catalog to which fields will be transferred. The catalog needs to have
-        coordinates.
-
-    Returns
-    -------
-    table_2 : astropy.table.Table
-        Catalog with the continous fields written to the column `field`.
-
-    """
-    coord_1 = SkyCoord(table_1['ra'], table_1['dec'], unit='deg')
-    coord_2 = SkyCoord(table_2['ra'], table_2['dec'], unit='deg')
-
-    idx = coord_2.match_to_catalog_sky(coord_1)[0]
-    table_2['field'] = table_1['field'][idx]
-
-    return table_2
+__all__ = ["compute_jackknife_fields", "compress_jackknife_fields",
+           "smooth_correlation_matrix", "jackknife_resampling"]
 
 
 def _jackknife_fields_per_field(table, n_jk):
@@ -130,74 +53,92 @@ def _jackknife_fields_per_field(table, n_jk):
     return unique_fields, n_jk_per_field
 
 
-def jackknife_field_centers(table, n_jk, weight=None):
-    """Compute the centers for jackknife regions.
+def compute_jackknife_fields(table, centers, distance_threshold=1,
+                             weights=None):
+    """Compute the centers for jackknife regions using DBSCAN and KMeans.
 
-    The centers are defined in cartesian coordinates on a unit sphere.
+    The function first runs DBSCAN to identify continous fields of points.
+    Afterwards, KMeans clustering is run. The initial cluster centers are
+    random points from each continous field. The number of initial cluster
+    centers per field is determined according to the total weight of each
+    continous field. The centers are defined in cartesian coordinates on a unit
+    sphere.
 
     Parameters
     ----------
     table : astropy.table.Table
         Catalog containing objects. The catalog needs to have coordinates and
         field IDs.
-    n_jk : int
-        Total number of jackknife fields.
-    weight : string, optional
-        Name of the column to be used as weight when calculating jackknife
-        field centers. Default is None.
+    centers : int or numpy.ndarray
+        If int, total number of jackknife fields. Otherwise, the centers
+        returned from a previous call to that function. This allows for
+        different samples to have the same jackknife fields.
+    distance_threshold : float, optional
+        The angular separation in degrees used to link points and calculate
+        continous fields before running KMeans. Default is 1.
+    weights : None or numpy.ndarray
+        Per-lens weights for clustering. If None, assume the same weight for
+        all points. Default is None.
 
     Returns
     -------
     centers : numpy.ndarray
-        The coordinates of the centers of the jackknife regions. The array has
-        shape (n_jk, 3).
-
-    """
-    unique_fields, n_jk_per_field = _jackknife_fields_per_field(table, n_jk)
-
-    centers = None
-
-    for field, n in zip(unique_fields, n_jk_per_field):
-        mask = table['field'] == field
-        kmeans = MiniBatchKMeans(n_clusters=n)
-        x, y, z = spherical_to_cartesian(table['ra'][mask].data,
-                                         table['dec'][mask].data)
-        kmeans.fit(np.vstack((x, y, z)).T,
-                   sample_weight=None if weight is None else
-                   table[weight][mask])
-
-        if centers is None:
-            centers = kmeans.cluster_centers_
-        else:
-            centers = np.concatenate([centers, kmeans.cluster_centers_])
-
-    return centers
-
-
-def add_jackknife_fields(table, centers):
-    """Assign jackknife regions to all objects in the table.
-
-    The jackknife number is assigned to the column 'field_jk'.
-
-    Parameters
-    ----------
-    table : astropy.table.Table
-        Catalog containing objects. The catalog needs to have coordinates.
-    centers : numpy.ndarray
-        The coordinates of the centers of the jackknife regions. The array has
-        shape (n_jk, 3).
-
-    Returns
-    -------
-    table : astropy.table.Table
-        Catalog with the jackknife fields written to the column `field_jk`.
+        The coordinates of the centers of the jackknife regions.
 
     """
     x, y, z = spherical_to_cartesian(table['ra'].data, table['dec'].data)
-    kdtree = cKDTree(centers)
-    table['field_jk'] = kdtree.query(np.vstack([x, y, z]).T)[1]
+    xyz = np.column_stack((x, y, z))
+    xyz = np.column_stack(spherical_to_cartesian(
+        table['ra'].data, table['dec'].data))
 
-    return table
+    if isinstance(centers, np.ndarray):
+        kdtree = cKDTree(centers)
+        table['field_jk'] = kdtree.query(xyz)[1]
+        return centers
+
+    if weights is None:
+        weights = np.ones(len(table))
+
+    n_jk = centers
+
+    if not isinstance(distance_threshold, u.quantity.Quantity):
+        distance_threshold *= u.deg
+
+    eps = np.sqrt(
+        2 - 2 * np.cos(distance_threshold.to(u.rad).value))
+    c = DBSCAN(eps=eps, algorithm='kd_tree').fit(xyz).labels_
+
+    w_c = np.bincount(c[c != -1], weights=weights[c != -1])
+    if n_jk < len(w_c):
+        raise RuntimeError(
+            "The number of jackknife regions cannot be smaller than the " +
+            "number of continous fields. Try increasing `distance_threshold`" +
+            " or decreasing `centers`.")
+
+    # Assign the number of jackknife fields according to the total number of
+    # objects in each field.
+    n_jk_per_c = np.diff(np.rint(
+        np.cumsum(w_c) / np.sum(w_c) * n_jk).astype(np.int), prepend=0)
+
+    # It can happen that one field is assigned 0 jackknife fields. In this
+    # case, we will assign 1.
+    while np.any(w_c[n_jk_per_c == 0] > 0):
+        n_jk_per_c[np.argmin(n_jk_per_c)] += 1
+        n_jk_per_c[np.argmax(n_jk_per_c)] -= 1
+
+    init = np.zeros((0, 3))
+    for i in range(len(w_c)):
+        mask = i != c
+        if w_c[i] > 0:
+            init = np.vstack([init, xyz[~mask][np.random.choice(
+                np.sum(~mask), n_jk_per_c[i], replace=False,
+                p=weights[~mask] / w_c[i])]])
+
+    centers = MiniBatchKMeans(n_clusters=n_jk, init=init, n_init=1).fit(
+        xyz[weights > 0], sample_weight=weights[weights > 0]).cluster_centers_
+    compute_jackknife_fields(table, centers)
+
+    return centers
 
 
 def compress_jackknife_fields(table):
@@ -227,7 +168,7 @@ def compress_jackknife_fields(table):
     for i, field_jk in enumerate(all_field_jk):
         mask = table['field_jk'] == field_jk
         for key in table.colnames:
-            if key in ['field', 'field_jk']:
+            if key == 'field_jk':
                 table_jk[i][key] = table[key][mask][0]
             elif key in ['w_sys', 'sum 1']:
                 table_jk[i][key] = np.sum(table[key][mask], axis=0)
