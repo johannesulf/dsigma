@@ -12,7 +12,7 @@ __all__ = ['number_of_pairs', 'raw_tangential_shear',
            'boost_factor', 'scalar_shear_response_factor',
            'matrix_shear_response_factor', 'shear_responsivity_factor',
            'mean_lens_redshift', 'mean_source_redshift',
-           'tangential_shear', 'excess_surface_density', 'shape_noise_error']
+           'tangential_shear', 'excess_surface_density']
 
 
 def number_of_pairs(table_l):
@@ -517,44 +517,3 @@ def excess_surface_density(table_l, table_r=None,
         return result['ds'].data
 
     return result
-
-
-def shape_noise_error(table_l, table_r=None, **kwargs):
-    """Analytically estimate the shape noise for the excess surface density.
-
-    Note that on large scales, there is additional cosmic variance error. Thus,
-    jackknife re-sampling should be used for those scales.
-
-    Parameters
-    ----------
-    table_l : astropy.table.Table
-        Precompute results for the lenses.
-    table_r : astropy.table.Table, optional
-        Precompute results for random lenses. Default is None.
-    kwargs : dict
-        Additional keyword arguments to be passed to the
-        `excess_surface_density` function. This is used to calculate correction
-        factors.
-
-    Returns
-    -------
-    delta_sigma_error : numpy.ndarray
-        Shape noise error estimate for the excess surface density.
-
-    """
-    random_subtraction = kwargs['random_subtraction']
-    kwargs['return_table'] = True
-    kwargs['random_subtraction'] = False
-    table = excess_surface_density(table_l, table_r=table_r, **kwargs)
-    correction_factor = table['ds'] / table['ds_raw']
-
-    error = (np.sqrt(np.sum(table_l['sum (w_ls e_t sigma_crit)^2'] *
-                            table_l['w_sys'][:, None], axis=0)) /
-             np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0) *
-             correction_factor)
-
-    if random_subtraction:
-        kwargs['boost_correction'] = False
-        error = np.sqrt(error**2 + shape_noise_error(table_r, **kwargs)**2)
-
-    return error
