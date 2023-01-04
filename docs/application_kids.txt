@@ -83,21 +83,16 @@ We choose to include all the necessary corrections factors. The multiplicative s
 
 .. code-block:: python
 
-    from dsigma.jackknife import add_continous_fields, jackknife_field_centers
-    from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
+    from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
     from dsigma.stacking import excess_surface_density
 
-    # Drop all lenses that did not have any nearby source.
-    table_l['n_s_tot'] = np.sum(table_l['sum 1'], axis=1)
-    table_l = table_l[table_l['n_s_tot'] > 0]
+    # Drop all lenses and randoms that did not have any nearby source.
+    table_l = table_l[np.sum(table_l['sum 1'], axis=1) > 0]
+    table_r = table_r[np.sum(table_r['sum 1'], axis=1) > 0]
 
-    table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
-    table_r = table_r[table_r['n_s_tot'] > 0]
-
-    add_continous_fields(table_l, distance_threshold=2)
-    centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
-    add_jackknife_fields(table_l, centers)
-    add_jackknife_fields(table_r, centers)
+    centers = compute_jackknife_fields(
+        table_l, 100, weights=np.sum(table_l['sum 1'], axis=1))
+    compute_jackknife_fields(table_r, centers)
 
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
