@@ -1,5 +1,6 @@
 """Module for pre-computing lensing results."""
 
+import numbers
 import warnings
 import multiprocessing as mp
 import queue as Queue
@@ -20,7 +21,8 @@ from .precompute_engine import precompute_engine
 __all__ = ["photo_z_dilution_factor", "mean_photo_z_offset", "precompute"]
 
 
-def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
+def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
+                            lens_source_cut=0):
     """Calculate the photo-z delta sigma bias as a function of lens redshift.
 
     Parameters
@@ -35,6 +37,12 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
+    lens_source_cut : None, float or numpy.ndarray, optional
+        Determine the lens-source redshift separation cut. If None, no cut is
+        applied. If a float, determines the minimum redshift separation between
+        lens and source redshift for lens-source pairs to be used. If an array,
+        it has to be the same length as the source table and determines the
+        maximum lens redshift for a lens-source pair to be used. Default is 0.
 
     Returns
     -------
@@ -42,10 +50,12 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         The photo-z bias factor, `f_bias`, for the lens redshift(s).
 
     """
-    if 'z_l_max' not in table_c.colnames:
-        warnings.warn('No lens-source cut given in calibration catalog. Will' +
-                      ' use z_l < z_s.', RuntimeWarning)
-        table_c['z_l_max'] = table_c['z']
+    if lens_source_cut is None:
+        z_l_max = np.repeat(np.amax(z_l) + 1, len(table_c))
+    elif isinstance(lens_source_cut, numbers.Number):
+        z_l_max = table_c['z'] - lens_source_cut
+    else:
+        z_l_max = np.array(lens_source_cut)
 
     z_s = table_c['z']
     z_s_true = table_c['z_true']
@@ -53,7 +63,6 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     d_s_true = cosmology.comoving_transverse_distance(
         table_c['z_true']).to(u.Mpc).value
-    z_l_max = table_c['z_l_max']
     w = table_c['w_sys'] * table_c['w']
 
     if hasattr(z_l, '__len__'):
@@ -83,7 +92,8 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
                    (~mask), axis=-1))
 
 
-def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
+def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
+                        lens_source_cut=0):
     """Calculate the mean offset of source photometric redshifts.
 
     Parameters
@@ -98,6 +108,12 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
+    lens_source_cut : None, float or numpy.ndarray, optional
+        Determine the lens-source redshift separation cut. If None, no cut is
+        applied. If a float, determines the minimum redshift separation between
+        lens and source redshift for lens-source pairs to be used. If an array,
+        it has to be the same length as the source table and determines the
+        maximum lens redshift for a lens-source pair to be used. Default is 0.
 
     Returns
     -------
@@ -105,17 +121,18 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         The mean source redshift offset for the lens redshift(s).
 
     """
-    if 'z_l_max' not in table_c.colnames:
-        warnings.warn('No lens-source cut given in calibration catalog. ' +
-                      'Will use z_l < z_s.', RuntimeWarning)
-        table_c['z_l_max'] = table_c['z']
+    if lens_source_cut is None:
+        z_l_max = np.repeat(np.amax(z_l) + 1, len(table_c))
+    elif isinstance(lens_source_cut, numbers.Number):
+        z_l_max = table_c['z'] - lens_source_cut
+    else:
+        z_l_max = np.array(lens_source_cut)
 
     z_s = table_c['z']
     z_s_true = table_c['z_true']
     d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(
         u.Mpc).value
-    z_l_max = table_c['z_l_max']
     w = table_c['w_sys'] * table_c['w']
 
     if not np.isscalar(z_l):
@@ -281,7 +298,7 @@ def precompute(
         if key in table_s.colnames:
             table_engine_s[key] = np.ascontiguousarray(
                 table_s[key][argsort_pix_s], dtype=np.float64)
-    import numbers
+
     if lens_source_cut is None:
         z_l_max = np.repeat(np.amax(table_l['z']) + 1, len(table_s))
     elif isinstance(lens_source_cut, numbers.Number):
@@ -311,7 +328,8 @@ def precompute(
         z_interp = np.linspace(
             z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
         f_bias_interp = photo_z_dilution_factor(
-            z_interp, table_c, cosmology, weighting=weighting)
+            z_interp, table_c, cosmology, weighting=weighting,
+            lens_source_cut=lens_source_cut)
         f_bias_interp = interp1d(
             z_interp, f_bias_interp, kind='cubic', bounds_error=False,
             fill_value=(f_bias_interp[0], f_bias_interp[-1]))
