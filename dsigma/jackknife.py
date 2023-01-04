@@ -15,44 +15,6 @@ __all__ = ["compute_jackknife_fields", "compress_jackknife_fields",
            "smooth_correlation_matrix", "jackknife_resampling"]
 
 
-def _jackknife_fields_per_field(table, n_jk):
-    """Compute the number of jackknife fields per field in a table.
-
-    Parameters
-    ----------
-    table : astropy.table.Table
-        Catalog containing objects. The catalog needs to have field IDs.
-    n_jk : int
-        Total number of jackknife fields.
-
-    Returns
-    -------
-    unique_fields : numpy.ndarray
-        The unique field IDs in the input table.
-    n_jk_per_field : numpy.ndarray
-        The number of jackknife regions in each of the fields. Has the same
-        shape as unique_fields.
-
-    """
-    unique_fields, counts = np.unique(table['field'], return_counts=True)
-    if n_jk < len(unique_fields):
-        raise RuntimeError('The number of jackknife regions cannot be ' +
-                           'smaller than the number of fields.')
-
-    # Assign the number of jackknife fields according to the total number of
-    # objects in each field.
-    n_jk_per_field = np.diff(np.rint(
-        np.cumsum(counts) / np.sum(counts) * n_jk).astype(np.int), prepend=0)
-
-    # It can happen that one field is assigned 0 jackknife fields. In this
-    # case, we will assign 1.
-    while np.any(n_jk_per_field == 0):
-        n_jk_per_field[np.argmin(n_jk_per_field)] += 1
-        n_jk_per_field[np.argmax(n_jk_per_field)] -= 1
-
-    return unique_fields, n_jk_per_field
-
-
 def compute_jackknife_fields(table, centers, distance_threshold=1,
                              weights=None):
     """Compute the centers for jackknife regions using DBSCAN and KMeans.
