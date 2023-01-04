@@ -17,12 +17,11 @@ from .physics import effective_critical_surface_density
 from .precompute_engine import precompute_engine
 
 
-__all__ = ["photo_z_dilution_factor", "mean_photo_z_offset",
-           "add_precompute_results", "add_maximum_lens_redshift"]
+__all__ = ["photo_z_dilution_factor", "mean_photo_z_offset", "precompute"]
 
 
 def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
-    """Calculate the photo-z bias as a function of the lens redshift.
+    """Calculate the photo-z delta sigma bias as a function of lens redshift.
 
     Parameters
     ----------
@@ -138,55 +137,6 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         w * (~mask), axis=-1)
 
 
-def add_maximum_lens_redshift(table_s, dz_min=0.0, z_err_factor=0,
-                              apply_z_low=False):
-    r"""Add the maximum lens redshift for each source.
-
-    For each source in the table, determine the maximum lens redshift
-    :math:`z_{\mathrm{max}}`. During the precomputation phase, only lens-source
-    pairs with :math:`z_{\mathrm{l}} \leq z_{\mathrm{max}}` are being used. The
-    maximum redshift is the minimum of the following three quantities where
-    :math:`z_{\mathrm{s}}` is the source redshift.
-
-    1. :math:`z_{\mathrm{s}} - \Delta z_{\mathrm{min}}`
-    2. :math:`z_{\mathrm{s}} - \sigma_z r`
-    3. :math:`z_{\mathrm{s, low}}`
-
-    Parameters
-    ----------
-    table_s : astropy.table.Table
-        Catalog of weak lensing sources.
-    dz_min : float, optional
-        Minimum redshift separation :math:`\Delta z_{\mathrm{min}}` between
-        lens and source.
-    z_err_factor : float, optional
-        Minimum redshift separation :math:`r` in units of the source redshift
-        error :math:`\sigma_z`.
-    apply_z_low : boolean, optional
-        Whether to apply the cut on :math:`z_{\mathrm{s, low}}`, the lower
-        limit on the redshift of the source stored in column :code:`z_low`.
-
-    Returns
-    -------
-    table_s : astropy.table.Table
-        Table with the maximum lens redshfit assigned to the :code:`z_l_max`
-        column.
-
-    """
-    z_l_max = table_s['z'] - dz_min
-
-    if z_err_factor > 0:
-        z_l_max = np.minimum(
-            z_l_max, table_s['z'] - z_err_factor * table_s['z_err'])
-
-    if apply_z_low:
-        z_l_max = np.minimum(z_l_max, table_s['z_low'])
-
-    table_s['z_l_max'] = z_l_max
-
-    return table_s
-
-
 def get_raw_multiprocessing_array(array):
     """Convert a numpy array into a shared-memory multiprocessing array.
 
@@ -212,10 +162,11 @@ def get_raw_multiprocessing_array(array):
     return array_mp
 
 
-def add_precompute_results(
+def precompute(
         table_l, table_s, bins, table_c=None, table_n=None,
         cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
-        weighting=-2, nside=256, n_jobs=1, progress_bar=False):
+        weighting=-2, lens_source_cut=0, nside=256, n_jobs=1,
+        progress_bar=False):
     """For all lenses in the catalog, precompute the lensing statistics.
 
     Parameters
@@ -243,6 +194,12 @@ def add_precompute_results(
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
+    lens_source_cut : None, float or numpy.ndarray, optional
+        Determine the lens-source redshift separation cut. If None, no cut is
+        applied. If a float, determines the minimum redshift separation between
+        lens and source redshift for lens-source pairs to be used. If an array,
+        it has to be the same length as the source table and determines the
+        maximum lens redshift for a lens-source pair to be used. Default is 0.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determines the number of pixels.
@@ -324,13 +281,13 @@ def add_precompute_results(
         if key in table_s.colnames:
             table_engine_s[key] = np.ascontiguousarray(
                 table_s[key][argsort_pix_s], dtype=np.float64)
-
-    if 'z_l_max' not in table_s.colnames:
-        warnings.warn('No lens-source cut given in source catalog. Will use ' +
-                      'z_l < z_s.', RuntimeWarning)
-        z_l_max = table_s['z']
+    import numbers
+    if lens_source_cut is None:
+        z_l_max = np.repeat(np.amax(table_l['z']) + 1, len(table_s))
+    elif isinstance(lens_source_cut, numbers.Number):
+        z_l_max = table_s['z'] - lens_source_cut
     else:
-        z_l_max = table_s['z_l_max']
+        z_l_max = np.array(lens_source_cut)
 
     table_engine_s['z_l_max'] = np.ascontiguousarray(
         z_l_max[argsort_pix_s], dtype=np.float64)
@@ -405,7 +362,7 @@ def add_precompute_results(
     n_results = len(table_l) * (len(bins) - 1)
 
     key_list = ['sum 1', 'sum w_ls', 'sum w_ls e_t', 'sum w_ls z_s',
-                'sum w_ls e_t sigma_crit', 'sum (w_ls e_t sigma_crit)^2']
+                'sum w_ls e_t sigma_crit']
 
     if 'm' in table_s.colnames:
         key_list.append('sum w_ls m')
