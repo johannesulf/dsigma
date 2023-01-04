@@ -1,12 +1,11 @@
-import fitsio
+#import fitsio
 import argparse
 import numpy as np
 import multiprocessing
 from astropy.table import Table, vstack, hstack, join
 from dsigma.helpers import dsigma_table
-from dsigma.precompute import add_maximum_lens_redshift, add_precompute_results
-from dsigma.jackknife import add_continous_fields, jackknife_field_centers
-from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
+from dsigma.precompute import precompute
+from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
 from dsigma.stacking import excess_surface_density
 from dsigma.surveys import des, kids
 from astropy.cosmology import Planck15
@@ -99,7 +98,8 @@ elif args.survey.lower() == 'kids':
 
     table_s['z_bin'] = kids.tomographic_redshift_bin(
         table_s['z'], version='DR4')
-    table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
+    table_s['m'] = kids.multiplicative_shear_bias(
+        table_s['z_bin'], version='DR4')
     table_s = table_s[table_s['z_bin'] >= 0]
     table_s['z'] = np.array([0.1, 0.3, 0.5, 0.7, 0.9])[table_s['z_bin']]
 
@@ -116,29 +116,21 @@ elif args.survey.lower() == 'kids':
 else:
     raise ValueError("Survey must be 'des', 'hsc' or 'kids'.")
 
-add_maximum_lens_redshift(table_s, dz_min=0.1)
-if 'table_c' in precompute_kwargs.keys():
-    add_maximum_lens_redshift(table_c, dz_min=0.1)
-
 precompute_kwargs.update({
     'n_jobs': multiprocessing.cpu_count(), 'comoving': True,
-    'cosmology': cosmology})
+    'cosmology': cosmology, 'lens_source_cut': 0.1, 'progress_bar': True})
 
 # Pre-compute the signal.
-add_precompute_results(table_l, table_s, rp_bins, **precompute_kwargs)
-add_precompute_results(table_r, table_s, rp_bins, **precompute_kwargs)
+precompute(table_l, table_s, rp_bins, **precompute_kwargs)
+precompute(table_r, table_s, rp_bins, **precompute_kwargs)
 
-# Add jackknife fields.
-table_l['n_s_tot'] = np.sum(table_l['sum 1'], axis=1)
-table_l = table_l[table_l['n_s_tot'] > 0]
+# Drop all lenses and randoms that did not have any nearby source.
+table_l = table_l[np.sum(table_l['sum 1'], axis=1) > 0]
+table_r = table_r[np.sum(table_r['sum 1'], axis=1) > 0]
 
-table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
-table_r = table_r[table_r['n_s_tot'] > 0]
-
-add_continous_fields(table_l, distance_threshold=2)
-centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
-add_jackknife_fields(table_l, centers)
-add_jackknife_fields(table_r, centers)
+centers = compute_jackknife_fields(
+    table_l, 100, weights=np.sum(table_l['sum 1'], axis=1))
+compute_jackknife_fields(table_r, centers)
 
 # Stack the signal.
 stacking_kwargs['random_subtraction'] = True
