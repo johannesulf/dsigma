@@ -9,7 +9,7 @@ In addition to having a measurement of the total lensing signal, we would also l
     \sigma_d^2 = \frac{n_{\mathrm{jk}} - 1}{n_{\mathrm{jk}}}
     \sum\limits_{i=1}^{n_{\mathrm{jk}}} (d_i - d)^2,
 
-where :math:`d_i` is the observable computed from the entire sample except subsample :math:`i`. :code:`dsigma` allows you to construct the jackknife samples and to perform the resampling to obtain uncertainties.
+where :math:`d` is the observable computed from the entire sample and :math:`d_i` is the observable computed from the entire sample except subsample :math:`i`. :code:`dsigma` allows you to construct the jackknife samples and to perform the resampling to obtain uncertainties.
 
 
 *****************************
