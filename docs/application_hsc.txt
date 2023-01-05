@@ -81,9 +81,9 @@ We will now run the computationally expensive pre-computation phase. Here, we fi
 
     rp_bins = np.logspace(-1, 1.6, 14)
     precompute(table_l, table_s, rp_bins, cosmology=Planck15, comoving=True,
-               table_c=table_c, lens_source_cut=0.1)
+               table_c=table_c, lens_source_cut=0.1, progress_bar=True)
     precompute(table_r, table_s, rp_bins, cosmology=Planck15, comoving=True,
-               table_c=table_c, lens_source_cut=0.1)
+               table_c=table_c, lens_source_cut=0.1, progress_bar=True)
 
 
 *******************

@@ -1,12 +1,11 @@
-import fitsio
+#import fitsio
 import argparse
 import numpy as np
 import multiprocessing
 from astropy.table import Table, vstack, hstack, join
 from dsigma.helpers import dsigma_table
-from dsigma.precompute import add_maximum_lens_redshift, add_precompute_results
-from dsigma.jackknife import add_continous_fields, jackknife_field_centers
-from dsigma.jackknife import add_jackknife_fields, jackknife_resampling
+from dsigma.precompute import precompute
+from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
 from dsigma.stacking import excess_surface_density
 from dsigma.surveys import des, kids
 from astropy.cosmology import Planck15
@@ -35,39 +34,28 @@ table_r = table_r[table_r['z'] >= np.amin(z_bins)]
 
 if args.survey.lower() == 'des':
 
-    table_s = []
-
-    fname_list = ['mcal-y1a1-combined-riz-unblind-v4-matched.fits',
-                  'y1a1-gold-mof-badregion_BPZ.fits',
-                  'mcal-y1a1-combined-griz-blind-v3-matched_BPZbase.fits']
-    columns_list = [['e1', 'e2', 'R11', 'R12', 'R21', 'R22', 'ra', 'dec',
-                     'flags_select', 'flags_select_1p', 'flags_select_1m',
-                     'flags_select_2p', 'flags_select_2m'], ['Z_MC'],
-                    ['MEAN_Z']]
-
-    for fname, columns in zip(fname_list, columns_list):
-        table_s.append(Table(fitsio.read(fname, columns=columns),
-                             names=columns))
-
-    table_s = hstack(table_s)
+    table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
-    table_s['z_bin'] = des.tomographic_redshift_bin(table_s['z'])
 
     for z_bin in range(4):
-        use = table_s['z_bin'] == z_bin
-        R_sel = des.selection_response(table_s[use])
-        table_s['R_11'][use] += 0.5 * np.sum(np.diag(R_sel))
-        table_s['R_22'][use] += 0.5 * np.sum(np.diag(R_sel))
+        select = table_s['z_bin'] == z_bin
+        R_sel = des.selection_response(table_s[select])
+        print("Bin {}: R_sel = {:.1f}%".format(
+            z_bin + 1, 100 * 0.5 * np.sum(np.diag(R_sel))))
+        table_s['R_11'][select] += 0.5 * np.sum(np.diag(R_sel))
+        table_s['R_22'][select] += 0.5 * np.sum(np.diag(R_sel))
 
-    table_s = table_s[(table_s['flags_select'] == 0) &
-                      (table_s['z_bin'] != -1)]
+    table_s = table_s[table_s['z_bin'] >= 0]
+    table_s = table_s[table_s['flags_select']]
+    table_s['m'] = des.multiplicative_shear_bias(
+        table_s['z_bin'], version='Y3')
 
-    table_c = table_s['z', 'z_true', 'w']
-    table_c['w_sys'] = 0.5 * (table_s['R_11'] + table_s['R_22'])
+    table_n = Table.read('des_y3.hdf5', path='redshift')
+    table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
 
-    precompute_kwargs = {'table_c': table_c}
-    stacking_kwargs = {'tensor_shear_response_correction': True,
-                       'photo_z_dilution_correction': True}
+    precompute_kwargs = {'table_n': table_n}
+    stacking_kwargs = {'scalar_shear_response_correction': True,
+                       'matrix_shear_response_correction': True}
 
 elif args.survey.lower() == 'hsc':
 
@@ -99,7 +87,8 @@ elif args.survey.lower() == 'kids':
 
     table_s['z_bin'] = kids.tomographic_redshift_bin(
         table_s['z'], version='DR4')
-    table_s['m'] = kids.multiplicative_shear_bias(table_s['z'], version='DR4')
+    table_s['m'] = kids.multiplicative_shear_bias(
+        table_s['z_bin'], version='DR4')
     table_s = table_s[table_s['z_bin'] >= 0]
     table_s['z'] = np.array([0.1, 0.3, 0.5, 0.7, 0.9])[table_s['z_bin']]
 
@@ -116,29 +105,21 @@ elif args.survey.lower() == 'kids':
 else:
     raise ValueError("Survey must be 'des', 'hsc' or 'kids'.")
 
-add_maximum_lens_redshift(table_s, dz_min=0.1)
-if 'table_c' in precompute_kwargs.keys():
-    add_maximum_lens_redshift(table_c, dz_min=0.1)
-
 precompute_kwargs.update({
     'n_jobs': multiprocessing.cpu_count(), 'comoving': True,
-    'cosmology': cosmology})
+    'cosmology': cosmology, 'lens_source_cut': 0.1, 'progress_bar': True})
 
 # Pre-compute the signal.
-add_precompute_results(table_l, table_s, rp_bins, **precompute_kwargs)
-add_precompute_results(table_r, table_s, rp_bins, **precompute_kwargs)
+precompute(table_l, table_s, rp_bins, **precompute_kwargs)
+precompute(table_r, table_s, rp_bins, **precompute_kwargs)
 
-# Add jackknife fields.
-table_l['n_s_tot'] = np.sum(table_l['sum 1'], axis=1)
-table_l = table_l[table_l['n_s_tot'] > 0]
+# Drop all lenses and randoms that did not have any nearby source.
+table_l = table_l[np.sum(table_l['sum 1'], axis=1) > 0]
+table_r = table_r[np.sum(table_r['sum 1'], axis=1) > 0]
 
-table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
-table_r = table_r[table_r['n_s_tot'] > 0]
-
-add_continous_fields(table_l, distance_threshold=2)
-centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
-add_jackknife_fields(table_l, centers)
-add_jackknife_fields(table_r, centers)
+centers = compute_jackknife_fields(
+    table_l, 100, weights=np.sum(table_l['sum 1'], axis=1))
+compute_jackknife_fields(table_r, centers)
 
 # Stack the signal.
 stacking_kwargs['random_subtraction'] = True
