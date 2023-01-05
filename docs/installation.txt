@@ -37,4 +37,4 @@ You can install :code:`dsigma` directly from the source code. This allows you to
     cd dsigma
     pip install .
 
-Note :code:`dsigma` uses C code that, by default, is compiled with the compiler flag :code:`--march=native`. This may cause an error, for example, on Apple M1 if the Clang compiler is not updated to at least version 15.0. If you don't want to update Clang, you can deactivate the :code:`-march=native` compiler flag by editing the file :code:`setup.py` in the :code:`dsigma` main directory.
+Note :code:`dsigma` uses C code that, by default, is compiled with the compiler flag :code:`--march=native`. This may cause an error, for example, on Apple M1 if the Clang compiler is not updated to at least version 15.0. If you don't want to update Clang, you can deactivate the :code:`-march=native` compiler flag by editing the file :code:`setup.py` in the main directory :code:`dsigma` before installing the code with :code:`pip`.
