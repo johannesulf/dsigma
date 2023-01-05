@@ -34,39 +34,28 @@ table_r = table_r[table_r['z'] >= np.amin(z_bins)]
 
 if args.survey.lower() == 'des':
 
-    table_s = []
-
-    fname_list = ['mcal-y1a1-combined-riz-unblind-v4-matched.fits',
-                  'y1a1-gold-mof-badregion_BPZ.fits',
-                  'mcal-y1a1-combined-griz-blind-v3-matched_BPZbase.fits']
-    columns_list = [['e1', 'e2', 'R11', 'R12', 'R21', 'R22', 'ra', 'dec',
-                     'flags_select', 'flags_select_1p', 'flags_select_1m',
-                     'flags_select_2p', 'flags_select_2m'], ['Z_MC'],
-                    ['MEAN_Z']]
-
-    for fname, columns in zip(fname_list, columns_list):
-        table_s.append(Table(fitsio.read(fname, columns=columns),
-                             names=columns))
-
-    table_s = hstack(table_s)
+    table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
-    table_s['z_bin'] = des.tomographic_redshift_bin(table_s['z'])
 
     for z_bin in range(4):
-        use = table_s['z_bin'] == z_bin
-        R_sel = des.selection_response(table_s[use])
-        table_s['R_11'][use] += 0.5 * np.sum(np.diag(R_sel))
-        table_s['R_22'][use] += 0.5 * np.sum(np.diag(R_sel))
+        select = table_s['z_bin'] == z_bin
+        R_sel = des.selection_response(table_s[select])
+        print("Bin {}: R_sel = {:.1f}%".format(
+            z_bin + 1, 100 * 0.5 * np.sum(np.diag(R_sel))))
+        table_s['R_11'][select] += 0.5 * np.sum(np.diag(R_sel))
+        table_s['R_22'][select] += 0.5 * np.sum(np.diag(R_sel))
 
-    table_s = table_s[(table_s['flags_select'] == 0) &
-                      (table_s['z_bin'] != -1)]
+    table_s = table_s[table_s['z_bin'] >= 0]
+    table_s = table_s[table_s['flags_select']]
+    table_s['m'] = des.multiplicative_shear_bias(
+        table_s['z_bin'], version='Y3')
 
-    table_c = table_s['z', 'z_true', 'w']
-    table_c['w_sys'] = 0.5 * (table_s['R_11'] + table_s['R_22'])
+    table_n = Table.read('des_y3.hdf5', path='redshift')
+    table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
 
-    precompute_kwargs = {'table_c': table_c}
-    stacking_kwargs = {'tensor_shear_response_correction': True,
-                       'photo_z_dilution_correction': True}
+    precompute_kwargs = {'table_n': table_n}
+    stacking_kwargs = {'scalar_shear_response_correction': True,
+                       'matrix_shear_response_correction': True}
 
 elif args.survey.lower() == 'hsc':
 
