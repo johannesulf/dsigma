@@ -5,7 +5,7 @@ Dark Energy Survey (DES)
 .. note::
     This guide has not been inspected or endorsed by the DES collaboration.
 
-Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. Check out the documentation of `dsigma` v0.6 if you want to see how to reduce DES Y1 data.
+Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. Check out the documentation of :code:`dsigma` v0.6 if you want to see how to reduce DES Y1 data.
 
 ********************
 Downloading the Data
@@ -82,6 +82,7 @@ In an intermediate step, we also calculate the so-called METACALIBRATION selecti
 After running this selection response calculation, we are ready to drop all galaxies that are flagged for the unsheared images (and also those galaxies that fall outside the redshift bins).
 
 .. code-block:: python
+
     table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
 
@@ -101,11 +102,11 @@ After running this selection response calculation, we are ready to drop all gala
     table_n = Table.read('des_y3.hdf5', path='redshift')
 
 
-************************
-Pre-Computing the Signal
-************************
+***********************
+Precomputing the Signal
+***********************
 
-We will now run the computationally expensive pre-computation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual pre-computation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual precomputation.
 
 
 .. code-block:: python

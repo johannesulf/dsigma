@@ -2,9 +2,9 @@
 Data Preparation
 ################
 
-We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Fortunately, many data sets are publicly available, such as data from HSC or CFHTLenS. Once we have obtained the data, we need to convert it into a format understandable by ``dsigma``.
+We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Fortunately, many data sets are publicly available, such as data from HSC or CFHTLenS. Once we have obtained the data, we need to convert it into a format understandable by :code:`dsigma`.
 
-Generally, ``dsigma`` expects all lens, source, and calibration catalogs to be ``astropy`` tables with data stored in specific, pre-defined columns.
+Generally, :code:`dsigma` expects all lens, source, and calibration catalogs to be :code:`astropy` tables with data stored in specific, pre-defined columns.
 
 
 ************
@@ -36,8 +36,6 @@ The following columns are required for source catalogs.
 
 Additionally, the following columns may be used in the analysis.
 
-* ``z_low``: lower limit on the photometric redshift
-* ``z_err``: uncertainty on the photometric redshift
 * ``m``: multiplicative shear bias
 * ``e_rms``: root mean square ellipticity
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)

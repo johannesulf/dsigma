@@ -68,11 +68,11 @@ First, we must put the data into a format easily understandable by :code:`dsigma
                            w='weight_source', z_true='COSMOS_photoz', survey='HSC')
 
 
-************************
-Pre-Computing the Signal
-************************
+***********************
+Precomputing the Signal
+***********************
 
-We will now run the computationally expensive pre-computation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterward, we run the actual pre-computation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterward, we run the actual precomputation.
 
 .. code-block:: python
 
