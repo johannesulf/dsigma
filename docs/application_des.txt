@@ -82,6 +82,7 @@ In an intermediate step, we also calculate the so-called METACALIBRATION selecti
 After running this selection response calculation, we are ready to drop all galaxies that are flagged for the unsheared images (and also those galaxies that fall outside the redshift bins).
 
 .. code-block:: python
+
     table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
 
