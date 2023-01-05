@@ -101,11 +101,11 @@ After running this selection response calculation, we are ready to drop all gala
     table_n = Table.read('des_y3.hdf5', path='redshift')
 
 
-************************
-Pre-Computing the Signal
-************************
+***********************
+Precomputing the Signal
+***********************
 
-We will now run the computationally expensive pre-computation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual pre-computation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual precomputation.
 
 
 .. code-block:: python

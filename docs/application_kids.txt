@@ -53,11 +53,11 @@ First, we must put the data into a format easily understandable by :code:`dsigma
         [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)]).T
 
 
-************************
-Pre-Computing the Signal
-************************
+***********************
+Precomputing the Signal
+***********************
 
-We will now run the computationally expensive pre-computation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm min}` where :math:`z_{t, \rm min}` is the minimum redshift of the tomographic bin each source galaxy belongs to. Afterward, we run the actual pre-computation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm min}` where :math:`z_{t, \rm min}` is the minimum redshift of the tomographic bin each source galaxy belongs to. Afterward, we run the actual precomputation.
 
 .. code-block:: python
 
