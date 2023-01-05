@@ -18,6 +18,7 @@ To run the precomputation, we must first make decisions regarding the radial bin
 
     # Perform the precomputation.
     add_precompute_results(table_l, table_s, rp_bins, cosmology=cosmology,
-                           comoving=True, progress_bar=True, n_jobs=4)
+                           comoving=True, lens_source_cut=lens_source_cut,
+                           progress_bar=True, n_jobs=4)
 
 After the precomputation, we can stack the signal around each lens to obtain the total lensing signal. At the precomputation stage, applying cuts on the lens sample is unnecessary. We can do this immediately before the stacking. Consequently, after performing the precomputation, we can easily derive lensing signals for arbitrary sub-samples of the lens catalog.
