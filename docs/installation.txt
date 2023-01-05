@@ -14,6 +14,11 @@ The following packages will be installed alongside :code:`dsigma` if not install
 * :code:`scipy`
 * :code:`astropy`
 * :code:`scikit-learn`
-* :code:`healpy`
+* :code:`astropy-healpix`
+* :code:`tqdm`
 
 Additionally, for calculating the lens magnification bias, the installation of the Cosmic Microwave Background (CMB) code :code:`camb` is recommended. However,  this is no hard requirement and :code:`dsigma` will run fine without it.
+
+#### Apple M1
+
+:code:`dsigma` uses C code that, by default, is compiled with the compiler flag :code:`--march=native`. This may cause an error on Apple M1 if the Clang compiler is not updated to at least version 15.0. To install :code:`dsigma`, either update Clang or install :code:`dsigma` manually without the :code:`-march=native` flag.
