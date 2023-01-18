@@ -152,7 +152,7 @@ We choose to include all the necessary corrections factors. In addition to the m
         mask_r = ((z_bins[lens_bin] <= table_r['z']) &
                   (table_r['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True, 'photo_z_dilution_correction': True,
+        kwargs = {'return_table': True, 'scalar_shear_response_correction': True,
                   'matrix_shear_response_correction': True,
                   'random_subtraction': True, 'table_r': table_r[mask_r]}
 
