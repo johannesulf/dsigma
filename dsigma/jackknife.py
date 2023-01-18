@@ -1,5 +1,6 @@
 """Module containing jackknife resampling functions."""
 
+import warnings
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord
@@ -135,8 +136,12 @@ def compress_jackknife_fields(table):
             elif key in ['w_sys', 'sum 1']:
                 table_jk[i][key] = np.sum(table[key][mask], axis=0)
             else:
-                table_jk[i][key] = np.average(
-                    table[key][mask], weights=table['w_sys'][mask], axis=0)
+                with warnings.catch_warnings():
+                    if np.any(np.isnan(table[key][mask])):
+                        warnings.simplefilter(
+                            'ignore', category=RuntimeWarning)
+                    table_jk[i][key] = np.average(
+                        table[key][mask], weights=table['w_sys'][mask], axis=0)
 
     return table_jk
 

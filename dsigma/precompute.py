@@ -80,7 +80,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
     sigma_crit_true = critical_surface_density(z_l, z_s_true, d_l=d_l,
                                                d_s=d_s_true)
 
-    mask = (z_l_max < z_l) & (z_l > z_s)
+    mask = (z_l_max < z_l) | (z_l > z_s)
 
     if np.any(np.all(mask, axis=-1)):
         warnings.warn('Could not find valid calibration sources for some ' +
@@ -148,7 +148,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
     sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
     w = w * sigma_crit**weighting
 
-    mask = (z_l_max < z_l) & (z_l > z_s)
+    mask = (z_l_max < z_l) | (z_l > z_s)
 
     return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
         w * (~mask), axis=-1)
