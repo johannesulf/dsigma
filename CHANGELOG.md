@@ -6,15 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- incompatibility with numpy 1.24
+
 ## [0.7.1] - 2023-01-18
 
 ### Changed
 
-- `dsigma.jackknife.compress_jackknife_fields` now supresses `numpy` warnings if columns contain NaNs
+- `dsigma.jackknife.compress_jackknife_fields` now suppresses `numpy` warnings if columns contain NaNs
 
 ### Fixed
 
-- bug in the calcaluation of the photo-z dilution correction factor, led to percent-level biases in the total galaxy-galaxy lensing amplitude, did not affect DES and KiDS calculations since those are based on n(z)'s, bug was introduced in version 0.6
+- bug in the calculation of the photo-z dilution correction factor, led to percent-level biases in the total galaxy-galaxy lensing amplitude, did not affect DES and KiDS calculations since those are based on n(z)'s, bug was introduced in version 0.6
 
 ## [0.7.0] - 2023-01-06
 

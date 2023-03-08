@@ -81,7 +81,7 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
     # Assign the number of jackknife fields according to the total number of
     # objects in each field.
     n_jk_per_c = np.diff(np.rint(
-        np.cumsum(w_c) / np.sum(w_c) * n_jk).astype(np.int), prepend=0)
+        np.cumsum(w_c) / np.sum(w_c) * n_jk).astype(int), prepend=0)
 
     # It can happen that one field is assigned 0 jackknife fields. In this
     # case, we will assign 1.
