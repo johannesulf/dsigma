@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - incompatibility with numpy 1.24
+- bug in `dsigma.stacking.tangential_shear` when `random_subtraction=True`
 
 ## [0.7.1] - 2023-01-18
 

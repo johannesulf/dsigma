@@ -387,7 +387,7 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
         if table_r is None:
             raise ValueError('Cannot subtract random results without ' +
                              'results from a random catalog.')
-        result['et_r'] = excess_surface_density(
+        result['et_r'] = tangential_shear(
             table_r, boost_correction=False,
             scalar_shear_response_correction=scalar_shear_response_correction,
             matrix_shear_response_correction=matrix_shear_response_correction,
