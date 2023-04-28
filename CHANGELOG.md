@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `dsigma.stacking.lens_magnification_bias` can now be used to compute the bias in the tangential shear
+- mean source redshift now takes into account n(z)'s passed to `dsigma.precompute.precompute`
+
 ### Fixed
 
 - incompatibility with numpy 1.24

@@ -281,6 +281,8 @@ def precompute(
 
     table_engine_l['z'] = np.ascontiguousarray(
         table_l['z'][argsort_pix_l], dtype=np.float64)
+    table_engine_s['z'] = np.ascontiguousarray(
+        table_s['z'][argsort_pix_s], dtype=np.float64)
 
     for f, f_name in zip([np.sin, np.cos], ['sin', 'cos']):
         for table, argsort_pix, table_engine in zip(
@@ -341,8 +343,6 @@ def precompute(
             fill_value=(dz_s_interp[0], dz_s_interp[-1]))
         table_engine_l['delta z_s'] = np.ascontiguousarray(
             dz_s_interp(np.array(table_engine_l['z'])), dtype=np.float64)
-        table_engine_s['z'] = np.ascontiguousarray(
-            table_s['z'][argsort_pix_s], dtype=np.float64)
 
     elif table_c is None and table_n is not None:
         n_bins = table_n['n'].data.shape[1]
@@ -374,6 +374,9 @@ def precompute(
             sigma_crit_eff, dtype=np.float64)
         table_engine_s['z_bin'] = np.ascontiguousarray(
             table_s['z_bin'][argsort_pix_s], dtype=int)
+        # Overwrite the photometric redshifts in the source table. These
+        # redshifts will be used to compute the mean source redshifts for each
+        # lens.
         table_engine_s['z'] = np.ascontiguousarray(
             z_mean[table_s['z_bin']][argsort_pix_s], dtype=np.float64)
 

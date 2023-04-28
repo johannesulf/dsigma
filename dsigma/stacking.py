@@ -246,7 +246,7 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
     table_l : astropy.table.Table
         Precompute results for the lenses.
     alpha_l : float
-        TBD
+        The response of the lenses to magnification.
     camb_results : camb.results.CAMBdata
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
