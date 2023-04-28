@@ -1,17 +1,17 @@
 """Module for pre-computing lensing results."""
 
-import numbers
-import warnings
 import multiprocessing as mp
-import queue as Queue
-
+import numbers
 import numpy as np
+import queue as Queue
+import warnings
+
+
+from astropy import units as u
+from astropy.cosmology import FlatLambdaCDM
+from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
 from scipy.interpolate import interp1d
-
-from astropy.cosmology import FlatLambdaCDM
-from astropy import units as u
-from astropy.units import UnitConversionError
 
 from .physics import critical_surface_density
 from .physics import effective_critical_surface_density
@@ -281,8 +281,6 @@ def precompute(
 
     table_engine_l['z'] = np.ascontiguousarray(
         table_l['z'][argsort_pix_l], dtype=np.float64)
-    table_engine_s['z'] = np.ascontiguousarray(
-        table_s['z'][argsort_pix_s], dtype=np.float64)
 
     for f, f_name in zip([np.sin, np.cos], ['sin', 'cos']):
         for table, argsort_pix, table_engine in zip(
@@ -343,10 +341,13 @@ def precompute(
             fill_value=(dz_s_interp[0], dz_s_interp[-1]))
         table_engine_l['delta z_s'] = np.ascontiguousarray(
             dz_s_interp(np.array(table_engine_l['z'])), dtype=np.float64)
+        table_engine_s['z'] = np.ascontiguousarray(
+            table_s['z'][argsort_pix_s], dtype=np.float64)
 
     elif table_c is None and table_n is not None:
         n_bins = table_n['n'].data.shape[1]
         sigma_crit_eff = np.zeros(len(table_l) * n_bins, dtype=np.float64)
+        z_mean = np.zeros(n_bins, dtype=np.float64)
         for i in range(n_bins):
             z_min = np.amin(table_l['z'])
             z_max = min(np.amax(table_l['z']),
@@ -368,10 +369,14 @@ def precompute(
             mask = sigma_crit_eff_inv_interp == 0
             sigma_crit_eff_interp[~mask] = sigma_crit_eff_inv_interp[~mask]**-1
             sigma_crit_eff[i::n_bins] = sigma_crit_eff_interp
+            z_mean[i] = np.average(table_n['z'], weights=table_n['n'][:, i])
         table_engine_l['sigma_crit_eff'] = np.ascontiguousarray(
             sigma_crit_eff, dtype=np.float64)
         table_engine_s['z_bin'] = np.ascontiguousarray(
             table_s['z_bin'][argsort_pix_s], dtype=int)
+        table_engine_s['z'] = np.ascontiguousarray(
+            z_mean[table_s['z_bin']][argsort_pix_s], dtype=np.float64)
+
     elif table_c is not None and table_s is not None:
         raise ValueError('table_c and table_n cannot both be given.')
 

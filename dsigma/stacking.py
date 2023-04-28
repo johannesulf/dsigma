@@ -1,8 +1,10 @@
 """Module for stacking lensing results after pre-computation."""
 
 import numpy as np
+from astropy import units as u
 from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
+from astropy.units import UnitConversionError
 from . import surveys
 from .physics import mpc_per_degree, lens_magnification_shear_bias
 from .physics import critical_surface_density
@@ -236,7 +238,7 @@ def mean_source_redshift(table_l, photo_z_correction=False):
 
 
 def lens_magnification_bias(table_l, alpha_l, camb_results,
-                            photo_z_correction=True):
+                            photo_z_correction=True, shear=False):
     """Estimate the additive lens magnification bias.
 
     Parameters
@@ -249,7 +251,11 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
     photo_z_correction : boolean, optional
-        Whether to correct for photo-z dilution and offsets.
+        Whether to correct for photo-z dilution and offsets. Default is True.
+    shear : boolean, optional
+        If True, return bias of the mean tangential shear. Otherwise, return
+        an estimate for the bias of the excess surface density. Default is
+        False.
 
     Returns
     -------
@@ -276,25 +282,22 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         z_s_true = z_s
 
     bins = table_l.meta['bins']
+    d = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
 
-    shear_mode = ('shear_mode' in table_l.meta.keys() and
-                  table_l.meta['shear_mode'])
-
-    if shear_mode:
-        theta = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
-    else:
-        rp = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
-        theta = np.deg2rad(rp / mpc_per_degree(
+    try:
+        theta = d.to(u.rad).value
+    except UnitConversionError:
+        theta = np.deg2rad(d.to(u.Mpc).value / mpc_per_degree(
             z_l, cosmology=cosmology, comoving=table_l.meta['comoving']))
 
-    gamma = np.array([lens_magnification_shear_bias(
+    gt = np.array([lens_magnification_shear_bias(
         theta[i], alpha_l, z_l[i], z_s_true[i], camb_results) for i in
         range(len(theta))])
 
-    if shear_mode:
-        return gamma
+    if shear:
+        return gt
     else:
-        return gamma * sigma_crit
+        return gt * sigma_crit
 
 
 def tangential_shear(table_l, table_r=None, boost_correction=False,
