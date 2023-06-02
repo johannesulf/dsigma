@@ -83,7 +83,8 @@ def tomographic_redshift_bin(z_s, version=default_version):
         redshift. Returns -1 in case a redshift does not fall into any bin.
 
     """
-    z_bin = np.digitize(z_s, [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]) - 1
+    z_bin = np.digitize(z_s, np.array(
+        [0.1, 0.3, 0.5, 0.7, 0.9, 1.2]) + 1e-6, right=True) - 1
     z_bin = np.where((z_s < 0.1) | (z_s >= 1.2), -1, z_bin)
 
     return z_bin

@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2023-06-02
+
 ### Changed
 
 - `dsigma.stacking.lens_magnification_bias` can now be used to compute the bias in the tangential shear
@@ -15,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - incompatibility with numpy 1.24
 - bug in `dsigma.stacking.tangential_shear` when `random_subtraction=True`
+- error in tomographic redshift bin assignment for KiDS, sources with photo-z's at the bin edges were assigned to the wrong tomographic bin, this biased KiDS lensing measurements by order 2%
 
 ## [0.7.1] - 2023-01-18
 
