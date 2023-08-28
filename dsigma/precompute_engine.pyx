@@ -203,7 +203,7 @@ def precompute_engine(
                     if has_sigma_crit_eff:
                         sigma_crit = sigma_crit_eff[
                             i_l * n_z_bins + z_bin[i_s]]
-                    elif z_l[i_l] < z_s[i_s]:
+                    elif d_com_l[i_l] < d_com_s[i_s]:
                         sigma_crit = (sigma_crit_factor * (1 + z_l[i_l]) *
                             d_com_s[i_s] / d_com_l[i_l] /
                             (d_com_s[i_s] - d_com_l[i_l]))

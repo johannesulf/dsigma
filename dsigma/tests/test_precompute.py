@@ -37,7 +37,7 @@ def test_precompute_treecorr():
     except ImportError:
         warnings.warn('TreeCorr is not installed. Skipping test.',
                       RuntimeWarning)
-        return 0
+        return None
 
     table_l, table_s = get_test_catalogs(1000, 10000)
     theta_bins = np.logspace(0, 1, 11)

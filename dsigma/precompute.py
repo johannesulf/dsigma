@@ -197,9 +197,14 @@ def precompute(
         assumed to be in Mpc. If an astropy quantity, one can pass both length
         units, e.g. kpc and Mpc, as well as angular units, i.e. deg and rad.
     table_c : astropy.table.Table, optional
-        Additional photometric redshift calibration catalog. Default is None.
+        Additional photometric redshift calibration catalog. If provided, this
+        will be used to statistically correct the photometric source redshifts
+        and critical surface densities. Default is None.
     table_n : astropy.table.Table, optional
-        Source redshift distributions. Default is None.
+        Source redshift distributions. If provided, this will be used to
+        compute mean source redshifts and critical surface densities. These
+        mean quantities would be used instead the individual photometric
+        redshift estimates. Default is None.
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations. Default is a flat LambdaCDM
         cosmology with h=1 and Om0=0.3.
@@ -474,7 +479,7 @@ def precompute(
                 :, np.newaxis] * table_l['sum w_ls e_t sigma_crit'])
 
     if 'delta z_s' in table_engine_l.keys():
-        table_l['sum w_ls (z_s - delta z_s)'] = (
+        table_l['sum w_ls z_s'] = (
             table_l['sum w_ls z_s'] - table_l['sum w_ls'] * np.array(
                 table_engine_l['delta z_s'])[inv_argsort_pix_l][:, np.newaxis])
 

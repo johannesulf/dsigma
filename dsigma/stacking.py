@@ -208,18 +208,13 @@ def mean_lens_redshift(table_l):
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def mean_source_redshift(table_l, photo_z_correction=False):
+def mean_source_redshift(table_l):
     """Compute the weighted-average source redshift.
 
     Parameters
     ----------
     table_l : astropy.table.Table
         Precompute results for the lenses.
-    photo_z_correction : boolean, optional
-        By default, this function returns the average photometric source
-        redshift. If True and a calibration catalog or source redshift
-        distribution has been provided at the precompute stage, estimate the
-        intrinsic source redshift distribution. Default is False.
 
     Returns
     -------
@@ -227,18 +222,12 @@ def mean_source_redshift(table_l, photo_z_correction=False):
         Mean source redshift in each bin.
 
     """
-    if not photo_z_correction:
-        key_num = 'sum w_ls z_s'
-    else:
-        key_num = 'sum w_ls (z_s - delta z_s)'
-
     return (
-        np.sum(table_l[key_num] * table_l['w_sys'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls z_s'] * table_l['w_sys'][:, None], axis=0) /
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def lens_magnification_bias(table_l, alpha_l, camb_results,
-                            photo_z_correction=True, shear=False):
+def lens_magnification_bias(table_l, alpha_l, camb_results, shear=False):
     """Estimate the additive lens magnification bias.
 
     Parameters
@@ -250,8 +239,6 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
     camb_results : camb.results.CAMBdata
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
-    photo_z_correction : boolean, optional
-        Whether to correct for photo-z dilution and offsets. Default is True.
     shear : boolean, optional
         If True, return bias of the mean tangential shear. Otherwise, return
         an estimate for the bias of the excess surface density. Default is
@@ -267,19 +254,8 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
 
     z_l = mean_lens_redshift(table_l)
     z_s = mean_source_redshift(table_l)
-    if photo_z_correction:
-        z_s_true = mean_source_redshift(table_l, photo_z_correction=True)
-        try:
-            sigma_crit = critical_surface_density(
-                z_l, z_s, cosmology, comoving=table_l.meta['comoving'])
-            sigma_crit *= photo_z_dilution_factor(table_l)
-        except KeyError:
-            sigma_crit = critical_surface_density(
-                z_l, z_s_true, cosmology, comoving=table_l.meta['comoving'])
-    else:
-        sigma_crit = critical_surface_density(
-            z_l, z_s, cosmology, comoving=table_l.meta['comoving'])
-        z_s_true = z_s
+    sigma_crit = critical_surface_density(
+        z_l, z_s, cosmology, comoving=table_l.meta['comoving'])
 
     bins = table_l.meta['bins']
     d = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
@@ -291,7 +267,7 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
             z_l, cosmology=cosmology, comoving=table_l.meta['comoving']))
 
     gt = np.array([lens_magnification_shear_bias(
-        theta[i], alpha_l, z_l[i], z_s_true[i], camb_results) for i in
+        theta[i], alpha_l, z_l[i], z_s[i], camb_results) for i in
         range(len(theta))])
 
     if shear:
