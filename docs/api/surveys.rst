@@ -1,5 +1,5 @@
 dsigma.surveys module
----------------------
+=====================
 
 .. automodule:: dsigma.surveys.cfhtls
     :members:

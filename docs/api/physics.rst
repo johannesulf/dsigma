@@ -1,5 +1,5 @@
 dsigma.physics module
----------------------
+=====================
 
 .. automodule:: dsigma.physics
     :members:

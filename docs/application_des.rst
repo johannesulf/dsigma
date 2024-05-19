@@ -1,15 +1,13 @@
-########################
 Dark Energy Survey (DES)
-########################
+========================
 
 .. note::
     This guide has not been inspected or endorsed by the DES collaboration.
 
 Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. Check out the documentation of :code:`dsigma` v0.6 if you want to see how to reduce DES Y1 data.
 
-********************
 Downloading the Data
-********************
+--------------------
 
 DES Y3 data can be downloaded `here <https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files/y3kp_cats/>`_. The following command should download all the necessary data.
 
@@ -70,10 +68,8 @@ Unfortunately, the total amount of data is very large, i.e. hundreds of GBytes. 
 
 The final file, :code:`des_y3.hdf5`, is also available from the :code:`dsigma` authors upon request.
 
-
-******************
 Preparing the Data
-******************
+------------------
 
 First, we must put the data into a format easily understandable by :code:`dsigma`. There are several helper functions to make this easy. Additionally, we want to use the :math:`n(z)`'s provided by DES Y3 to correct for photometric redshift biases.
 
@@ -101,10 +97,8 @@ After running this selection response calculation, we are ready to drop all gala
 
     table_n = Table.read('des_y3.hdf5', path='redshift')
 
-
-***********************
 Precomputing the Signal
-***********************
+-----------------------
 
 We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual precomputation.
 
@@ -122,10 +116,8 @@ We will now run the computationally expensive precomputation phase. Here, we fir
     precompute(table_r, table_s, rp_bins, cosmology=Planck15, comoving=True,
                table_c=table_c, lens_source_cut=0.1, progress_bar=True)
 
-
-*******************
 Stacking the Signal
-*******************
+-------------------
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
@@ -163,9 +155,7 @@ We choose to include all the necessary corrections factors. In addition to the m
 
         result.write('des_{}.csv'.format(lens_bin), overwrite=True)
 
-
-****************
 Acknowledgements
-****************
+----------------
 
 When using the above data and algorithms, please to read and follow the acknowledgement section on the `DES Y3 data release site <https://des.ncsa.illinois.edu/releases/y3a2>`_.

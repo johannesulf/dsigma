@@ -1,6 +1,5 @@
-###################
 Stacking the Signal
-###################
+===================
 
 The function :func:`dsigma.stacking.excess_surface_density` allows us to calculate the total galaxy-galaxy lensing signal, including all correction factors. In the example code below, we are analyzing the galaxy-galaxy lensing signal with HSC data. We have performed the pre-computation, and the results are stored in ``table_l``. For HSC, we need to apply shear bias, shear responsivity, and selection bias correction terms. The code below takes all of that into account.
 

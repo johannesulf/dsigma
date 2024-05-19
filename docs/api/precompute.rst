@@ -1,5 +1,5 @@
 dsigma.precompute module
-------------------------
+========================
 
 .. automodule:: dsigma.precompute
     :members:

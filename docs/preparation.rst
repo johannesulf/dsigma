@@ -1,15 +1,12 @@
-################
 Data Preparation
-################
+================
 
 We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Fortunately, many data sets are publicly available, such as data from HSC or CFHTLenS. Once we have obtained the data, we need to convert it into a format understandable by :code:`dsigma`.
 
 Generally, :code:`dsigma` expects all lens, source, and calibration catalogs to be :code:`astropy` tables with data stored in specific, pre-defined columns.
 
-
-************
 Lens Catalog
-************
+------------
 
 The following columns are required for lens catalogs.
 
@@ -20,10 +17,8 @@ The following columns are required for lens catalogs.
 
 The weight :math:`w_{\mathrm{sys}}` is often used to mitigate systematics in the lens selection.
 
-
-**************
 Source Catalog
-**************
+--------------
 
 The following columns are required for source catalogs.
 
@@ -42,10 +37,8 @@ Additionally, the following columns may be used in the analysis.
 * ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
 * ``z_bin``: tomographic redshift bin, non-negative and starts at 0
 
-
-*******************
 Calibration Catalog
-*******************
+-------------------
 
 The following columns are required in (optional) calibration catalogs.
 

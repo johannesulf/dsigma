@@ -1,16 +1,13 @@
-#########################
 Kilo-Degree Survey (KiDS)
-#########################
+=========================
 
 .. note::
     This guide has not been inspected or endorsed by the KiDS collaboration.
 
 This tutorial will teach us how to cross-correlate BOSS lens galaxies with source catalogs from KiDS. We will work with the 4th data release (KiDS-1000).
 
-
-********************
 Downloading the Data
-********************
+--------------------
 
 First, we need to download the necessary KiDS data files. The following commands should download all the required data.
 
@@ -20,10 +17,8 @@ First, we need to download the necessary KiDS data files. The following commands
     wget http://kids.strw.leidenuniv.nl/DR4/data_files/KiDS1000_SOM_N_of_Z.tar.gz
     tar -xvf KiDS1000_SOM_N_of_Z.tar.gz --strip 1
 
-
-******************
 Preparing the Data
-******************
+------------------
 
 First, we must put the data into a format easily understandable by :code:`dsigma`. There are several helper functions to make this easy. Additionally, we want to use the :math:`n(z)`'s provided by KiDS to correct for photometric redshift biases. Thus, we also bin the source galaxies by photometric redshift and read the source redshift distribution in each photometric redshift bin.
 
@@ -52,10 +47,8 @@ First, we must put the data into a format easily understandable by :code:`dsigma
     table_n['n'] = np.vstack(
         [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)]).T
 
-
-***********************
 Precomputing the Signal
-***********************
+-----------------------
 
 We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm min}` where :math:`z_{t, \rm min}` is the minimum redshift of the tomographic bin each source galaxy belongs to. Afterward, we run the actual precomputation.
 
@@ -72,10 +65,8 @@ We will now run the computationally expensive precomputation phase. Here, we fir
     precompute(table_r, table_s, rp_bins, cosmology=Planck15, comoving=True,
                table_n=table_n, lens_source_cut=0.1, progress_bar=True)
 
-
-*******************
 Stacking the Signal
-*******************
+-------------------
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
@@ -113,9 +104,7 @@ We choose to include all the necessary corrections factors. The multiplicative s
 
         result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
 
-
-****************
 Acknowledgements
-****************
+----------------
 
 When using the above data and algorithms, please to read and follow the acknowledgment section on the `KiDS DR4 release site <http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.

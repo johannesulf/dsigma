@@ -1,16 +1,13 @@
-#######################
 Hyper Suprime-Cam (HSC)
-#######################
+=======================
 
 .. note::
     This guide has not been inspected or endorsed by the HSC collaboration.
 
 This tutorial will teach us how to cross-correlate BOSS lens galaxies with lensing catalogs from the HSC survey.
 
-
-********************
 Downloading the Data
-********************
+--------------------
 
 First, we need to download the necessary HSC data files. Head to the `HSC data release site <https://hsc-release.mtk.nao.ac.jp/doc/>`_ and register for an account if you haven't done so already. As of September 2020, the only publicly available data set is part of the public data release 2 (PDR2) and goes back to the internal S16A release.
 
@@ -40,10 +37,8 @@ As you can see, we will use the Ephor Afterburner photometric redshifts in this 
 
 In addition to the source catalog, we need a calibration catalog to correct for eventual biases stemming from using shallow photometric redshift point estimates. The relevant files can be downloaded using the following links: `1 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/Afterburner_reweighted_COSMOS_photoz_FDFC.fits>`_, `2 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/ephor_ab/pdf-s17a_wide-9812.cat.fits>`_,`3 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/ephor_ab/pdf-s17a_wide-9813.cat.fits>`_.
 
-
-******************
 Preparing the Data
-******************
+------------------
 
 First, we must put the data into a format easily understandable by :code:`dsigma`. There are several helper functions to make this easy.
 
@@ -67,10 +62,8 @@ First, we must put the data into a format easily understandable by :code:`dsigma
     table_c = dsigma_table(table_c, 'calibration', w_sys='SOM_weight',
                            w='weight_source', z_true='COSMOS_photoz', survey='HSC')
 
-
-***********************
 Precomputing the Signal
-***********************
+-----------------------
 
 We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterward, we run the actual precomputation.
 
@@ -85,10 +78,8 @@ We will now run the computationally expensive precomputation phase. Here, we fir
     precompute(table_r, table_s, rp_bins, cosmology=Planck15, comoving=True,
                table_c=table_c, lens_source_cut=0.1, progress_bar=True)
 
-
-*******************
 Stacking the Signal
-*******************
+-------------------
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
@@ -130,9 +121,7 @@ We choose to include all the necessary corrections factors. The shear responsivi
 
         result.write('hsc_{}.csv'.format(lens_bin))
 
-
-****************
 Acknowledgements
-****************
+----------------
 
 When using the above data and algorithms, please make sure to cite `Mandelbaum et al. (2018a) <https://ui.adsabs.harvard.edu/abs/2018PASJ...70S..25M/abstract>`_ and `Mandelbaum et al. (2018b) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_.

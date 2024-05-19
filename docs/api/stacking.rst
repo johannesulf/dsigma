@@ -1,5 +1,5 @@
 dsigma.stacking module
-----------------------
+======================
 
 .. automodule:: dsigma.stacking
     :members:

@@ -1,5 +1,5 @@
 dsigma.jackknife module
------------------------
+=======================
 
 .. automodule:: dsigma.jackknife
     :members:

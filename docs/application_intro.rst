@@ -1,13 +1,10 @@
-############
 Introduction
-############
+============
 
 We will discuss various examples of calculating galaxy-galaxy lensing signals in the following. Precisely, we will calculate galaxy-galaxy lensing signals for the three extensive imaging surveys: the Dark Energy Survey (DES), the Hyper Suprime-Cam (HSC) survey, and the Kilo-Degree Survey (KiDS). We will use galaxies from the Baryon Oscillation Spectroscopic Survey (BOSS) as lenses. Specifically, we will qualitatively reproduce the results of the Lensing Without Borders project. To this end, we will cross-correlate the same sets of BOSS lens galaxies with different imaging surveys. If everything works correctly, the lensing amplitude :math:`\Delta\Sigma` for the same lens samples should be consistent between the various imaging surveys.
 
-
-*****************
 BOSS Lens Catalog
-*****************
+-----------------
 
 The BOSS target catalogs are publicly available from the `SDSS data server <https://data.sdss.org/sas/dr12/boss/lss/>`_. In the following, we will assume that all relevant lens
 (:code:`galaxy_DR12v5_CMASSLOWZTOT_*.fits.gz`) and random files (:code:`random0_DR12v5_CMASSLOWZTOT_*.fits.gz`) are in the working directory. The following code reads the data and puts it in a format easily understandable by :code:`dsigma`.

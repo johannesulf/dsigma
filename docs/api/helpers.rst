@@ -1,5 +1,5 @@
 dsigma.helpers module
----------------------
+=====================
 
 .. automodule:: dsigma.helpers
     :members:

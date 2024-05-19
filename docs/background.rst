@@ -1,13 +1,10 @@
-##########
 Background
-##########
+==========
 
 Here, we will give a brief overview of the various equations and estimators provided by :code:`dsigma`. However, this document is not a full theoretical discussion of the theory of gravitational lensing and galaxy-galaxy lensing. For this, we refer the reader to suitable standard literature like `Bartelmann (2001) <https://ui.adsabs.harvard.edu/abs/2001PhR...340..291B/abstract>`_.
 
-
-**********************
 Excess Surface Density
-**********************
+----------------------
 
 The ultimate goal of :code:`dsigma` is to provide estimates of the mean so-called excess surface density (ESD), also written as :math:`\Delta\Sigma`, around a set of "lens" galaxies. The ESD is defined as the following quantity:
 
@@ -19,10 +16,8 @@ The first term is the (area-weighted) average surface density inside a circle of
 
 For most applications, the ESD will be positive since the surface density generally decreases with increasing distance :math:`r_p` from the lens. It is worthwhile to look at a few limiting cases. For example, for a point mass, one can show that the first term in the above equation is :math:`M / \pi r_p^2` whereas the second term vanishes. Thus, :math:`\Delta\Sigma = M / \pi r_p^2`. For non-trivial mass distributions, the above expression is more complicated. However, if we have two mass distributions whose only difference is a re-scaling, i.e. :math:`\Sigma_1 (r_p) / \Sigma_2 (r_p) = c` or :math:`\rho (r) / \rho_2 (r) = c` (:math:`\rho` refers to the three-dimensional density), then the two ESDs obey :math:`\Delta\Sigma_1 / \Delta\Sigma_2 = c`. Ultimately, :math:`\Delta\Sigma` is a measure of the distribution of mass (both baryonic and dark) around lens galaxies.
 
-
-****************
 Tangential Shear
-****************
+----------------
 
 In the framework of general relativity, mass and energy affect the space-time metric, which ultimately leads to the deflection of light by the gravitational field of an object. On cosmological distances, the potential light deflection is a function of the so-called critical surface density, :math:`\Sigma_\mathrm{crit}`.
 
@@ -39,10 +34,8 @@ In the above equation, :math:`D_A` denotes the angular diameter distance as a fu
 
 Thus, by measuring the shapes of source galaxies (in addition to the redshifts of lens and source galaxies), we can estimate :math:`\Delta\Sigma`.
 
-
-***************
 Naive Estimator
-***************
+---------------
 
 Unfortunately, galaxies are not perfectly round objects and are often intrinsically elliptical with random orientations. Thus, the shape of an individual source galaxy with respect to a lens galaxy will be dominated by its intrinsic arbitrary shape and orientation instead of the gravitational lensing signal we are after. This effect is also known as "shape noise." To get to the gravitational tangential shear signal, we need to average the tangential ellipticities :math:`e_t` of a large number of lens-source pairs to overcome the shape noise. On average, it is true that :math:`\langle e_t \rangle = \gamma_t`. A naive, minimum variance estimator for :math:`\Delta \Sigma` is
 
@@ -60,15 +53,13 @@ where
 
 and :math:`w_s` is a source weight designed to minimize errors due to noise in the shape measurements. :math:`\sum_{ls}` denotes that the summation goes over all suitable lens-source pairs separated by a certain projected distance. Evaluation of the above equation is one of the main tasks of :code:`dsigma`. Although the above equation looks simple enough, the number of suitable lens-source pairs can easily be in billions or trillions for many applications. If one is not careful, simple python implementations of the above sum can be computationally prohibitive. :code:`dsigma` has various intelligent ways of calculating the sum efficiently.
 
-
-****************
 Correction Terms
-****************
+----------------
 
 Another reason for using :code:`dsigma` is that the above estimator will be biased in almost all practical applications. One must additionally apply various corrections to get an unbiased estimate of :math:`\Delta\Sigma`. In the following, we will describe and motivate the multiple corrections implemented in the code.
 
 Lens Selection Bias
-===================
+~~~~~~~~~~~~~~~~~~~
 
 Often, our lens sample is not complete. For example, we might only have redshifts for a subset of all lens galaxies. Since redshifts are required to estimate :math:`\Delta\Sigma`, lens galaxies without redshifts must be excluded from the analysis. However, depending on the properties of the lens incompleteness, the intrinsic :math:`\Delta\Sigma` is often correlated with whether a lens galaxy makes it into our sample. Thus, the naive :math:`\Delta\Sigma` estimate using the incomplete lens sample could be biased concerning the :math:`\Delta\Sigma` of the complete sample. Assigning suitable systematic weights :math:`w_{\mathrm{sys}, l}` to the lens galaxies can counteract this effect. In this case, we replace the above estimator with
 
@@ -78,9 +69,8 @@ Often, our lens sample is not complete. For example, we might only have redshift
         \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls} \Sigma_{\mathrm{crit}}
               (z_l, z_s) e_t}{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}} \, .
 
-
 Photometric Redshifts
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 When calculating the critical surface density :math:`\Sigma_{\mathrm{crit}}`, we need to know both lens and source redshift. However, in many lensing surveys, we only have very inaccurate and possibly biased photometric redshifts for sources. Even in the case of just inaccurate redshifts, this can cause systematic biases in calculating :math:`\Sigma_{\mathrm{crit}}`. However, we can statistically correct the bias if we have a "calibration" catalog of sources with their inaccurate photometric redshifts and their true redshifts. The correction factor is called :math:`f_\mathrm{bias}` and can be calculated via
 
@@ -121,9 +111,8 @@ where
     \langle \Sigma_{\mathrm{crit}}^{-1} (z_l) \rangle = \int \Sigma_{\rm crit}
         (z_l, z_s) n(z_s) \mathrm{d}z_s \, .
 
-
 Boost Factor
-============
+~~~~~~~~~~~~
 
 The photometric redshift correction above only accounts for the average effect of photometric redshift errors. However, it doesn't consider that there is an overabundance of physically associated sources close to lenses. As a result, close to actual lens galaxies, a more significant fraction of sources have actual redshifts placing them close to the lens, i.e. :math:`z_{\rm l} \approx z_{\rm s}` than what was going into the calculation of :math:`f_{\rm bias}`. For those physically associated sources :math:`\Sigma_{\mathrm{crit}} \approx \infty`, i.e., they do not induce any shear. Not considering this effect can lead to underestimating the proper lensing amplitude. One way to correct for this effect is to calculate the so-called boost factor :math:`b` via
 
@@ -137,9 +126,8 @@ Note that the sum in the denominator goes over a set of random lenses with the s
 
 Note, however, that this boost factor estimate might be biased for various shape detection algorithms. For example, it is not unreasonable to assume that a more significant fraction of potential source galaxies is rejected close to massive cluster lenses due to increased blending between different sources. Such an effect would lead to biases in estimating :math:`b`.
 
-
 Shear Response
-==============
+~~~~~~~~~~~~~~
 
 Although the algorithms used by different weak lensing groups are very sophisticated, the measured shapes of galaxies can still be biased. We need to correct this in the galaxy-galaxy lensing estimator to get unbiased estimates of :math:`\Delta\Sigma`. Typically, lensing surveys provide a (scalar) bias estimate :math:`m` for every object or group of objects. This bias quantifies the response of the measured shapes to changes in intrinsic shapes such that, on average, the measured ellipticities are biased by :math:`1 + m`. To correct for this bias, one first calculates the average shear bias via
 
@@ -168,7 +156,7 @@ This formalism allows it to quantify, for example, how the sensitivity to shape 
 where :math:`\phi` is the polar angle of the source in the lens coordinate system. We then calculate the mean tangential shear response and divide :math:`\Delta\Sigma` by :math:`\overline{R_t}`, similar to the scalar case.
 
 Shear Responsivity
-==================
+~~~~~~~~~~~~~~~~~~
 
 Depending on the shape estimator, the ellipticity vector of some shape detection algorithm will be biased :math:`2 (1 - e_\mathrm{rms}^2)`, where :math:`e_\mathrm{rms}` is the intrinsic shape dispersion per component. In contrast to the shear response bias, this bias is not due to, for example, imperfections like blending and instead is a natural mathematical property of the estimator. Nonetheless, we need to correct it and do so virtually the same way as for the shear response bias.
 
@@ -181,13 +169,13 @@ Depending on the shape estimator, the ellipticity vector of some shape detection
 To apply the shear responsivity correction, we need to divide the final lensing signal by :math:`2\mathcal{R}`. This correction is significant, so it is critical to apply it when necessary. One example is the public shape catalog of the Hyper Suprime-Cam survey.
 
 Source Selection Bias
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 While the shear response and responsivity describe how the measured shapes of individual galaxies are affected by the measurement pipeline, the selection bias describes the phenomenon that the selection of sources, i.e., quality cuts, can depend on the intrinsic shape itself. If not corrected, this effect could lead to biases in the mean tangential shear.
 
 Correcting for selection bias is handled very differently between different surveys. Details about the selection bias in the Hyper Suprime-Cam survey can be found in section 5.6.2 of `Mandelbaum et al. (2018) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_. Similarly, details on the selection bias in the Dark Energy Survey can be found in `Sheldon & Huff (2017) <https://ui.adsabs.harvard.edu/abs/2017ApJ...841...24S>`_. We also refer the reader to their respective tutorials where these correction factors are implemented. Luckily, the selection bias affects the shear only at the level of :math:`\sim 1\%`.
 
 Random Subtraction
-==================
+~~~~~~~~~~~~~~~~~~
 
 Often, we can calculate the lensing signal around a set of random lenses with the same overall redshift and spatial distribution as the actual lenses. If these random lenses are genuinely random, they do not correlate with the large-scale matter field. As a result, they should give a lensing amplitude consistent with 0. However, lensing systematics like systematic shears can lead to non-zero signals, even for random points. Subtracting those points can alleviate such systematic errors. Furthermore, even without lensing systematics, subtracting randoms leads to a reduced variance of the lensing signal on large scales, as shown in `Singh et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017MNRAS.471.3827S/abstract>`_.

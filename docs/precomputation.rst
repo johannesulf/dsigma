@@ -1,6 +1,5 @@
-##############
 Precomputation
-##############
+==============
 
 We need to sum over all lens-source pairs when calculating the total galaxy-galaxy lensing signal and potential correction factors. That means we must look at each lens and sum over all sources that can form a pair with that lens. The precomputation part performs this summation over all sources for all objects in the lens catalog. It is computationally the most demanding task of :code:`dsigma`.
 
