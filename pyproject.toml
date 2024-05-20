@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dsigma"
-version = "0.7.2"
 requires-python = ">=3.8"
 authors = [{name = "Johannes U. Lange", email = "julange.astro@pm.me"},
            {name = "Song Huang"}]
@@ -14,9 +13,16 @@ license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dependencies = ["numpy", "astropy", "scipy", "scikit-learn", "astropy-healpix",
                 "tqdm"]
+dynamic = ["version"]
 
 [project.urls]
-Home = "https://dsigma.readthedocs.io"
+Homepage = "https://github.com/johannesulf/dsigma"
+Documentation = "https://dsigma.readthedocs.io"
+Repository = "https://github.com/johannesulf/dsigma.git"
+Issues = "https://github.com/johannesulf/dsigma/issues"
+Changelog = "https://github.com/johannesulf/dsigma/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 packages = ["dsigma", "dsigma.surveys"]
+dynamic.version = {attr = "dsigma.__version__"}
+

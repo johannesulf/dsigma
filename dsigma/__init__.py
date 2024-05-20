@@ -6,9 +6,7 @@ from . import physics
 from . import precompute
 from . import stacking
 from . import surveys
-import importlib.metadata
-
 
 __all__ = ["helpers", "jackknife", "physics", "precompute", "stacking",
            "surveys"]
-__version__ = importlib.metadata.version("dsigma")
+__version__ = '0.7.2'
