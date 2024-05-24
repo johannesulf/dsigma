@@ -14,7 +14,8 @@ __all__ = ['number_of_pairs', 'raw_tangential_shear',
            'boost_factor', 'scalar_shear_response_factor',
            'matrix_shear_response_factor', 'shear_responsivity_factor',
            'mean_lens_redshift', 'mean_source_redshift',
-           'tangential_shear', 'excess_surface_density']
+           'mean_critical_surface_density', 'tangential_shear',
+           'excess_surface_density']
 
 
 def number_of_pairs(table_l):
@@ -227,7 +228,35 @@ def mean_source_redshift(table_l):
         np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
 
 
-def lens_magnification_bias(table_l, alpha_l, camb_results, shear=False):
+def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
+    """Compute the weighted-average (effective) critical surface density.
+
+    Parameters
+    ----------
+    table_l : astropy.table.Table
+        Precompute results for the lenses.
+    photo_z_dilution_correction : boolean, optional
+        If True, correct for photo-z biases. This can only be done if a
+        calibration catalog has been provided in the Precomputation phase.
+        Default is False.
+
+    Returns
+    -------
+    sigma_crit : numpy.ndarray
+        Mean (effective) critical surface density.
+
+    """
+    if photo_z_dilution_correction:
+        key = 'sum w_ls sigma_crit f_bias'
+    else:
+        key = 'sum w_ls sigma_crit'
+    return (
+        np.sum(table_l[key] * table_l['w_sys'][:, None], axis=0) /
+        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+
+
+def lens_magnification_bias(table_l, alpha_l, camb_results,
+                            photo_z_dilution_correction=False, shear=False):
     """Estimate the additive lens magnification bias.
 
     Parameters
@@ -239,6 +268,10 @@ def lens_magnification_bias(table_l, alpha_l, camb_results, shear=False):
     camb_results : camb.results.CAMBdata
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
+    photo_z_dilution_correction : boolean, optional
+        If True, correct for photo-z biases. This can only be done if a
+        calibration catalog has been provided in the precomputation phase.
+        Not used if `shear` is True. Default is False.
     shear : boolean, optional
         If True, return bias of the mean tangential shear. Otherwise, return
         an estimate for the bias of the excess surface density. Default is
@@ -254,9 +287,6 @@ def lens_magnification_bias(table_l, alpha_l, camb_results, shear=False):
 
     z_l = mean_lens_redshift(table_l)
     z_s = mean_source_redshift(table_l)
-    sigma_crit = critical_surface_density(
-        z_l, z_s, cosmology, comoving=table_l.meta['comoving'])
-
     bins = table_l.meta['bins']
     d = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
 
@@ -273,7 +303,8 @@ def lens_magnification_bias(table_l, alpha_l, camb_results, shear=False):
     if shear:
         return gt
     else:
-        return gt * sigma_crit
+        return gt * mean_critical_surface_density(
+            table_l, photo_z_dilution_correction=photo_z_dilution_correction)
 
 
 def tangential_shear(table_l, table_r=None, boost_correction=False,
@@ -400,7 +431,7 @@ def excess_surface_density(table_l, table_r=None,
         Precompute results for random lenses. Default is None.
     photo_z_dilution_correction : boolean, optional
         If True, correct for photo-z biases. This can only be done if a
-        calibration catalog has been provided in the Precomputation phase.
+        calibration catalog has been provided in the precomputation phase.
         Default is False.
     boost_correction : boolean, optional
         If true, calculate and apply a boost factor correction. This can only
