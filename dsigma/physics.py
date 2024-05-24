@@ -283,4 +283,4 @@ def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
              (camb_results.Params.omch2 + camb_results.Params.ombh2)**2 /
              (camb_results.Params.H0 / 100)**4 / 4 / c.c**3)
 
-    return 2 * (alpha_l - 1) * gamma
+    return 2 * (alpha_l - 1) * gamma.to(u.dimensionless_unscaled).value
