@@ -6,14 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- added `dsigma.stacking.mean_critical_surface_density`
+
 ### Changed
 - photometric redshift correction now always applied when computing the mean source redshift
+- `dsigma.stacking.lens_magnification_bias` now uses `dsigma.stacking.mean_critical_surface_density` to estimate the critical surface density and not calculate it based on the mean lens and source redshift
 
 ## [0.7.2] - 2023-06-02
 
-### Changed
+### Added
 
 - `dsigma.stacking.lens_magnification_bias` can now be used to compute the bias in the tangential shear
+
+### Changed
+
 - mean source redshift now takes into account n(z)'s passed to `dsigma.precompute.precompute`
 
 ### Fixed
