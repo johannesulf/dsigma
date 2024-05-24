@@ -28,6 +28,7 @@ Overview
     precomputation
     stacking
     resampling
+    magnification
 
 .. toctree::
     :caption: Applications

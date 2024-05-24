@@ -7,15 +7,14 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.units import UnitConversionError
 from . import surveys
 from .physics import mpc_per_degree, lens_magnification_shear_bias
-from .physics import critical_surface_density
 
 __all__ = ['number_of_pairs', 'raw_tangential_shear',
            'raw_excess_surface_density', 'photo_z_dilution_factor',
            'boost_factor', 'scalar_shear_response_factor',
            'matrix_shear_response_factor', 'shear_responsivity_factor',
            'mean_lens_redshift', 'mean_source_redshift',
-           'mean_critical_surface_density', 'tangential_shear',
-           'excess_surface_density']
+           'mean_critical_surface_density', 'lens_magnification_bias',
+           'tangential_shear', 'excess_surface_density']
 
 
 def number_of_pairs(table_l):
@@ -269,9 +268,10 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         CAMB results object that contains information on cosmology and the
         matter power spectrum.
     photo_z_dilution_correction : boolean, optional
-        If True, correct for photo-z biases. This can only be done if a
-        calibration catalog has been provided in the precomputation phase.
-        Not used if `shear` is True. Default is False.
+        If True, correct the mean critical surface density for photo-z biases.
+        Not used if `shear` is True. This should be consistent with what is
+        used for calculating the total excess surface density. Default is
+        False.
     shear : boolean, optional
         If True, return bias of the mean tangential shear. Otherwise, return
         an estimate for the bias of the excess surface density. Default is

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - photometric redshift correction now always applied when computing the mean source redshift
 - `dsigma.stacking.lens_magnification_bias` now uses `dsigma.stacking.mean_critical_surface_density` to estimate the critical surface density and not calculate it based on the mean lens and source redshift
+- `dsigma.physics.lens_magnification_shear_bias` can now use angles expressed with `astropy` units
 
 ## [0.7.2] - 2023-06-02
 

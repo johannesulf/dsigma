@@ -200,8 +200,9 @@ def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
 
     Parameters
     ----------
-    theta : float
-        Angular separation :math:`\theta` from the lens sample in radians.
+    theta : float or astropy.units.quantity.Quantity
+        Angular separation :math:`\theta` from the lens sample. If not quantity
+        is given, the separation is assumed to be in radians.
     alpha_l : float
         Local slope of the flux distribution of lenses near the flux limit.
     z_l : float
@@ -237,6 +238,11 @@ def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
     """
     camb_interp = camb_results.get_matter_power_interpolator(
         hubble_units=False, k_hunit=False)
+
+    if not isinstance(theta, u.quantity.Quantity):
+        theta = theta * u.rad
+
+    theta = theta.to(u.rad).value
 
     ell_min = 0
     ell_max = np.amax(jn_zeros(2, bessel_function_zeros)) / theta
