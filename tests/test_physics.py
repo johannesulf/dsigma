@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 
-from ..physics import critical_surface_density
+from dsigma.physics import critical_surface_density
 
 
 def test_critical_surface_density():

@@ -31,7 +31,8 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
     ----------
     table : astropy.table.Table
         Catalog containing objects. The catalog needs to have coordinates and
-        field IDs.
+        field IDs. The jackknife field for each galaxy will be added in the
+        `field_jk` column.
     centers : int or numpy.ndarray
         If int, total number of jackknife fields. Otherwise, the centers
         returned from a previous call to that function. This allows for
