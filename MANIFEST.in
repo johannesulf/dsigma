@@ -4,3 +4,4 @@ include CHANGELOG.md
 include pyproject.toml
 include dsigma/precompute_engine.pyx
 exclude dsigma/precompute_engine.c
+exclude tests/*
