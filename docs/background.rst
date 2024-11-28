@@ -108,7 +108,7 @@ where
 
 .. math::
 
-    \langle \Sigma_{\mathrm{crit}}^{-1} (z_l) \rangle = \int \Sigma_{\rm crit}
+    \langle \Sigma_{\mathrm{crit}}^{-1} (z_l) \rangle = \int \Sigma_{\rm crit}^{-1}
         (z_l, z_s) n(z_s) \mathrm{d}z_s \, .
 
 Boost Factor
