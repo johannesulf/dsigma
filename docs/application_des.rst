@@ -13,7 +13,7 @@ DES Y3 data can be downloaded `here <https://desdr-server.ncsa.illinois.edu/desp
 
 .. code-block:: none
 
-    wget https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files/y3kp_cats/DESY3_sompz_v0.40.h5
+    wget https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files/y3kp_cats/DESY3_sompz_v0.50.h5
     wget https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files/y3kp_cats/DESY3_metacal_v03-004.h5
     wget https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files/y3kp_cats/DESY3_indexcat.h5
 
