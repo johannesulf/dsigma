@@ -112,9 +112,9 @@ We will now run the computationally expensive precomputation phase. Here, we fir
 
     rp_bins = np.logspace(-1, 1.6, 14)
     precompute(table_l, table_s, rp_bins, cosmology=Planck15, comoving=True,
-               table_c=table_c, lens_source_cut=0.1, progress_bar=True)
+               table_n=table_n, lens_source_cut=0.1, progress_bar=True)
     precompute(table_r, table_s, rp_bins, cosmology=Planck15, comoving=True,
-               table_c=table_c, lens_source_cut=0.1, progress_bar=True)
+               table_n=table_n, lens_source_cut=0.1, progress_bar=True)
 
 Stacking the Signal
 -------------------
@@ -155,7 +155,7 @@ We choose to include all the necessary corrections factors. In addition to the m
 
         result.write('des_{}.csv'.format(lens_bin), overwrite=True)
 
-Acknowledgements
-----------------
+Acknowledgments
+---------------
 
-When using the above data and algorithms, please to read and follow the acknowledgement section on the `DES Y3 data release site <https://des.ncsa.illinois.edu/releases/y3a2>`_.
+When using the above data and algorithms, please read and follow the acknowledgment section on the `DES Y3 data release site <https://des.ncsa.illinois.edu/releases/y3a2>`_.

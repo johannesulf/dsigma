@@ -5,7 +5,7 @@ Galaxy-galaxy lensing measures the mean tangential shear of source galaxies at r
 
 However, the magnification of lens galaxies by foreground structures at :math:`z_{\rm f} < z_{\rm l}` will induce spatial correlations such that the tangential shear induced by foreground structures is expected to be non-zero. This effect is called lens magnification and can be an important contributor to the mean tangential shear around lens galaxies. The strength of this effect depends on the response of lenses to magnification, i.e., how much more likely a galaxy is to make it into the lens sample if it is gravitationally lensed. This is quantified by the parameter :math:`\alpha`. We refer the reader to `Unruh et al. (2020) <https://ui.adsabs.harvard.edu/abs/2020A%26A...638A..96U/abstract>`_ for a detailed investigation of this effect.
 
-`dsigma` implements the estimate for lens magnification described in this publication. For example, the code below reproduces the pink line in Fig. 5 of Unruh et al. (2019). To estimate the power spectrum, it relies on `CAMB <https://camb.readthedocs.io>`_.
+`dsigma` implements the estimate for lens magnification described in this publication. For example, the code below reproduces the pink line in Fig. 5 of Unruh et al. (2020). To estimate the power spectrum, it relies on `CAMB <https://camb.readthedocs.io>`_.
 
 .. code-block:: python
 
@@ -43,4 +43,4 @@ However, the magnification of lens galaxies by foreground structures at :math:`z
    :width: 80 %
    :align: center
 
-In the same way, we can use :func:`dsigma.stacking.lens_magnification_bias` function to estimate the leans magnification bias. In this case, to calculate the additive shear bias, `dsigma` uses the mean lens and source redshift. Furthermore, to convert this into an estimate of the bias in :math:`\Delta\Sigma`, it multiplies this with the mean critical surface density. Note that the lens magnification bias is purely additive, i.e., it can be corrected for by subtracting the bias estimate from the total lensing signal.
+In the same way, we can use :func:`dsigma.stacking.lens_magnification_bias` function to estimate the lens magnification bias. In this case, to calculate the additive shear bias, `dsigma` uses the mean lens and source redshift. Furthermore, to convert this into an estimate of the bias in :math:`\Delta\Sigma`, it multiplies this with the mean critical surface density. Note that the lens magnification bias is purely additive, i.e., it can be corrected for by subtracting the bias estimate from the total lensing signal.

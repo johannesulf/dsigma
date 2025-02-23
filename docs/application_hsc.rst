@@ -121,7 +121,7 @@ We choose to include all the necessary corrections factors. The shear responsivi
 
         result.write('hsc_{}.csv'.format(lens_bin))
 
-Acknowledgements
-----------------
+Acknowledgments
+---------------
 
 When using the above data and algorithms, please make sure to cite `Mandelbaum et al. (2018a) <https://ui.adsabs.harvard.edu/abs/2018PASJ...70S..25M/abstract>`_ and `Mandelbaum et al. (2018b) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_.

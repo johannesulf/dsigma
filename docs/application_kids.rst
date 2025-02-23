@@ -104,7 +104,7 @@ We choose to include all the necessary corrections factors. The multiplicative s
 
         result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
 
-Acknowledgements
-----------------
+Acknowledgments
+---------------
 
-When using the above data and algorithms, please to read and follow the acknowledgment section on the `KiDS DR4 release site <http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.
+When using the above data and algorithms, please read and follow the acknowledgment section on the `KiDS DR4 release site <http://kids.strw.leidenuniv.nl/DR4/KiDS-1000_shearcatalogue.php#ack>`_.
