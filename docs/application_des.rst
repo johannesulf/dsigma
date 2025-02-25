@@ -134,7 +134,7 @@ We choose to include all the necessary corrections factors. In addition to the m
 
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
-    for lens_bin in range(3, len(z_bins) - 1):
+    for lens_bin in range(len(z_bins) - 1):
         mask_l = ((z_bins[lens_bin] <= table_l['z']) &
                   (table_l['z'] < z_bins[lens_bin + 1]))
         mask_r = ((z_bins[lens_bin] <= table_r['z']) &
