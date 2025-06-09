@@ -3,7 +3,6 @@
 import warnings
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
 from scipy.spatial import cKDTree
 from astropy.table import Table
