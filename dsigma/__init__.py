@@ -9,4 +9,4 @@ from . import surveys
 
 __all__ = ["helpers", "jackknife", "physics", "precompute", "stacking",
            "surveys"]
-__version__ = '1.0.0'
+__version__ = '1.0.1'
