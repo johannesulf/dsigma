@@ -159,7 +159,7 @@ def precompute_engine(
         # Get list of all source pixels that could contain suitable sources.
         pix_s_list = np.fromiter(
             kdtree.query_ball_point(xyz_l[pix_l], sqrt(dist_3d_sq_max)),
-            dtype=long)
+            dtype=int)
         l_pix_s = len(pix_s_list)
 
         # Loop over all suitable source pixels.
