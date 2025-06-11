@@ -16,29 +16,29 @@ Overview
     :caption: Getting Started
     :maxdepth: 1
 
-    installation
-    background
+    start/installation
+    start/background
 
 .. toctree::
     :hidden:
     :caption: Workflow
     :maxdepth: 1
 
-    preparation
-    precomputation
-    stacking
-    resampling
-    magnification
+    workflow/preparation
+    workflow/precomputation
+    workflow/stacking
+    workflow/resampling
+    workflow/magnification
 
 .. toctree::
     :caption: Applications
     :maxdepth: 1
     :hidden:
 
-    application_intro
-    application_des
-    application_hsc
-    application_kids
+    applications/intro
+    applications/des_y3
+    applications/hsc_y1
+    applications/kids-1000
 
 .. toctree::
     :caption: API Documentation

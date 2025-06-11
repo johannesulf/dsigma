@@ -9,8 +9,8 @@ authors = [{name = "Johannes U. Lange", email = "jlange@american.edu"},
            {name = "Song Huang"}]
 readme = "README.md"
 keywords = ["astronomy", "weak-lensing"]
-license = {file = "LICENSE"}
-classifiers = ["License :: OSI Approved :: MIT License"]
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = ["numpy", "astropy", "scipy", "scikit-learn", "astropy-healpix",
                 "tqdm"]
 dynamic = ["version"]

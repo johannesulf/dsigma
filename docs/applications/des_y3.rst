@@ -7,7 +7,7 @@ Dark Energy Survey (DES)
 .. warning::
     The DES collaboration recently `discovered <https://arxiv.org/abs/2410.22272>`_ that the tomographic binning file for Y3 was "outdated." Please make sure to use the updated file, :code:`DESY3_sompz_v0.50.h5`, and not the outdated :code:`DESY3_sompz_v0.40.h5`.
 
-Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. Check out the documentation of :code:`dsigma` v0.6 if you want to see how to reduce DES Y1 data.
+Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. The guide for the older Y1 release is :doc:`here <des_y1>`.
 
 Downloading the Data
 --------------------
