@@ -3,11 +3,10 @@
 import numpy as np
 
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
-           'default_column_keys', 'apply_photo_z_quality_cut',
-           'selection_bias_factor']
+           'default_column_keys', 'multiplicative_selection_bias']
 
-default_version = 'PDR2'
-known_versions = ['PDR2', ]
+default_version = 'Y3'
+known_versions = ['Y1', 'Y3']
 e_2_convention = 'flipped'
 
 
@@ -30,7 +29,7 @@ def default_column_keys(version=default_version):
         If `version` does not correspond to a known catalog version.
 
     """
-    if version == 'PDR2':
+    if version == 'Y1':
         keys = {
             'ra': 'ira',
             'dec': 'idec',
@@ -42,86 +41,28 @@ def default_column_keys(version=default_version):
             'm': 'ishape_hsm_regauss_derived_shear_bias_m',
             'e_rms': 'ishape_hsm_regauss_derived_rms_e',
             'R_2': 'ishape_hsm_regauss_resolution'}
+    elif version == 'Y3':
+        keys = {
+            'ra': 'i_ra',
+            'dec': 'i_dec',
+            'e_1': 'i_hsmshaperegauss_e1',
+            'e_2': 'i_hsmshaperegauss_e2',
+            'w': 'i_hsmshaperegauss_derived_weight',
+            'm': 'i_hsmshaperegauss_derived_shear_bias_m',
+            'e_rms': 'i_hsmshaperegauss_derived_rms_e',
+            'R_2': 'i_hsmshaperegauss_resolution',
+            'z_bin': 'hsc_y3_zbin',
+            'mag_A': 'i_apertureflux_10_mag'}
     else:
         raise ValueError(
-            "Unkown version of DES. Supported versions are {}.".format(
+            "Unkown version of HSC. Supported versions are {}.".format(
                 known_versions))
 
     return keys
 
 
-def apply_photo_z_quality_cut(table_s, global_photo_z_cuts,
-                              specinfo_photo_z_cuts):
-    """Apply HSC-specific photo-z cuts to the source catalog.
-
-    Parameters
-    ----------
-    table_s : astropy.table.Table
-        HSC weak lensing source catalog.
-    global_photo_z_cuts : string
-        Requirements for global photometric redshift quality.
-    specinfo_photo_z_cuts : string
-        Specinfo photo-z cuts.
-
-    Returns
-    -------
-    table_s : astropy.table.Table
-        Table containing only source passing the cuts.
-
-    Raises
-    ------
-    ValueError
-        If invalid options are passed.
-
-    """
-    if global_photo_z_cuts == "basic":
-        # Implement ~2-sigma clipping over chi^2_5.
-        mask = table_s['frankenz_model_llmin'] < 6.
-    elif global_photo_z_cuts == "medium":
-        mask = table_s['frankenz_model_llmin'] < 6.
-        # Remove sources with overly broad PDFs around `z_best`.
-        mask = mask & (table_s['frankenz_photoz_risk_best'] < 0.25)
-    elif global_photo_z_cuts == "strict":
-        # Similar to `medium`, but stricter.
-        mask = table_s['frankenz_model_llmin'] < 6.
-        mask = mask & (table_s['frankenz_photoz_risk_best'] < 0.15)
-    elif global_photo_z_cuts == "none":
-        # No global photo-z cut is applied.
-        mask = np.isfinite(table_s['frankenz_photoz_best'])
-    else:
-        raise ValueError("Invalid global photo-z cuts option "
-                         "{}".format(global_photo_z_cuts))
-
-    # Apply specinfo photo-z cuts
-    # Should most likely be applied with corresponding redshift cuts.
-    if specinfo_photo_z_cuts == "none":
-        # No cut
-        pass
-    elif specinfo_photo_z_cuts == "great":
-        # >50% of info comes from non-photo-z sources.
-        mask = mask & (table_s['frankenz_model_ptype2'] < 0.5)
-    elif specinfo_photo_z_cuts == "good":
-        # >10% of info comes from non-photo-z sources.
-        mask = mask & (table_s['frankenz_model_ptype2'] < 0.9)
-    elif specinfo_photo_z_cuts == "moderate":
-        # 10%-50% of info comes from non-photo-z sources.
-        mask = mask & (table_s['frankenz_model_ptype2'] >= 0.5)
-        mask = mask & (table_s['frankenz_model_ptype2'] < 0.9)
-    elif specinfo_photo_z_cuts == "poor":
-        # <=50% of info comes from non-photo-z sources.
-        mask = mask & (table_s['frankenz_model_ptype2'] >= 0.5)
-    elif specinfo_photo_z_cuts == "poorest":
-        # <=10% of info comes from non-photo-z sources.
-        mask = mask & (table_s['frankenz_model_ptype2'] >= 0.9)
-    else:
-        raise ValueError("Invalid specinfo photo-z cuts option "
-                         "= {}".format(global_photo_z_cuts))
-
-    return table_s[mask]
-
-
-def selection_bias_factor(table_s):
-    """Compute the multiplicative selection bias.
+def multiplicative_selection_bias(table_s, version=default_version):
+    r"""Compute the multiplicative selection bias.
 
     Parameters
     ----------
@@ -131,8 +72,15 @@ def selection_bias_factor(table_s):
     Returns
     -------
     m_sel : numpy.ndarray
-        Per-object estimate of the HSC selection bias.
+        Per-object estimate of the HSC selection bias :math:`m_\mathrm{sel}`.
 
     """
-    d_r2 = 0.01
-    return (table_s['R_2'] < 0.3 + d_r2) / d_r2 * 0.00865
+    d_R_2 = 0.01
+    d_mag_A = 0.025
+    if version == 'Y1':
+        # section 5.6.2 in 1710.00885
+        return (table_s['R_2'] < 0.3 + d_R_2) / d_R_2 * 0.00865
+    elif version == 'Y3':
+        # eq. (18) in 2304.00703
+        return (0.01919 * (table_s['R_2'] < 0.3 + d_R_2) / d_R_2 +
+                0.05854 * (table_s['magA'] > 25.5 - d_mag_A) / d_mag_A)

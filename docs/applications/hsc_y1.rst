@@ -1,10 +1,12 @@
+:orphan:
+
 Hyper Suprime-Cam (HSC)
 =======================
 
 .. note::
     This guide has not been inspected or endorsed by the HSC collaboration.
 
-This tutorial will teach us how to cross-correlate BOSS lens galaxies with lensing catalogs from the HSC survey.
+This tutorial will teach us how to cross-correlate BOSS lens galaxies with lensing catalogs from the HSC survey. We will work with the Y1 data, also known as PDR2 or S16A.
 
 Downloading the Data
 --------------------
@@ -33,7 +35,7 @@ The following SQL script will return all the necessary data from the `CAS search
 
     ORDER BY meas.object_id
 
-As you can see, we will use the Ephor Afterburner photometric redshifts in this application. But you're free to use any other photometric redshift estimate available in the HSC database. Also, we neglect additive shear biases, which is fine because we will use random catalogs to correct those. In the following, this tutorial assumes that the above source catalog is saved as :code:`hsc_sources.fits` in the working directory.
+As you can see, we will use the Ephor Afterburner photometric redshifts in this application. But you're free to use any other photometric redshift estimate available in the HSC database. Also, we neglect additive shear biases, which is fine because we will use random catalogs to correct those. In the following, this tutorial assumes that the above source catalog is saved as :code:`hsc_y1.fits` in the working directory.
 
 In addition to the source catalog, we need a calibration catalog to correct for eventual biases stemming from using shallow photometric redshift point estimates. The relevant files can be downloaded using the following links: `1 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/Afterburner_reweighted_COSMOS_photoz_FDFC.fits>`_, `2 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/ephor_ab/pdf-s17a_wide-9812.cat.fits>`_, `3 <https://hsc-release.mtk.nao.ac.jp/archive/filetree/cosmos_photoz_catalog_reweighted_to_s16a_shape_catalog/ephor_ab/pdf-s17a_wide-9813.cat.fits>`_.
 
@@ -49,8 +51,9 @@ First, we must put the data into a format easily understandable by :code:`dsigma
     from astropy.table import Table, vstack, join
     from dsigma.helpers import dsigma_table
 
-    table_s = Table.read('hsc_sources.fits')
+    table_s = Table.read('hsc_y1.fits')
     table_s = dsigma_table(table_s, 'source', survey='HSC')
+    table_s['m_sel'] = hsc.selection_bias_factor(table_s)
 
     table_c_1 = vstack([Table.read('pdf-s17a_wide-9812.cat.fits'),
                         Table.read('pdf-s17a_wide-9813.cat.fits')])
@@ -109,7 +112,7 @@ We choose to include all the necessary corrections factors. The shear responsivi
         kwargs = {'return_table': True,
                   'scalar_shear_response_correction': True,
                   'shear_responsivity_correction': True,
-                  'hsc_selection_bias_correction': True,
+                  'selection_bias_correction': True,
                   'boost_correction': False, 'random_subtraction': True,
                   'photo_z_dilution_correction': True,
                   'table_r': table_r[mask_r]}

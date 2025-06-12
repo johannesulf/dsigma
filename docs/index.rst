@@ -37,7 +37,7 @@ Overview
 
     applications/intro
     applications/des_y3
-    applications/hsc_y1
+    applications/hsc_y3
     applications/kids-1000
 
 .. toctree::
