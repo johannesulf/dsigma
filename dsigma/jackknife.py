@@ -155,7 +155,7 @@ def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
         Correlation matrix.
     sigma : int
         Scale of the gaussian filter.
-    exclude_diagonal : boolean, optional
+    exclude_diagonal : bool, optional
         Whether to exclude the diagonal from the smoothing. That is what should
         be done generally because the diagonal is 1 by definition. Default is
         True.

@@ -33,11 +33,11 @@ def dsigma_table(table, table_type, survey=None, version=None, copy=False,
         If a survey is provided, one can specify the version or data release
         of the survey. If None, it will assume the most recent public vercsion.
         Default is None.
-    copy : boolean, optional
+    copy : bool, optional
         Whether the output table shares memory with the input table. Setting to
         False can save memory. However, data will be corupted if the original
         input table is manipulated. Default is False.
-    verbose : boolean, optional
+    verbose : bool, optional
         Whether to output information about the assignments. Default is True.
     e_2_convention : string, optional
         Whether to switch the sign of e_2 in the input catalog. If 'standard',

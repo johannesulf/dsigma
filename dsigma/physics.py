@@ -105,7 +105,7 @@ def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations. Only used if comoving distances
         are not passed.
-    comoving : boolean, optional
+    comoving : bool, optional
         Flag for using comoving instead of physical units.
     d_l : float or numpy.ndarray
         Comoving transverse distance to the lens. If not given, it is
