@@ -1,7 +1,5 @@
 """Module with functions specific to the Hyper-Suprime Cam survey."""
 
-import numpy as np
-
 __all__ = ['default_version', 'known_versions', 'e_2_convention',
            'default_column_keys', 'multiplicative_selection_bias']
 
