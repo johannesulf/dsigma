@@ -1,11 +1,12 @@
 """Module for stacking lensing results after pre-computation."""
 
 import numpy as np
+
 from astropy import units as u
-from astropy.table import Table
 from astropy.cosmology import FlatLambdaCDM
+from astropy.table import Table
 from astropy.units import UnitConversionError
-from . import surveys
+
 from .physics import mpc_per_degree, lens_magnification_shear_bias
 
 __all__ = ['number_of_pairs', 'raw_tangential_shear',
