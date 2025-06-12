@@ -8,7 +8,7 @@ build
 dist
 dsigma.egg-info/
 dsigma/precompute_engine.c
-tutorial
+tutorial/*
 !tutorial/*.py
 !tutorial/*.csv
 

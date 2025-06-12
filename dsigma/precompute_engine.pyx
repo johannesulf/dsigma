@@ -74,10 +74,10 @@ def precompute_engine(
     if has_e_rms:
         e_rms = table_s['e_rms']
 
-    cdef bint has_R_2 = 'R_2' in table_s.keys()
-    cdef double[::1] R_2
-    if has_R_2:
-        R_2 = table_s['R_2']
+    cdef bint has_m_sel = 'm_sel' in table_s.keys()
+    cdef double[::1] m_sel
+    if has_m_sel:
+        m_sel = table_s['m_sel']
 
     cdef bint has_R_matrix = 'R_11' in table_s.keys()
     cdef double[::1] R_11, R_12, R_21, R_22
@@ -101,9 +101,9 @@ def precompute_engine(
     cdef double[::1] sum_w_ls_1_minus_e_rms_sq
     if has_e_rms:
         sum_w_ls_1_minus_e_rms_sq = table_r['sum w_ls (1 - e_rms^2)']
-    cdef double[::1] sum_w_ls_A_p_R_2
-    if has_R_2:
-        sum_w_ls_A_p_R_2 = table_r['sum w_ls A p(R_2=0.3)']
+    cdef double[::1] sum_w_ls_m_sel
+    if has_m_sel:
+        sum_w_ls_m_sel = table_r['sum w_ls m_sel']
     cdef double[::1] sum_w_ls_R_T
     if has_R_matrix:
         sum_w_ls_R_T = table_r['sum w_ls R_T']
@@ -257,9 +257,8 @@ def precompute_engine(
                     if has_e_rms:
                         sum_w_ls_1_minus_e_rms_sq[offset_result + i_bin] += (
                             w_ls * (1 - e_rms[i_s] * e_rms[i_s]))
-                    if has_R_2 and R_2[i_s] <= 0.31:
-                        sum_w_ls_A_p_R_2[offset_result + i_bin] += (
-                            0.00865 * w_ls / 0.01)
+                    if has_m_sel:
+                        sum_w_ls_m_sel[offset_result + i_bin] += w_ls * m_sel[i_s]
                     if has_R_matrix:
                         sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
                             R_11[i_s] * cos_2phi * cos_2phi +

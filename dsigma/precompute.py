@@ -208,7 +208,7 @@ def precompute(
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations. Default is a flat LambdaCDM
         cosmology with h=1 and Om0=0.3.
-    comoving : boolean, optional
+    comoving : bool, optional
         Whether to use comoving or physical quantities for radial bins (if
         given in physical units) and the excess surface density. Default is
         True.
@@ -228,7 +228,7 @@ def precompute(
         It has to be a power of 2. May impact performance. Default is 256.
     n_jobs : int, optional
         Number of jobs to run at the same time. Default is 1.
-    progress_bar : boolean, option
+    progress_bar : bool, option
         Whether to show a progress bar for the main loop over lens pixels.
         Default is False.
 
@@ -298,7 +298,7 @@ def precompute(
                     np.ascontiguousarray(f(np.deg2rad(table[angle]))[
                         argsort_pix])
 
-    for key in ['w', 'e_1', 'e_2', 'm', 'e_rms', 'R_2', 'R_11', 'R_22',
+    for key in ['w', 'e_1', 'e_2', 'm', 'e_rms', 'm_sel', 'R_11', 'R_22',
                 'R_12', 'R_21']:
         if key in table_s.colnames:
             table_engine_s[key] = np.ascontiguousarray(
@@ -401,8 +401,8 @@ def precompute(
     if 'e_rms' in table_s.colnames:
         key_list.append('sum w_ls (1 - e_rms^2)')
 
-    if 'R_2' in table_s.colnames:
-        key_list.append('sum w_ls A p(R_2=0.3)')
+    if 'm_sel' in table_s.colnames:
+        key_list.append('sum w_ls m_sel')
 
     if (('R_11' in table_s.colnames) and ('R_12' in table_s.colnames) and
             ('R_21' in table_s.colnames) and ('R_22' in table_s.colnames)):

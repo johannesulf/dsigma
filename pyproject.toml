@@ -25,4 +25,3 @@ Changelog = "https://github.com/johannesulf/dsigma/blob/main/CHANGELOG.md"
 [tool.setuptools]
 packages = ["dsigma", "dsigma.surveys"]
 dynamic.version = {attr = "dsigma.__version__"}
-

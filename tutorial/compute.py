@@ -1,13 +1,12 @@
-#import fitsio
 import argparse
 import numpy as np
 import multiprocessing
-from astropy.table import Table, vstack, hstack, join
+from astropy.table import Table, vstack, join
 from dsigma.helpers import dsigma_table
 from dsigma.precompute import precompute
 from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
 from dsigma.stacking import excess_surface_density
-from dsigma.surveys import des, kids
+from dsigma.surveys import des, hsc, kids
 from astropy.cosmology import Planck15
 
 parser = argparse.ArgumentParser(
@@ -59,8 +58,9 @@ if args.survey.lower() == 'des':
 
 elif args.survey.lower() == 'hsc':
 
-    table_s = Table.read('hsc_s16a_lensing.fits')
+    table_s = Table.read('hsc_y1.fits')
     table_s = dsigma_table(table_s, 'source', survey='HSC')
+    table_s['m_sel'] = hsc.selection_bias_factor(table_s)
 
     table_c_1 = vstack([
         Table.read('pdf-s17a_wide-9812.cat.fits'),
@@ -78,7 +78,7 @@ elif args.survey.lower() == 'hsc':
     stacking_kwargs = {'scalar_shear_response_correction': True,
                        'shear_responsivity_correction': True,
                        'photo_z_dilution_correction': True,
-                       'hsc_selection_bias_correction': True}
+                       'selection_bias_correction': True}
 
 elif args.survey.lower() == 'kids':
 

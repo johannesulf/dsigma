@@ -120,21 +120,19 @@ def apply_photo_z_quality_cut(table_s, global_photo_z_cuts,
     return table_s[mask]
 
 
-def selection_bias_factor(table_l):
+def selection_bias_factor(table_s):
     """Compute the multiplicative selection bias.
 
     Parameters
     ----------
-    table_l : astropy.table.Table
-        Precompute results for the lenses.
+    table_s : astropy.table.Table
+        HSC weak lensing source catalog.
 
     Returns
     -------
     m_sel : numpy.ndarray
-        Multiplicative selection bias in each radial bin.
+        Per-object estimate of the HSC selection bias.
 
     """
-    return (
-        np.sum(table_l['sum w_ls A p(R_2=0.3)'] *
-               table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+    d_r2 = 0.01
+    return (table_s['R_2'] < 0.3 + d_r2) / d_r2 * 0.00865
