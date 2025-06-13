@@ -128,4 +128,4 @@ We choose to include all the necessary corrections factors. The shear responsivi
 Acknowledgments
 ---------------
 
-When using the above data and algorithms, please make sure to cite `Mandelbaum et al. (2018a) <https://ui.adsabs.harvard.edu/abs/2018PASJ...70S..25M/abstract>`_ and `Mandelbaum et al. (2018b) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_.
+When using the above data and algorithms, please make sure to cite `Mandelbaum et al. (2018a) <https://doi.org/10.1093/pasj/psx130>`_ and `Mandelbaum et al. (2018b) <https://doi.org/10.1093/mnras/sty2420>`_.

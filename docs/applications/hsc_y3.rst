@@ -117,3 +117,8 @@ We choose to include all the necessary corrections factors. The shear responsivi
             excess_surface_density, table_l[mask_l], **kwargs)))
 
         result.write('hsc_{}.csv'.format(lens_bin))
+
+Acknowledgments
+---------------
+
+When using the above data and algorithms, please make sure to cite `Li et al. (2022) <https://doi.org/10.1093/pasj/psac006>`_.
