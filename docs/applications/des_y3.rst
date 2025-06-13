@@ -7,7 +7,7 @@ Dark Energy Survey (DES)
 .. warning::
     The DES collaboration recently `discovered <https://arxiv.org/abs/2410.22272>`_ that the tomographic binning file for Y3 was "outdated." Please make sure to use the updated file, :code:`DESY3_sompz_v0.50.h5`, and not the outdated :code:`DESY3_sompz_v0.40.h5`.
 
-Here, we we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. The guide for the older Y1 release is :doc:`here <des_y1>`.
+Here, we will show how to cross-correlate BOSS lens galaxies with shape catalogs from DES. We will work with the Y3 data release. The guide for the older Y1 release is :doc:`here <des_y1>`.
 
 Downloading the Data
 --------------------
@@ -69,7 +69,7 @@ Preparing the Data
 
 First, we must put the data into a format easily understandable by :code:`dsigma`. There are several helper functions to make this easy. Additionally, we want to use the :math:`n(z)`'s provided by DES Y3 to correct for photometric redshift biases.
 
-In an intermediate step, we also calculate the so-called METACALIBRATION selection response. This factor takes into account how the selection flags of the METACALIBRATION shape measurements used by DES might be biased by shear itself. We need to correct such a bias in order to get unbiased shear and :math:`\Delta\Sigma` measurements. See `Sheldon & Huff (2017) <https://ui.adsabs.harvard.edu/abs/2017ApJ...841...24S>`_ and `McClintock et al. (2018) <https://ui.adsabs.harvard.edu/abs/2019MNRAS.482.1352M>`_ for details. We will added this response to the total METACALIBRATION response that also takes into account how the measured shear is biased with respect to the intrinsic shear. Ideally, one would calculate the selection response for each radial bin and each specific lens sample (because this affects the source weighting). Additionally, one could also fold in how artificial shear affects the METACALIBRATION redshifts. However, as we can see above, the selection response bias is likely very small and not a strong function of redshift. Thus, we will ignore this complication here (cf. McClintock et al. 2018).
+In an intermediate step, we also calculate the so-called METACALIBRATION selection response. This factor takes into account how the selection flags of the METACALIBRATION shape measurements used by DES might be biased by shear itself. We need to correct such a bias in order to get unbiased shear and :math:`\Delta\Sigma` measurements. See `Sheldon & Huff (2017) <https://doi.org/10.3847/1538-4357/aa704b>`_ and `McClintock et al. (2018) <https://doi.org/10.1093/mnras/sty2711>`_ for details. We will add this response to the total METACALIBRATION response that also takes into account how the measured shear is biased with respect to the intrinsic shear. Ideally, one would calculate the selection response for each radial bin and each specific lens sample (because this affects the source weighting). Additionally, one could also fold in how artificial shear affects the METACALIBRATION redshifts. However, as we can see above, the selection response bias is likely very small and not a strong function of redshift. Thus, we will ignore this complication here (cf. McClintock et al. 2018).
 
 After running this selection response calculation, we are ready to drop all galaxies that are flagged for the unsheared images (and also those galaxies that fall outside the redshift bins).
 
@@ -96,7 +96,7 @@ After running this selection response calculation, we are ready to drop all gala
 Precomputing the Signal
 -----------------------
 
-We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://ui.adsabs.harvard.edu/abs/2021MNRAS.505.4249M>`_ each source galaxy belongs to. Afterward, we run the actual precomputation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm low}` where :math:`z_{t, \rm low}` is the lower redshift bin edge of the tomographic bin `(Myles et al., 2021) <https://doi.org/10.1093/mnras/stab1515>`_ each source galaxy belongs to. Afterward, we run the actual precomputation.
 
 
 .. code-block:: python
@@ -117,7 +117,7 @@ Stacking the Signal
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. In addition to the matrix shear response correction (METACALIBRATION), we perform a random subtraction which is highly recommended but not strictly necessary. Note that we don't apply a boost correction since this might be biased for DES given our boost estimator.
+We choose to include all the necessary correction factors. In addition to the matrix shear response correction (METACALIBRATION), we perform a random subtraction, which is highly recommended but not strictly necessary. Note that we don't apply a boost correction since this might be biased for DES given our boost estimator.
 
 .. code-block:: python
 
@@ -149,7 +149,7 @@ We choose to include all the necessary corrections factors. In addition to the m
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l[mask_l], **kwargs)))
 
-        result.write('des_{}.csv'.format(lens_bin), overwrite=True)
+        result.write(f'des_{lens_bin}.csv', overwrite=True)
 
 Acknowledgments
 ---------------

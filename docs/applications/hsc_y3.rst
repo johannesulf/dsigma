@@ -56,7 +56,7 @@ First, we must put the data into a format easily understandable by :code:`dsigma
 Precomputing the Signal
 -----------------------
 
-We will now run the computationally expensive precomputation phase. For the lens-source separation, we require :math:`z_l + 0.3 < z_s` where :math:`z_s` is the mean redshift of the tomographic bin each source belongs to. This ensures that we don't stack the lensing signal for souces that are mostly in front of the lens.
+We will now run the computationally expensive precomputation phase. For the lens-source separation, we require :math:`z_l + 0.3 < z_s` where :math:`z_s` is the mean redshift of the tomographic bin each source belongs to. This ensures that we don't stack the lensing signal for sources that are mostly in front of the lens.
 
 .. code-block:: python
 
@@ -81,7 +81,7 @@ Stacking the Signal
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. Finally, random subtraction is also highly recommended, especially to mitigate additive shear biases. Note that we don't use a boost correction, but this would also be possible.
+We choose to include all the necessary correction factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. Finally, random subtraction is also highly recommended, especially to mitigate additive shear biases. Note that we don't use a boost correction, but this would also be possible.
 
 .. code-block:: python
 
@@ -116,7 +116,7 @@ We choose to include all the necessary corrections factors. The shear responsivi
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l[mask_l], **kwargs)))
 
-        result.write('hsc_{}.csv'.format(lens_bin))
+        result.write(f'hsc_{lens_bin}.csv', overwrite=True)
 
 Acknowledgments
 ---------------

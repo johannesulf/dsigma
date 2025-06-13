@@ -6,7 +6,7 @@ Hyper Suprime-Cam (HSC)
 .. note::
     This guide has not been inspected or endorsed by the HSC collaboration.
 
-This tutorial will teach us how to cross-correlate BOSS lens galaxies with lensing catalogs from the HSC survey. We will work with the Y1 data, also known as PDR2 or S16A.
+This tutorial will teach us how to cross-correlate BOSS lens galaxies with lensing catalogs from the HSC survey. We will work with the Y1 data, also known as PDR1, PDR2, or S16A.
 
 Downloading the Data
 --------------------
@@ -87,7 +87,7 @@ Stacking the Signal
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. The photo-z dilution correction is not strictly necessary but highly recommended. Finally, random subtraction is also highly recommended, especially to mitigate additive shear biases. Note that we don't use a boost correction, but this would also be possible.
+We choose to include all the necessary correction factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. The photo-z dilution correction is not strictly necessary but highly recommended. Finally, random subtraction is also highly recommended, especially to mitigate additive shear biases. Note that we don't use a boost correction, but this would also be possible.
 
 .. code-block:: python
 
@@ -123,7 +123,7 @@ We choose to include all the necessary corrections factors. The shear responsivi
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l[mask_l], **kwargs)))
 
-        result.write('hsc_{}.csv'.format(lens_bin))
+        result.write(f'hsc_{lens_bin}.csv', overwrite=True)
 
 Acknowledgments
 ---------------

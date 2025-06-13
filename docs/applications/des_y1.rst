@@ -6,13 +6,11 @@ Dark Energy Survey (DES)
 .. note::
     This guide has not been inspected or endorsed by the DES collaboration.
 
-Here, we we will show how to cross-correlate BOSS lens galaxies with shape
+Here, we will show how to cross-correlate BOSS lens galaxies with shape
 catalogs from DES. We will work with the Y1 data release.
 
-
-********************
 Downloading the Data
-********************
+--------------------
 
 DES data can be downloaded from the `DES data release website
 <https://des.ncsa.illinois.edu/releases>`_. The following commands should
@@ -27,10 +25,8 @@ use to approximate the true redshift distribution :math:`n(z)`.
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/photoz_catalogs/y1a1-gold-mof-badregion_BPZ.fits
     wget http://desdr-server.ncsa.illinois.edu/despublic/y1a1_files/photoz_catalogs/mcal-y1a1-combined-griz-blind-v3-matched_BPZbase.fits
 
-
-******************
 Preparing the Data
-******************
+------------------
 
 The first step is to put the data into a format easily understandable by
 :code:`dsigma`. There are a number of helper functions to make this easy.
@@ -62,10 +58,8 @@ memory is not an issue, feel free to use :code:`astropy`, instead.)
     table_s = dsigma_table(table_s, 'source', survey='DES')
     table_s['z_bin'] = des.tomographic_redshift_bin(table_s['z'])
 
-
-******************
 Selection Response
-******************
+------------------
 
 In an intermediate step, we calculate the so-called METACALIBRATION selection
 response. This factor takes into account how the selection flags of the
@@ -73,9 +67,9 @@ METACALIBRATION shape measurements used by DES might be biased by shear itself.
 We need to correct such a bias in order to get unbiased shear and
 :math:`\Delta\Sigma` measurements.
 See `Sheldon & Huff (2017)
-<https://ui.adsabs.harvard.edu/abs/2017ApJ...841...24S>`_ and
+<https://doi.org/10.3847/1538-4357/aa704b>`_ and
 `McClintock et al. (2018)
-<https://ui.adsabs.harvard.edu/abs/2019MNRAS.482.1352M>`_ for details.
+<https://doi.org/10.1093/mnras/sty2711>`_ for details.
 
 .. code-block:: python
 
@@ -115,10 +109,8 @@ that fall outside the redshift bins).
 
     table_s = table_s[(table_s['flags_select'] == 0) & (table_s['z_bin'] != -1)]
 
-
-*********************
 Note on the Estimator
-*********************
+---------------------
 
 The Dark Energy Survey uses the following estimator for :math:`\Delta\Sigma`
 (excluding random subtraction):
@@ -203,9 +195,8 @@ redshift, i.e. :math:`f_{\rm bias} = f_{\rm bias} (z_l)`. This difference
 should not matter since both estimators can be shown to be unbiased.
 
 
-************************
-Pre-Computing the Signal
-************************
+Precomputing the Signal
+-----------------------
 
 We will now run the computationally expensive pre-computation phase. Here,
 we first define the lens-source separation cuts. We require that
@@ -225,10 +216,8 @@ we first define the lens-source separation cuts. We require that
     add_precompute_results(table_r, table_s, rp_bins, cosmology=Planck15,
                            comoving=True, table_c=table_c)
 
-
-*******************
 Stacking the Signal
-*******************
+-------------------
 
 The total galaxy-galaxy lensing signal can be obtained with the following code.
 It first filters out all BOSS galaxies for which we couldn't find any source
@@ -256,10 +245,9 @@ estimator.
     table_r['n_s_tot'] = np.sum(table_r['sum 1'], axis=1)
     table_r = table_r[table_r['n_s_tot'] > 0]
 
-    add_continous_fields(table_l, distance_threshold=2)
-    centers = jackknife_field_centers(table_l, 100, weight='n_s_tot')
-    add_jackknife_fields(table_l, centers)
-    add_jackknife_fields(table_r, centers)
+    centers = compute_jackknife_fields(
+        table_l, 100, weights=np.sum(table_l['sum 1'], axis=1))
+    compute_jackknife_fields(table_r, centers)
 
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
@@ -278,14 +266,12 @@ estimator.
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l[mask_l], **kwargs)))
 
-        result.write('des_{}.csv'.format(lens_bin), overwrite=True)
+        result.write(f'des_{lens_bin}.csv', overwrite=True)
 
-
-****************
 Acknowledgements
-****************
+----------------
 
-When using the above data and algorithms, please to read and follow the
+When using the above data and algorithms, please read and follow the
 acknowledgement section on the `DES data release site
 <https://des.ncsa.illinois.edu/thanks>`_.
 

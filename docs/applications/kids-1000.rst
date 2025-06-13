@@ -44,13 +44,13 @@ First, we must put the data into a format easily understandable by :code:`dsigma
              '_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
     table_n = Table()
     table_n['z'] = np.genfromtxt(fname.format(1))[:, 0] + 0.025
-    table_n['n'] = np.vstack(
-        [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)]).T
+    table_n['n'] = np.column_stack(
+        [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)])
 
 Precomputing the Signal
 -----------------------
 
-We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{t, \rm min}` where :math:`z_{t, \rm min}` is the minimum redshift of the tomographic bin each source galaxy belongs to. Afterward, we run the actual precomputation.
+We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l + 0.1 < z_{s, \rm min}` where :math:`z_{s, \rm min}` is the minimum redshift of the tomographic bin each source galaxy belongs to. Afterward, we run the actual precomputation.
 
 .. code-block:: python
 
@@ -70,7 +70,7 @@ Stacking the Signal
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. The multiplicative shear correction is the most important and necessary. Random subtraction is recommended but not strictly necessary. Note that we don't apply a boost correction, but this would also be possible.
+We choose to include all the necessary correction factors. The multiplicative shear correction is the most important and necessary. Random subtraction is recommended but not strictly necessary. Note that we don't apply a boost correction, but this would also be possible.
 
 .. code-block:: python
 
@@ -102,7 +102,7 @@ We choose to include all the necessary corrections factors. The multiplicative s
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l[mask_l], **kwargs)))
 
-        result.write('kids_{}.csv'.format(lens_bin), overwrite=True)
+        result.write(f'kids_{lens_bin}.csv', overwrite=True)
 
 Acknowledgments
 ---------------

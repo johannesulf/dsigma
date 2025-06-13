@@ -98,8 +98,8 @@ elif args.survey.lower() == 'kids':
              'v2_SOMcols_Fid_blindC_TOMO{}_Nz.asc')
     table_n = Table()
     table_n['z'] = np.genfromtxt(fname.format(1))[:, 0] + 0.025
-    table_n['n'] = np.vstack(
-        [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)]).T
+    table_n['n'] = np.column_stack(
+        [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)])
 
     precompute_kwargs = dict(table_n=table_n)
     stacking_kwargs = dict(scalar_shear_response_correction=True)
@@ -139,4 +139,4 @@ for lens_bin in range(len(z_bins) - 1):
     result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
         excess_surface_density, table_l[mask_l], **stacking_kwargs)))
 
-    result.write('{}_{}.csv'.format(args.survey.lower(), lens_bin))
+    result.write(f'{args.survey.lower()}_{lens_bin}.csv', overwrite=True)
