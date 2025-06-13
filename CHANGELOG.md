@@ -4,6 +4,22 @@ Notable changes to dsigma will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The way multiplicative selection biases are handled was changed in order for the code to be more general. Specifically, the `hsc_selection_bias_correction` keyword argument in `dsigma.stacking.excess_surface_density` was replaced by the `selection_bias_correction` keyword argument. For this to work, a `m_sel` column needs to be added to the source table before the precomputation.
+- 'Y3' is now the default version for HSC.
+
+### Added
+
+- The function `survey.hsc.multiplicative_selection_bias` to compute `m_sel` for HSC was added.
+- `Y3` was added as a supported version to the `survey.hsc` functions.
+
+### Removed
+
+- The function `survey.hsc.apply_photo_z_quality_cut` was removed since it was rarely used and is only valid for Y1.
+
 ## [1.0.1] - 2025-06-09
 
 ### Fixed
