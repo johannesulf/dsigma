@@ -204,7 +204,9 @@ def precompute(
         Source redshift distributions. If provided, this will be used to
         compute mean source redshifts and critical surface densities. These
         mean quantities would be used instead the individual photometric
-        redshift estimates. Default is None.
+        redshift estimates. The table needs to have a `z` column giving the
+        redshift and a `n` column with the :math:`n(z)` for all samples.
+        Default is None.
     cosmology : astropy.cosmology, optional
         Cosmology to assume for calculations. Default is a flat LambdaCDM
         cosmology with h=1 and Om0=0.3.
@@ -261,8 +263,8 @@ def precompute(
         if 'z_bin' not in table_s.colnames:
             raise ValueError('To use source redshift distributions, the ' +
                              'source table needs to have a `z_bin` column.')
-        if not np.issubdtype(table_s['z_bin'].data.dtype, int) or np.amin(
-                table_s['z_bin']) < 0:
+        if (not np.issubdtype(table_s['z_bin'].data.dtype, np.integer) or
+                np.any(table_s['z_bin'] < 0)):
             raise ValueError('The `z_bin` column in the source table must ' +
                              'contain only non-negative integers.')
         if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:

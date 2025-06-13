@@ -7,7 +7,7 @@ __all__ = ['default_version', 'known_versions', 'e_2_convention',
            'multiplicative_shear_bias']
 
 default_version = 'DR4'
-known_versions = ['DR3', 'KV450', 'DR4']
+known_versions = ['DR3', 'KV450', 'DR4', 'KiDS-1000', '1000']
 e_2_convention = 'standard'
 
 
@@ -49,7 +49,7 @@ def default_column_keys(version=default_version):
             'e_1': 'bias_corrected_e1',
             'e_2': 'bias_corrected_e2',
             'w': 'weight'}
-    elif version == 'DR4':
+    elif version in ['DR4', 'KiDS-1000', '1000']:
         keys = {
             'ra': 'ALPHA_J2000',
             'dec': 'DELTA_J2000',
@@ -123,7 +123,7 @@ def multiplicative_shear_bias(z_bin, version=default_version):
         raise ValueError('For DR3, the multiplicative shear bias is ' +
                          'defined for each object individually.')
 
-    elif version in ['KV450', 'DR4']:
+    elif version in ['KV450', 'DR4', 'KiDS-1000', '1000']:
 
         if version == 'KV450':
             m = np.array([-0.017, -0.008, -0.015, 0.010, 0.006])
