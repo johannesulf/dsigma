@@ -58,7 +58,7 @@ Unfortunately, the total amount of data is very large, i.e. hundreds of GBytes. 
     table_n = Table.read(
         '2pt_NG_final_2ptunblind_02_26_21_wnz_maglim_covupdate.fits', hdu=6)
     table_n.rename_column('Z_MID', 'z')
-    table_n['n'] = np.vstack([table_n['BIN{}'.format(i + 1)] for i in range(4)]).T
+    table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
     table_n.keep_columns(['z', 'n'])
     table_n.write('des_y3.hdf5', path='redshift', overwrite=True, append=True)
 

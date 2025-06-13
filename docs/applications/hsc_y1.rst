@@ -47,13 +47,14 @@ First, we must put the data into a format easily understandable by :code:`dsigma
 .. code-block:: python
 
     import numpy as np
-    from astropy import units as u
+
     from astropy.table import Table, vstack, join
     from dsigma.helpers import dsigma_table
+    from dsigma.surveys import hsc
 
     table_s = Table.read('hsc_y1.fits')
     table_s = dsigma_table(table_s, 'source', survey='HSC')
-    table_s['m_sel'] = hsc.selection_bias_factor(table_s)
+    table_s['m_sel'] = hsc.multiplicative_selection_bias(table_s)
 
     table_c_1 = vstack([Table.read('pdf-s17a_wide-9812.cat.fits'),
                         Table.read('pdf-s17a_wide-9813.cat.fits')])
@@ -68,7 +69,7 @@ First, we must put the data into a format easily understandable by :code:`dsigma
 Precomputing the Signal
 -----------------------
 
-We will now run the computationally expensive precomputation phase. Here, we first define the lens-source separation cuts. We require that :math:`z_l < z_{s, \rm min}` and :math:`z_l + 0.1 < z_s`. Afterward, we run the actual precomputation.
+We will now run the computationally expensive precomputation phase. For the lens-source separation, we require :math:`z_l + 0.1 < z_s`.
 
 .. code-block:: python
 
@@ -86,7 +87,7 @@ Stacking the Signal
 
 The total galaxy-galaxy lensing signal can be obtained with the following code. It first filters out all BOSS galaxies for which we couldn't find any source galaxy nearby. Then we divide it into jackknife samples that we will later use to estimate uncertainties. Finally, we stack the lensing signal in 4 different BOSS redshift bins and save the data.
 
-We choose to include all the necessary corrections factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. The photo-z dilution correction is not strictly necessary but highly recommended. Finally, random subtraction is also highly recommended but not consistently applied. Note that we don't use a boost correction, but this would also be possible.
+We choose to include all the necessary corrections factors. The shear responsivity correction and multiplicative shear correction are the most important and necessary. The selection bias corrections do not dramatically impact the signal but are also required for HSC data. The photo-z dilution correction is not strictly necessary but highly recommended. Finally, random subtraction is also highly recommended, especially to mitigate additive shear biases. Note that we don't use a boost correction, but this would also be possible.
 
 .. code-block:: python
 

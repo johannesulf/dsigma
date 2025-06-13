@@ -52,33 +52,35 @@ if args.survey.lower() == 'des':
     table_n = Table.read('des_y3.hdf5', path='redshift')
     table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
 
-    precompute_kwargs = {'table_n': table_n}
-    stacking_kwargs = {'scalar_shear_response_correction': True,
-                       'matrix_shear_response_correction': True}
+    precompute_kwargs = dict(table_n=table_n)
+    stacking_kwargs = dict(scalar_shear_response_correction=True,
+                           matrix_shear_response_correction=True)
 
 elif args.survey.lower() == 'hsc':
 
-    table_s = Table.read('hsc_y1.fits')
+    table_s = Table.read('hsc_y3.fits')
+    # Remove regions with large B-modes.
+    table_s = table_s[table_s['b_mode_mask'] == 1]
     table_s = dsigma_table(table_s, 'source', survey='HSC')
-    table_s['m_sel'] = hsc.selection_bias_factor(table_s)
+    table_s['m_sel'] = hsc.multiplicative_selection_bias(table_s)
+    # Remove galaxies with bimodal P(z)'s.
+    table_s = table_s[table_s['z_bin'] > 0]
+    # dsigma expects the first redshift bin to be 0, not 1.
+    table_s['z_bin'] = table_s['z_bin'] - 1
 
-    table_c_1 = vstack([
-        Table.read('pdf-s17a_wide-9812.cat.fits'),
-        Table.read('pdf-s17a_wide-9813.cat.fits')])
-    for key in table_c_1.colnames:
-        table_c_1.rename_column(key, key.lower())
-    table_c_2 = Table.read('Afterburner_reweighted_COSMOS_photoz_FDFC.fits')
-    table_c_2.rename_column('S17a_objid', 'id')
-    table_c = join(table_c_1, table_c_2, keys='id')
-    table_c = dsigma_table(table_c, 'calibration', w_sys='SOM_weight',
-                           w='weight_source', z_true='COSMOS_photoz',
-                           survey='HSC')
+    table_n = Table.read('nz.fits')
+    # Create the columns expected by dsigma.
+    table_n.rename_column('Z_MID', 'z')
+    table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
+    table_n.keep_columns(['z', 'n'])
 
-    precompute_kwargs = {'table_c': table_c}
-    stacking_kwargs = {'scalar_shear_response_correction': True,
-                       'shear_responsivity_correction': True,
-                       'photo_z_dilution_correction': True,
-                       'selection_bias_correction': True}
+    table_s['z'] = np.sum(table_n['z'][:, np.newaxis] *
+                          table_n['n'], axis=0)[table_s['z_bin']]
+
+    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.3)
+    stacking_kwargs = dict(scalar_shear_response_correction=True,
+                           shear_responsivity_correction=True,
+                           selection_bias_correction=True)
 
 elif args.survey.lower() == 'kids':
 
@@ -99,14 +101,14 @@ elif args.survey.lower() == 'kids':
     table_n['n'] = np.vstack(
         [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)]).T
 
-    precompute_kwargs = {'table_n': table_n}
-    stacking_kwargs = {'scalar_shear_response_correction': True}
+    precompute_kwargs = dict(table_n=table_n)
+    stacking_kwargs = dict(scalar_shear_response_correction=True)
 
 else:
     raise ValueError("Survey must be 'des', 'hsc' or 'kids'.")
 
 precompute_kwargs.update({
-    'n_jobs': multiprocessing.cpu_count(), 'comoving': True,
+    'n_jobs': 4, 'comoving': True,
     'cosmology': cosmology, 'lens_source_cut': 0.1, 'progress_bar': True})
 
 # Pre-compute the signal.
