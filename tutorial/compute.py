@@ -36,13 +36,13 @@ if args.survey.lower() == 'des':
     table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
 
+    table_s['m_sel'] = np.zeros(len(table_s))
     for z_bin in range(4):
         select = table_s['z_bin'] == z_bin
         R_sel = des.selection_response(table_s[select])
-        print("Bin {}: R_sel = {:.1f}%".format(
-            z_bin + 1, 100 * 0.5 * np.sum(np.diag(R_sel))))
-        table_s['R_11'][select] += 0.5 * np.sum(np.diag(R_sel))
-        table_s['R_22'][select] += 0.5 * np.sum(np.diag(R_sel))
+        print(f"Bin {z_bin + 1}: m_sel = "
+              f"{100 * 0.5 * np.sum(np.diag(R_sel)):.1f}%")
+        table_s['m_sel'][select] = 0.5 * np.sum(np.diag(R_sel))
 
     table_s = table_s[table_s['z_bin'] >= 0]
     table_s = table_s[table_s['flags_select']]
@@ -54,7 +54,8 @@ if args.survey.lower() == 'des':
 
     precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
-                           matrix_shear_response_correction=True)
+                           matrix_shear_response_correction=True,
+                           selection_bias_correction=True)
 
 elif args.survey.lower() == 'hsc':
 

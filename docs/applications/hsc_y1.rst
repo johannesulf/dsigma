@@ -110,13 +110,13 @@ We choose to include all the necessary correction factors. The shear responsivit
         mask_r = ((z_bins[lens_bin] <= table_r['z']) &
                   (table_r['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True,
-                  'scalar_shear_response_correction': True,
-                  'shear_responsivity_correction': True,
-                  'selection_bias_correction': True,
-                  'boost_correction': False, 'random_subtraction': True,
-                  'photo_z_dilution_correction': True,
-                  'table_r': table_r[mask_r]}
+        kwargs = dict(return_table=True,
+                      scalar_shear_response_correction=True,
+                      shear_responsivity_correction=True,
+                      selection_bias_correction=True,
+                      boost_correction=False, random_subtraction=True,
+                      photo_z_dilution_correction=True,
+                      table_r=table_r[mask_r])
 
         result = excess_surface_density(table_l[mask_l], **kwargs)
         kwargs['return_table'] = False

@@ -171,9 +171,23 @@ To apply the shear responsivity correction, we need to divide the final lensing 
 Source Selection Bias
 ~~~~~~~~~~~~~~~~~~~~~
 
-While the shear response and responsivity describe how the measured shapes of individual galaxies are affected by the measurement pipeline, the selection bias describes the phenomenon that the selection of sources, i.e., quality cuts, can depend on the intrinsic shape itself. If not corrected, this effect could lead to biases in the mean tangential shear.
+While the shear response and responsivity describe how the measured shapes of individual galaxies are affected by the measurement pipeline, the selection bias :math:`m_\mathrm{sel}` describes the phenomenon that the selection of sources, i.e., quality cuts, can depend on the intrinsic shape itself. If not corrected, this effect could lead to biases in the mean tangential shear.
 
-Correcting for selection bias is handled very differently between different surveys. Details about the selection bias in the Hyper Suprime-Cam survey can be found in section 5.6.2 of `Mandelbaum et al. (2018) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3170M/abstract>`_. Similarly, details on the selection bias in the Dark Energy Survey can be found in `Sheldon & Huff (2017) <https://ui.adsabs.harvard.edu/abs/2017ApJ...841...24S>`_. We also refer the reader to their respective tutorials where these correction factors are implemented. Luckily, the selection bias affects the shear only at the level of :math:`\sim 1\%`.
+Correcting for selection bias is handled differently between different surveys. :code:`dsigma` implements this by calculating per-object estimates of :math:`m_\mathrm{sel}`. One can then calculate a mean :math:`m_\mathrm{sel}` and correct the measurements for the selection bias in the same way as for the shear response term :math:`m` describe above. Luckily, the selection bias affects the shear only at the level of :math:`\sim 1\%`.
+
+Please have a look at the tutorials for DES and HSC to see how this is implemented in practice. For HSC in particular, the multiplicative selection bias takes the form
+
+.. math::
+
+    m_\mathrm{sel} = A P(R_2 = 0.3) + B P(\mathrm{mag}_A = 25.5) \, .
+
+Here, :math:`A` and :math:`B` are constants that differ between HSC Y1 and HSC Y3 and :math:`R_2` and :math:`\mathrm{mag}_A` are per-object properties that were used in the selection. Finally, :math:`P` indicates the source probability density at the edge of the selection cut. The densities can be estimated by choosing some width in :math:`R_2` and :math:`\mathrm{mag}_A` around the selection cut, i.e.,
+
+.. math::
+
+    m_\mathrm{sel} \approx \frac{A P(0.3 - \delta R_2 \leq R_2 \leq 0.3)}{\delta R_2} + \frac{B P(25.5 - \delta\mathrm{mag}_A \leq \mathrm{mag}_A \leq 25.5)}{\delta\mathrm{mag}_A} \, .
+
+This can be generalized to a per-object estimate of :math:`m_\mathrm{sel}` by setting :math:`P` to :math:`1` if :math:`R_2` or :math:`\mathrm{mag}_A` fall in the range and :math:`0`, otherwise.
 
 Random Subtraction
 ~~~~~~~~~~~~~~~~~~

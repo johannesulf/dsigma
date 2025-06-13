@@ -78,13 +78,13 @@ After running this selection response calculation, we are ready to drop all gala
     table_s = Table.read('des_y3.hdf5', path='catalog')
     table_s = dsigma_table(table_s, 'source', survey='DES')
 
+    table_s['m_sel'] = np.zeros(len(table_s))
     for z_bin in range(4):
         select = table_s['z_bin'] == z_bin
         R_sel = des.selection_response(table_s[select])
-        print("Bin {}: R_sel = {:.1f}%".format(
-            z_bin + 1, 100 * 0.5 * np.sum(np.diag(R_sel))))
-        table_s['R_11'][select] += 0.5 * np.sum(np.diag(R_sel))
-        table_s['R_22'][select] += 0.5 * np.sum(np.diag(R_sel))
+        print(f"Bin {z_bin + 1}: m_sel = "
+              f"{100 * 0.5 * np.sum(np.diag(R_sel)):.1f}%")
+        table_s['m_sel'][select] = 0.5 * np.sum(np.diag(R_sel))
 
     table_s = table_s[table_s['z_bin'] >= 0]
     table_s = table_s[table_s['flags_select']]
@@ -140,9 +140,10 @@ We choose to include all the necessary correction factors. In addition to the ma
         mask_r = ((z_bins[lens_bin] <= table_r['z']) &
                   (table_r['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True, 'scalar_shear_response_correction': True,
-                  'matrix_shear_response_correction': True,
-                  'random_subtraction': True, 'table_r': table_r[mask_r]}
+        kwargs = dict(return_table=True, scalar_shear_response_correction=True,
+                      matrix_shear_response_correction=True,
+                      selection_bias_correction=True
+                      random_subtraction=True, table_r=table_r[mask_r])
 
         result = excess_surface_density(table_l[mask_l], **kwargs)
         kwargs['return_table'] = False

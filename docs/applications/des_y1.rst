@@ -257,9 +257,9 @@ estimator.
         mask_r = ((z_bins[lens_bin] <= table_r['z']) &
                   (table_r['z'] < z_bins[lens_bin + 1]))
 
-        kwargs = {'return_table': True, 'photo_z_dilution_correction': True,
-                  'matrix_shear_response_correction': True,
-                  'random_subtraction': True, 'table_r': table_r[mask_r]}
+        kwargs = dict(return_table=True, photo_z_dilution_correction=True,
+                      matrix_shear_response_correction=True,
+                      random_subtraction=True, table_r=table_r[mask_r])
 
         result = excess_surface_density(table_l[mask_l], **kwargs)
         kwargs['return_table'] = False
