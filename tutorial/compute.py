@@ -52,7 +52,7 @@ if args.survey.lower() == 'des':
     table_n = Table.read('des_y3.hdf5', path='redshift')
     table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
 
-    precompute_kwargs = dict(table_n=table_n)
+    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
                            matrix_shear_response_correction=True)
 
@@ -101,15 +101,14 @@ elif args.survey.lower() == 'kids':
     table_n['n'] = np.column_stack(
         [np.genfromtxt(fname.format(i + 1))[:, 1] for i in range(5)])
 
-    precompute_kwargs = dict(table_n=table_n)
+    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True)
 
 else:
     raise ValueError("Survey must be 'des', 'hsc' or 'kids'.")
 
-precompute_kwargs.update({
-    'n_jobs': 4, 'comoving': True,
-    'cosmology': cosmology, 'lens_source_cut': 0.1, 'progress_bar': True})
+precompute_kwargs.update(dict(
+    n_jobs=4, comoving=True, cosmology=cosmology, progress_bar=True))
 
 # Pre-compute the signal.
 precompute(table_l, table_s, rp_bins, **precompute_kwargs)
