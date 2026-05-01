@@ -6,8 +6,8 @@ __all__ = ['default_version', 'known_versions', 'e_2_convention',
            'default_column_keys', 'multiplicative_shear_bias',
            'selection_response']
 
-default_version = 'default'
-known_versions = ['default']
+default_version = 'NGC'
+known_versions = ['NGC', 'SGC']
 e_2_convention = 'standard'
 
 
@@ -30,7 +30,7 @@ def default_column_keys(version=default_version):
         If `version` does not correspond to a known catalog version.
 
     """
-    if version == 'default':
+    if version in ['NGC', 'SGC']:
         keys = {
             'ra': 'RA',
             'dec': 'DEC',
@@ -62,13 +62,6 @@ def default_column_keys(version=default_version):
 def multiplicative_shear_bias(z_bin, version=default_version):
     """Return the multiplicative shear bias.
 
-    For DES Y3, we can define a blending-related multiplicative shear bias.
-    This function returns the multiplicative bias :math:`m` as a function
-    of the bin. The values can be computed from the blending-corrected Y3
-    redshift distributions and are, as expected, very similar to the values in
-    Table 4 in MacCrann et al. (2022) where they were calculated for mock
-    catalogs.
-
     Parameters
     ----------
     z_bin : numpy.ndarray
@@ -79,7 +72,7 @@ def multiplicative_shear_bias(z_bin, version=default_version):
     Returns
     -------
     m : numpy.ndarray
-        The multiplicative shear bias corresponding to each tomographic bin.
+        The multiplicative shear for each galaxy.
 
     Raises
     ------
@@ -89,17 +82,15 @@ def multiplicative_shear_bias(z_bin, version=default_version):
         catalog.
 
     """
-    if version == 'Y1':
-        raise ValueError(
-            'For Y1, we cannot define a multiplicative shear bias.')
-
-    elif version == 'Y3':
-        m = np.array([-0.63, -1.98, -2.41, -3.69]) * 0.01
+    if version == 'NGC':
+        m = np.array([-0.92, -1.90, -4.00, -3.73]) * 1e-2
         return np.where(z_bin != -1, m[z_bin], np.nan)
-
+    elif version == 'SGC':
+        m = np.array([-1.33, -2.26, -3.67, -5.72]) * 1e-2
+        return np.where(z_bin != -1, m[z_bin], np.nan)
     else:
         raise ValueError(
-            "Unkown version of DES. Supported versions are {}.".format(
+            "Unkown version of DECADE. Supported versions are {}.".format(
                 known_versions))
 
 
@@ -121,7 +112,7 @@ def selection_response(table_s):
     """
     R_sel = np.zeros((len(table_s), 2, 2))
 
-    for z_bin in range(1, 5):
+    for z_bin in range(4):
         for i in range(2):
             for j in range(2):
                 e_p_ave = np.average(
