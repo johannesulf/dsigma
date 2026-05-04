@@ -1,11 +1,10 @@
-#!/usr/bin/env python
-
 import h5py
 import numpy as np
 
 from astropy.table import Table
 
-if __name__ == '__main__':
+
+def main():
 
     print("Reading in raw data...")
 
@@ -71,16 +70,16 @@ if __name__ == '__main__':
             print(f"{'NGC' if ngc else 'SGC'} BIN {z_bin}: {r:.3f}")
 
     print("Adding multiplicative biases...")
+    table_s['m'] = np.zeros(len(table_s))
     for ngc in [True, False]:
-        for z_bin in range(1, 5):
-            use = (table_s['NGC'] == ngc) & (
-                table_s['MCAL_SEL_NOSHEAR'] == z_bin)
-            if ngc:
-                m = np.array([-0.92, -1.90, -4.00, -3.73]) * 1e-2
-            else:
-                m = np.array([-1.33, -2.26, -3.67, -5.72]) * 1e-2
-            table_s['m'] = np.where(table_s['MCAL_SEL_NOSHEAR'] > 0,
-                                    m[table_s['MCAL_SEL_NOSHEAR'] - 1], np.nan)
+        use = table_s['NGC'] == ngc
+        if ngc:
+            m = np.array([-0.92, -1.90, -4.00, -3.73]) * 1e-2
+        else:
+            m = np.array([-1.33, -2.26, -3.67, -5.72]) * 1e-2
+        table_s['m'][use] = np.where(
+            table_s['MCAL_SEL_NOSHEAR'] > 0,
+            m[table_s['MCAL_SEL_NOSHEAR'] - 1], np.nan)[use]
 
     # Only select galaxies suitable for cosmology.
     table_s = table_s[table_s['MCAL_SEL_NOSHEAR'] > 0]
@@ -106,6 +105,6 @@ if __name__ == '__main__':
         table_n['z'] = [z[1] for z in np.load('z_grid.npy')]
         table_n['n'] = np.column_stack(np.load(
             f"{'NGC' if ngc else 'SGC'}_n_of_z.npy"))
-        table_n.write(fname, path='calibration', append=True)
+        table_n.write(fname, path='calibration', overwrite=True, append=True)
 
     print("Done!")

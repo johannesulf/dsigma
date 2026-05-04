@@ -1,12 +1,12 @@
 import argparse
 import numpy as np
 import multiprocessing
-from astropy.table import Table, vstack, join
+from astropy.table import Table, vstack
 from dsigma.helpers import dsigma_table
 from dsigma.precompute import precompute
 from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
 from dsigma.stacking import excess_surface_density
-from dsigma.surveys import des, hsc, kids
+from dsigma.surveys import hsc, kids
 from astropy.cosmology import Planck15
 
 parser = argparse.ArgumentParser(
@@ -45,28 +45,13 @@ if args.survey.lower() == 'decade':
 elif args.survey.lower() == 'des':
 
     table_s = Table.read('des_y3.hdf5', path='catalog')
-    table_s = dsigma_table(table_s, 'source', survey='DES')
+    table_n = Table.read('des_y3.hdf5', path='calibration')
 
-    table_s['m_sel'] = np.zeros(len(table_s))
-    for z_bin in range(4):
-        select = table_s['z_bin'] == z_bin
-        R_sel = des.selection_response(table_s[select])
-        print(f"Bin {z_bin + 1}: m_sel = "
-              f"{100 * 0.5 * np.sum(np.diag(R_sel)):.1f}%")
-        table_s['m_sel'][select] = 0.5 * np.sum(np.diag(R_sel))
-
-    table_s = table_s[table_s['z_bin'] >= 0]
-    table_s = table_s[table_s['flags_select']]
-    table_s['m'] = des.multiplicative_shear_bias(
-        table_s['z_bin'], version='Y3')
-
-    table_n = Table.read('des_y3.hdf5', path='redshift')
     table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
 
     precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
-                           matrix_shear_response_correction=True,
-                           selection_bias_correction=True)
+                           matrix_shear_response_correction=True)
 
 elif args.survey.lower() == 'hsc':
 
