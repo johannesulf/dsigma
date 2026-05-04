@@ -22,6 +22,16 @@ Repository = "https://github.com/johannesulf/dsigma.git"
 Issues = "https://github.com/johannesulf/dsigma/issues"
 Changelog = "https://github.com/johannesulf/dsigma/blob/main/CHANGELOG.md"
 
+[project.scripts]
+dsigma-reduce-decade = "dsigma.scripts.reduce_decade:main"
+dsigma-reduce-des-y3 = "dsigma.scripts.reduce_des_y3:main"
+
 [tool.setuptools]
 packages = ["dsigma", "dsigma.surveys"]
-dynamic.version = {attr = "dsigma.__version__"}
+
+[tool.setuptools.dynamic]
+version = {attr = "dsigma.__version__"}
+
+[[tool.setuptools.ext-modules]]
+name = "dsigma.precompute_engine"
+sources = ["dsigma/precompute_engine.pyx"]

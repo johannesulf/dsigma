@@ -22,5 +22,5 @@ plt.xscale('log')
 
 plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc}]$')
 plt.ylabel(r'ESD $r_p \times \Delta \Sigma \, [10^6 M_\odot / \mathrm{pc}]$')
-plt.tight_layout(pad=0.8)
+plt.tight_layout(pad=0.3)
 plt.savefig('plot.png', dpi=300)
