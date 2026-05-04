@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table
 
-survey_list = ['DES', 'HSC', 'KiDS']
-color_list = ['red', 'royalblue', 'purple']
-offset_list = [0, 0.15, 0.30]
+survey_list = ['DECADE', 'DES', 'HSC', 'KiDS']
+color_list = ['orange', 'red', 'royalblue', 'purple']
+offset_list = [0, 0.05, 0.1, 0.15]
 
 for survey, color, offset in zip(survey_list, color_list, offset_list):
     table = Table.read('{}_0.csv'.format(survey.lower()))

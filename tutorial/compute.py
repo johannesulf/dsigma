@@ -35,13 +35,12 @@ if args.survey.lower() == 'decade':
 
     table_s = Table.read('decade_ngc.hdf5', path='catalog')
     table_n = Table.read('decade_ngc.hdf5', path='calibration')
-    
+
     table_s['z'] = np.array([0.0, 0.381, 0.619, 0.803])[table_s['z_bin']]
 
     precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
-                           matrix_shear_response_correction=True,
-                           selection_bias_correction=True)
+                           matrix_shear_response_correction=True)
 
 elif args.survey.lower() == 'des':
 
