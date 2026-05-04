@@ -39,6 +39,5 @@ jobs:
       run: |
         pip install treecorr
         python -m pip install .
-        python setup.py build_ext --inplace
         pytest
 
