@@ -36,14 +36,16 @@ def main():
         use = table_s['z_bin'] == z_bin
         for i in range(1, 3):
             for j in range(1, 3):
+                use_p = (table_s[f'select_{j}p'] &
+                         (table_s[f'z_bin_{j}p'] == z_bin))
                 e_p_ave = np.average(
-                    table_s[f'e_{i}'], weights=table_s[f'weight_{j}p'] *
-                    table_s[f'select_{j}p'] *
-                    (table_s[f'z_bin_{j}p'] == z_bin))
+                    table_s[f'e_{i}'][use_p],
+                    weights=table_s[f'weight_{j}p'][use_p])
+                use_m = (table_s[f'select_{j}m'] &
+                         (table_s[f'z_bin_{j}m'] == z_bin))
                 e_m_ave = np.average(
-                    table_s[f'e_{i}'], weights=table_s[f'weight_{j}m'] *
-                    table_s[f'select_{j}m'] *
-                    (table_s[f'z_bin_{j}m'] == z_bin))
+                    table_s[f'e_{i}'][use_m],
+                    weights=table_s[f'weight_{j}m'][use_m])
                 table_s[f'R{i}{j}'][use] += (e_p_ave - e_m_ave) / 0.02
 
     for key in ['select', 'weight', 'z_bin']:
