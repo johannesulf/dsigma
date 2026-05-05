@@ -14,13 +14,13 @@ for survey, color, offset in zip(survey_list, color_list, offset_list):
     plt.errorbar(
         rp * np.exp(offset), rp * table['ds'], yerr=table['ds_err'] * rp,
         fmt='.', color=color, label=survey, zorder=offset*100
-        )[2][0].set_capstyle('round')
+    )[2][0].set_capstyle('round')
 
 plt.axhline(0, ls='--', color='black')
-plt.legend(loc='best', frameon=False)
+plt.legend(loc='best', frameon=False, ncols=2)
 plt.xscale('log')
 
 plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc}]$')
 plt.ylabel(r'ESD $r_p \times \Delta \Sigma \, [10^6 M_\odot / \mathrm{pc}]$')
 plt.tight_layout(pad=0.7)
-plt.savefig('plot.png', dpi=300)
+plt.savefig('plot.png', dpi=600)

@@ -30,8 +30,9 @@ Issues = "https://github.com/johannesulf/dsigma/issues"
 Changelog = "https://github.com/johannesulf/dsigma/blob/main/CHANGELOG.md"
 
 [project.scripts]
-dsigma-reduce-decade = "dsigma.scripts.reduce_decade:main"
-dsigma-reduce-des-y3 = "dsigma.scripts.reduce_des_y3:main"
+dsigma-process-decade = "dsigma.scripts.process_decade:main"
+dsigma-process-des-y3 = "dsigma.scripts.process_des_y3:main"
+dsigma-process-kids-legacy = "dsigma.scripts.process_kids_legacy:main"
 
 [tool.setuptools]
 packages = ["dsigma", "dsigma.scripts"]

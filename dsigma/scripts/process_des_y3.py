@@ -6,7 +6,7 @@ from astropy.table import Table
 
 def main():
 
-    print("Reading in raw data...")
+    print("Reading in catalog data...")
 
     table_s = Table()
 
@@ -74,6 +74,11 @@ def main():
     table_n.rename_column('Z_MID', 'z')
     table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
     table_n.keep_columns(['z', 'n'])
-    table_n.write('des_y3.hdf5', path='calibration', overwrite=True, append=True)
+    table_n.write('des_y3.hdf5', path='calibration', overwrite=True,
+                  append=True)
 
     print("Done!")
+
+
+if __name__ == "__main__":
+    main()

@@ -6,7 +6,7 @@ from astropy.table import Table
 
 def main():
 
-    print("Reading in raw data...")
+    print("Reading in catalog data...")
 
     table_s = Table()
 
@@ -108,3 +108,7 @@ def main():
         table_n.write(fname, path='calibration', overwrite=True, append=True)
 
     print("Done!")
+
+
+if __name__ == "__main__":
+    main()
