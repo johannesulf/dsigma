@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import warnings
 
 from astropy import units as u
@@ -9,7 +10,8 @@ from dsigma import precompute, stacking
 from fixtures import test_catalogs
 
 
-def test_treecorr(test_catalogs):
+@pytest.mark.parametrize('n_jobs', [1, 2])
+def test_treecorr(test_catalogs, n_jobs):
 
     try:
         import treecorr
@@ -32,8 +34,9 @@ def test_treecorr(test_catalogs):
         nbins=len(theta_bins) - 1, sep_units='deg', metric='Arc', brute=True)
     ng.process(cat_l, cat_s)
 
-    table_l = precompute.precompute(table_l, table_s, theta_bins * u.deg,
-                                    weighting=0, lens_source_cut=None)
+    table_l = precompute.precompute(
+        table_l, table_s, theta_bins * u.deg, weighting=0,
+        lens_source_cut=None, n_jobs=n_jobs)
 
     assert np.all(
         np.array(ng.npairs, dtype=int) == stacking.number_of_pairs(table_l))

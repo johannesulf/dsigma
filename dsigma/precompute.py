@@ -445,7 +445,7 @@ def precompute(
                     table_engine[key])
 
     # Create a queue that holds all the pixels containing lenses.
-    q = queue.Queue() if n_jobs == 1 else mp.Queue
+    q = queue.Queue() if n_jobs == 1 else mp.Queue()
     for i in range(len(u_pix_l)):
         q.put(i)
 
