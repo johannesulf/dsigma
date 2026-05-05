@@ -34,7 +34,7 @@ jobs:
     - name: Lint with ruff
       run: |
         ruff check dsigma
-        ruff check --exit-zero --select ALL dsigma
+        ruff check --exit-zero --select ALL  --ignore Q,ANN,FBT002 dsigma
     - name: Test with pytest
       run: |
         pip install treecorr

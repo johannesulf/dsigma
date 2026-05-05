@@ -24,13 +24,15 @@ def main():
         table_s.rename_column(old_key, new_key)
     table_s.keep_columns(keys.keys())
 
+    # HSC uses a different sign convention.
+    table_s['e_2'] = -table_s['e_2']
+
     # Remove galaxies with bimodal P(z)'s.
     table_s = table_s[table_s['z_bin'] > 0]
     # Adjust redshift bin definition.
     table_s['z_bin'] = table_s['z_bin'].data.astype('int8') - 1
 
     print("Calculating selection bias...")
-
     d_R_2 = 0.01
     d_mag_A = 0.025
     # eq. (18) in 2304.00703

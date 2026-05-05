@@ -17,7 +17,9 @@ for survey, color, offset in zip(survey_list, color_list, offset_list):
     )[2][0].set_capstyle('round')
 
 plt.axhline(0, ls='--', color='black')
-plt.legend(loc='best', frameon=False, ncols=2)
+plt.legend(loc='upper center', fancybox=True, shadow=True, ncols=2,
+           handletextpad=0,
+           columnspacing=0)
 plt.xscale('log')
 
 plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc}]$')

@@ -25,13 +25,13 @@ table_r = vstack([Table.read('random0_DR12v5_CMASSLOWZTOT_South.fits.gz'),
                   Table.read('random0_DR12v5_CMASSLOWZTOT_North.fits.gz')])
 keys = dict(z='Z', ra='RA', dec='DEC')
 for table in [table_l, table_r]:
-    for new_key, old_key in keys.values():
+    for new_key, old_key in keys.items():
         table.rename_column(old_key, new_key)
     table.keep_columns(keys.keys())
     table['w_sys'] = 1
 
 table_l = table_l[table_l['z'] >= np.amin(z_bins)]
-table_r = table_r[table_r['z'] >= np.amin(z_bins)][::5]
+table_r = table_r[table_r['z'] >= np.amin(z_bins)]
 
 if args.survey.lower() == 'decade':
 
@@ -57,24 +57,12 @@ elif args.survey.lower() == 'des':
 
 elif args.survey.lower() == 'hsc':
 
-    table_s = Table.read('hsc_y3.fits')
-    # Remove regions with large B-modes.
-    table_s = table_s[table_s['b_mode_mask'] == 1]
-    table_s = dsigma_table(table_s, 'source', survey='HSC')
-    table_s['m_sel'] = hsc.multiplicative_selection_bias(table_s)
-    # Remove galaxies with bimodal P(z)'s.
-    table_s = table_s[table_s['z_bin'] > 0]
-    # dsigma expects the first redshift bin to be 0, not 1.
-    table_s['z_bin'] = table_s['z_bin'] - 1
+    table_s = Table.read('hsc_y3.hdf5', path='catalog')
+    table_n = Table.read('hsc_y3.hdf5', path='calibration')
 
-    table_n = Table.read('nz.fits')
-    # Create the columns expected by dsigma.
-    table_n.rename_column('Z_MID', 'z')
-    table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
-    table_n.keep_columns(['z', 'n'])
-
-    table_s['z'] = np.sum(table_n['z'][:, np.newaxis] *
-                          table_n['n'], axis=0)[table_s['z_bin']]
+    z_ave = np.array([np.average(table_n['z'], weights=table_n['n'][:, z_bin])
+                      for z_bin in range(4)])
+    table_s['z'] = z_ave[table_s['z_bin']]
 
     precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.3)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
@@ -93,7 +81,7 @@ elif args.survey.lower() == 'kids':
     stacking_kwargs = dict(scalar_shear_response_correction=True)
 
 else:
-    raise ValueError("Survey must be 'des', 'hsc' or 'kids'.")
+    raise ValueError("Survey must be 'decade', 'des', 'hsc' or 'kids'.")
 
 precompute_kwargs.update(dict(
     n_jobs=os.cpu_count(), comoving=True, cosmology=cosmology,
