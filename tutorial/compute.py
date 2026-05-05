@@ -96,7 +96,7 @@ table_l = table_l[np.sum(table_l['sum 1'], axis=1) > 0]
 table_r = table_r[np.sum(table_r['sum 1'], axis=1) > 0]
 
 centers = compute_jackknife_fields(
-    table_l, 100, weights=np.sum(table_l['sum 1'], axis=1))
+    table_l, 100, weights=np.sum(table_l['sum 1'], axis=1), seed=0)
 compute_jackknife_fields(table_r, centers)
 
 # Stack the signal.

@@ -51,8 +51,6 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
         The coordinates of the centers of the jackknife regions.
 
     """
-    x, y, z = spherical_to_cartesian(table['ra'].data, table['dec'].data)
-    xyz = np.column_stack((x, y, z))
     xyz = np.column_stack(spherical_to_cartesian(
         table['ra'].data, table['dec'].data))
 
@@ -101,9 +99,10 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
                 np.sum(~mask), n_jk_per_c[i], replace=False,
                 p=weights[~mask] / w_c[i])]])
 
-    centers = MiniBatchKMeans(n_clusters=n_jk, init=init, n_init=1).fit(
-        xyz[weights > 0], sample_weight=weights[weights > 0],
-        random_state=int(rng.integers(2**31))).cluster_centers_
+    kmeans = MiniBatchKMeans(n_clusters=n_jk, init=init, n_init=1,
+                             random_state=int(rng.integers(2**31)))
+    centers = kmeans.fit(
+        xyz[weights > 0], sample_weight=weights[weights > 0]).cluster_centers_
     compute_jackknife_fields(table, centers)
 
     return centers
@@ -229,15 +228,12 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
     samples = []
 
     for field_jk in np.unique(table_l['field_jk']):
-
-        mask_l = table_l['field_jk'] != field_jk
-
         for name, table in zip(['table_r', 'table_l_2', 'table_r_2'],
                                [table_r, table_l_2, table_r_2]):
             if table is not None:
                 kwargs[name] = table[table['field_jk'] != field_jk]
 
-        samples.append(f(table_l[mask_l], **kwargs))
+        samples.append(f(table_l[table_l['field_jk'] != field_jk], **kwargs))
 
     return ((len(np.unique(table_l['field_jk'])) - 1) *
             np.cov(np.array(samples), rowvar=False, ddof=0))
