@@ -1,6 +1,5 @@
 import h5py
 import numpy as np
-
 from astropy.table import Table
 
 

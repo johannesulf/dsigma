@@ -2,11 +2,10 @@
 
 import multiprocessing as mp
 import numbers
-import numpy as np
-import queue as Queue
+import queue
 import warnings
 
-
+import numpy as np
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.units import UnitConversionError
@@ -17,8 +16,7 @@ from .physics import critical_surface_density
 from .physics import effective_critical_surface_density
 from .precompute_engine import precompute_engine
 
-
-__all__ = ["photo_z_dilution_factor", "mean_photo_z_offset", "precompute"]
+__all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
 
 
 def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
@@ -83,9 +81,9 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
     mask = (z_l_max < z_l) | (z_l > z_s)
 
     if np.any(np.all(mask, axis=-1)):
-        warnings.warn('Could not find valid calibration sources for some ' +
-                      'lens redshifts. The f_bias correction may be ' +
-                      'undefined.', RuntimeWarning)
+        msg = ("Could not find valid calibration sources for some lens "
+               "redshifts. The f_bias correction may be undefined.")
+        warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
 
     return (np.sum((w * sigma_crit_phot**weighting) * (~mask), axis=-1) /
             np.sum((w * sigma_crit_phot**(weighting + 1) / sigma_crit_true) *
@@ -245,31 +243,36 @@ def precompute(
         If there are problems in the input.
 
     """
-    try:
-        assert cosmology.Ok0 == 0
-    except AssertionError:
-        raise ValueError('dsigma does not support non-flat cosmologies.')
+    if cosmology.Ok0 != 0:
+        msg = "dsigma does not support non-flat cosmologies."
+        raise ValueError(msg)
 
     if np.any(table_l['z'] < 0):
-        raise ValueError('Input lens redshifts must all be non-negative.')
+        msg = "Input lens redshifts must all be non-negative."
+        raise ValueError(msg)
+
     if not isinstance(nside, int) or not np.isin(nside, 2**np.arange(15)):
-        raise ValueError('nside must be a positive power of 2. Received ' +
-                         '{}.'.format(nside))
+        msg = f"nside must be a positive power of 2. Received {nside}."
+        raise ValueError(msg)
+
     if not isinstance(n_jobs, int) or n_jobs < 1:
-        raise ValueError('Number of jobs must be positive integer. Received ' +
-                         '{}.'.format(n_jobs))
+        msg = f"Number of jobs must be positive integer. Received {n_jobs}."
+        raise ValueError(msg)
 
     if table_n is not None:
         if 'z_bin' not in table_s.colnames:
-            raise ValueError('To use source redshift distributions, the ' +
-                             'source table needs to have a `z_bin` column.')
+            msg = ("To use source redshift distributions, the source table "
+                   "needs to have a `z_bin` column.")
+            raise ValueError(msg)
         if (not np.issubdtype(table_s['z_bin'].data.dtype, np.integer) or
                 np.any(table_s['z_bin'] < 0)):
-            raise ValueError('The `z_bin` column in the source table must ' +
-                             'contain only non-negative integers.')
+            msg = ("The `z_bin` column in the source table must contain only "
+                   "non-negative integers.")
+            raise ValueError(msg)
         if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:
-            raise ValueError('The source table contains more redshift bins ' +
-                             'than where passed via the nz argument.')
+            msg = ("The source table contains more redshift bins than where "
+                   "passed via the `table_n` argument.")
+            raise ValueError(msg)
 
     hp = HEALPix(nside, order='ring')
     pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
@@ -296,7 +299,7 @@ def precompute(
                 [table_l, table_s], [argsort_pix_l, argsort_pix_s],
                 [table_engine_l, table_engine_s]):
             for angle in ['ra', 'dec']:
-                table_engine['{} {}'.format(f_name, angle)] =\
+                table_engine[f'{f_name} {angle}'] =\
                     np.ascontiguousarray(f(np.deg2rad(table[angle]))[
                         argsort_pix])
 
@@ -388,7 +391,8 @@ def precompute(
             z_mean[table_s['z_bin']][argsort_pix_s], dtype=np.float64)
 
     elif table_c is not None and table_s is not None:
-        raise ValueError('table_c and table_n cannot both be given.')
+        msg = "`table_c` and `table_n` cannot both be given."
+        raise ValueError(msg)
 
     # Create arrays that will hold the final results.
     table_engine_r = {}
@@ -436,22 +440,18 @@ def precompute(
     if n_jobs > 1:
         dist_3d_sq_bins = get_raw_multiprocessing_array(dist_3d_sq_bins)
         for table_engine in [table_engine_l, table_engine_s, table_engine_r]:
-            for key in table_engine.keys():
+            for key in table_engine:
                 table_engine[key] = get_raw_multiprocessing_array(
                     table_engine[key])
 
     # Create a queue that holds all the pixels containing lenses.
-    if n_jobs == 1:
-        queue = Queue.Queue()
-    else:
-        queue = mp.Queue()
-
+    q = queue.Queue() if n_jobs == 1 else mp.Queue
     for i in range(len(u_pix_l)):
-        queue.put(i)
+        q.put(i)
 
     args = (u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins,
             table_engine_l, table_engine_s, table_engine_r, bins, comoving,
-            weighting, nside, queue, progress_bar)
+            weighting, nside, q, progress_bar)
 
     if n_jobs == 1:
         precompute_engine(*args)
@@ -469,13 +469,13 @@ def precompute(
             processes[i].join()
 
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
-    for key in table_engine_r.keys():
+    for key in table_engine_r:
         table_l[key] = np.array(table_engine_r[key]).reshape(
             len(table_l), len(bins) - 1)[inv_argsort_pix_l]
 
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
 
-    if 'f_bias' in table_engine_l.keys():
+    if 'f_bias' in table_engine_l:
         table_l['sum w_ls sigma_crit f_bias'] = (
             np.array(table_engine_l['f_bias'])[inv_argsort_pix_l][
                 :, np.newaxis] * table_l['sum w_ls sigma_crit'])
@@ -483,7 +483,7 @@ def precompute(
             np.array(table_engine_l['f_bias'])[inv_argsort_pix_l][
                 :, np.newaxis] * table_l['sum w_ls e_t sigma_crit'])
 
-    if 'delta z_s' in table_engine_l.keys():
+    if 'delta z_s' in table_engine_l:
         table_l['sum w_ls z_s'] = (
             table_l['sum w_ls z_s'] - table_l['sum w_ls'] * np.array(
                 table_engine_l['delta z_s'])[inv_argsort_pix_l][:, np.newaxis])

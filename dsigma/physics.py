@@ -3,13 +3,12 @@
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
-from scipy.special import jv, jn_zeros
 from astropy.cosmology import FlatLambdaCDM
+from scipy.special import jn_zeros, jv
 
-
-__all__ = ['mpc_per_degree', 'projection_angle', 'critical_surface_density',
-           'effective_critical_surface_density',
-           'lens_magnification_shear_bias']
+__all__ = ['critical_surface_density', 'effective_critical_surface_density',
+           'lens_magnification_shear_bias', 'mpc_per_degree',
+           'projection_angle']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
@@ -184,11 +183,9 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
         sigma_crit_eff[~mask] = np.average(sigma_crit**-1, axis=-1,
                                            weights=n_s)[~mask]**-1
         return sigma_crit_eff
-    else:
-        if np.average(sigma_crit**-1, weights=n_s) > 0:
-            return np.average(sigma_crit**-1, weights=n_s)**-1
-        else:
-            return np.inf
+    if np.average(sigma_crit**-1, weights=n_s) > 0:
+        return np.average(sigma_crit**-1, weights=n_s)**-1
+    return np.inf
 
 
 def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,

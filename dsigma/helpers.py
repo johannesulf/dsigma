@@ -2,7 +2,7 @@
 
 import numpy as np
 
-__all__ = ['spherical_to_cartesian', 'cartesian_to_spherical']
+__all__ = ['cartesian_to_spherical', 'spherical_to_cartesian']
 
 
 def spherical_to_cartesian(ra, dec):

@@ -1,6 +1,5 @@
 import h5py
 import numpy as np
-
 from astropy.table import Table
 
 
@@ -23,7 +22,7 @@ def main():
             table_s[key] = fstream['catalog/unsheared/' + key][:]
         for sheared in ['1m', '1p', '2m', '2p']:
             table_s[f'weight_{sheared}'] = fstream[
-                'catalog/sheared_{}/weight'.format(sheared)][:]
+                f'catalog/sheared_{sheared}/weight'][:]
 
     with h5py.File('DESY3_indexcat.h5') as fstream:
         for flag in ['select', 'select_1p', 'select_1m', 'select_2p',

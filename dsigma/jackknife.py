@@ -1,22 +1,22 @@
 """Module containing jackknife resampling functions."""
 
 import warnings
-import numpy as np
+
 import astropy.units as u
-from sklearn.cluster import DBSCAN, MiniBatchKMeans
-from scipy.spatial import cKDTree
+import numpy as np
 from astropy.table import Table
 from scipy.ndimage import gaussian_filter
+from scipy.spatial import cKDTree
+from sklearn.cluster import DBSCAN, MiniBatchKMeans
 
 from .helpers import spherical_to_cartesian
 
-
-__all__ = ["compute_jackknife_fields", "compress_jackknife_fields",
-           "smooth_correlation_matrix", "jackknife_resampling"]
+__all__ = ['compress_jackknife_fields', 'compute_jackknife_fields',
+           'jackknife_resampling', 'smooth_correlation_matrix']
 
 
 def compute_jackknife_fields(table, centers, distance_threshold=1,
-                             weights=None):
+                             weights=None, seed=None):
     """Compute the centers for jackknife regions using DBSCAN and KMeans.
 
     The function first runs DBSCAN to identify continous fields of points.
@@ -39,9 +39,11 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
     distance_threshold : float, optional
         The angular separation in degrees used to link points and calculate
         continous fields before running KMeans. Default is 1.
-    weights : None or numpy.ndarray
+    weights : None or numpy.ndarray, optional
         Per-lens weights for clustering. If None, assume the same weight for
         all points. Default is None.
+    seed : int or None, optional
+        Random seed to iniatialize the random number generator.
 
     Returns
     -------
@@ -73,10 +75,10 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
 
     w_c = np.bincount(c[c != -1], weights=weights[c != -1])
     if n_jk < len(w_c):
-        raise RuntimeError(
-            "The number of jackknife regions cannot be smaller than the " +
-            "number of continous fields. Try increasing `distance_threshold`" +
-            " or decreasing `centers`.")
+        msg = ("The number of jackknife regions cannot be smaller than the "
+               "number of continous fields. Try increasing "
+               "`distance_threshold` or decreasing `centers`.")
+        raise RuntimeError(msg)
 
     # Assign the number of jackknife fields according to the total number of
     # objects in each field.
@@ -89,16 +91,19 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
         n_jk_per_c[np.argmin(n_jk_per_c)] += 1
         n_jk_per_c[np.argmax(n_jk_per_c)] -= 1
 
+    rng = np.random.default_rng(seed)
+
     init = np.zeros((0, 3))
     for i in range(len(w_c)):
         mask = i != c
         if w_c[i] > 0:
-            init = np.vstack([init, xyz[~mask][np.random.choice(
+            init = np.vstack([init, xyz[~mask][rng.choice(
                 np.sum(~mask), n_jk_per_c[i], replace=False,
                 p=weights[~mask] / w_c[i])]])
 
     centers = MiniBatchKMeans(n_clusters=n_jk, init=init, n_init=1).fit(
-        xyz[weights > 0], sample_weight=weights[weights > 0]).cluster_centers_
+        xyz[weights > 0], sample_weight=weights[weights > 0],
+        random_state=int(rng.integers(2**31))).cluster_centers_
     compute_jackknife_fields(table, centers)
 
     return centers

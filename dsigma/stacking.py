@@ -1,21 +1,19 @@
 """Module for stacking lensing results after pre-computation."""
 
 import numpy as np
-
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import Table
 from astropy.units import UnitConversionError
 
-from .physics import mpc_per_degree, lens_magnification_shear_bias
+from .physics import lens_magnification_shear_bias, mpc_per_degree
 
-__all__ = ['number_of_pairs', 'raw_tangential_shear',
-           'raw_excess_surface_density', 'photo_z_dilution_factor',
-           'boost_factor', 'scalar_shear_response_factor',
-           'matrix_shear_response_factor', 'shear_responsivity_factor',
-           'mean_lens_redshift', 'mean_source_redshift',
-           'mean_critical_surface_density', 'lens_magnification_bias',
-           'tangential_shear', 'excess_surface_density']
+__all__ = ['boost_factor', 'excess_surface_density', 'lens_magnification_bias',
+           'matrix_shear_response_factor', 'mean_critical_surface_density',
+           'mean_lens_redshift', 'mean_source_redshift', 'number_of_pairs',
+           'photo_z_dilution_factor', 'raw_excess_surface_density',
+           'raw_tangential_shear', 'scalar_shear_response_factor',
+           'shear_responsivity_factor', 'tangential_shear']
 
 
 def number_of_pairs(table_l):
@@ -143,10 +141,7 @@ def scalar_shear_response_factor(table_l, selection_bias=False):
         Multiplicative shear bias in each radial bin.
 
     """
-    if selection_bias:
-        m = 'm_sel'
-    else:
-        m = 'm'
+    m = 'm_sel' if selection_bias else 'm'
 
     return (
         np.sum(table_l[f'sum w_ls {m}'].data *
@@ -311,9 +306,9 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
 
     if shear:
         return gt
-    else:
-        return gt * mean_critical_surface_density(
-            table_l, photo_z_dilution_correction=photo_z_dilution_correction)
+
+    return gt * mean_critical_surface_density(
+        table_l, photo_z_dilution_correction=photo_z_dilution_correction)
 
 
 def tangential_shear(table_l, table_r=None, boost_correction=False,
@@ -380,8 +375,9 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
 
     if boost_correction:
         if table_r is None:
-            raise ValueError('Cannot compute boost factor correction without' +
-                             ' results from a random catalog.')
+            msg = ("Cannot compute boost factor correction without results "
+                   "from a random catalog.")
+            raise ValueError(msg)
         result['b'] = boost_factor(table_l, table_r)
         result['et'] *= result['b']
 
@@ -404,8 +400,9 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
 
     if random_subtraction:
         if table_r is None:
-            raise ValueError('Cannot subtract random results without ' +
-                             'results from a random catalog.')
+            msg = ("Cannot subtract random results without results from a "
+                   "random catalog.")
+            raise ValueError(msg)
         result['et_r'] = tangential_shear(
             table_r, boost_correction=False,
             scalar_shear_response_correction=scalar_shear_response_correction,
@@ -492,8 +489,9 @@ def excess_surface_density(table_l, table_r=None,
 
     if boost_correction:
         if table_r is None:
-            raise ValueError('Cannot compute boost factor correction without' +
-                             ' results from a random catalog.')
+            msg = ("Cannot compute boost factor correction without results "
+                   "from a random catalog.")
+            raise ValueError(msg)
         result['b'] = boost_factor(table_l, table_r)
         result['ds'] *= result['b']
 
@@ -520,8 +518,9 @@ def excess_surface_density(table_l, table_r=None,
 
     if random_subtraction:
         if table_r is None:
-            raise ValueError('Cannot subtract random results without ' +
-                             'results from a random catalog.')
+            msg = ("Cannot subtract random results without results from a "
+                   "random catalog.")
+            raise ValueError(msg)
         result['ds_r'] = excess_surface_density(
             table_r, photo_z_dilution_correction=photo_z_dilution_correction,
             boost_correction=False,
