@@ -19,13 +19,13 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
 
     Parameters
     ----------
-    cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations.
     z : float or numpy.ndarray
         Redshift of the object.
-    comoving : boolen
+    cosmology : astropy.cosmology, optional
+        Cosmology to assume for calculations.
+    comoving : bool, optional
         Use comoving distance instead of physical distance when True.
-        Default: False
+        Default is ``False``.
 
     Returns
     -------

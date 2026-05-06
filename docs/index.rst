@@ -8,7 +8,7 @@ Overview
 :code:`dsigma` is an easy-to-use python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a broadly applicable API and can utilize data from the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper Suprime-Cam (HSC) lensing surveys, among others. With core computations written in C, :code:`dsigma` is very fast. Additionally, :code:`dsigma` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics. Below is a plot showing the excess surface density around galaxies in the CMASS sample calculated with :code:`dsigma`.
 
 .. image:: plot.png
-   :width: 80 %
+   :width: 100 %
    :align: center
 
 .. toctree::
@@ -57,6 +57,8 @@ Authors
 
 * Johannes Lange
 * Song Huang
+
+Documentation was edited with the assistance of Claude Sonnet 4.6.
 
 Attribution
 -----------
