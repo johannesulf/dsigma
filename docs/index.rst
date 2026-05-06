@@ -39,7 +39,7 @@ Overview
     applications/decade
     applications/des_y3
     applications/hsc_y3
-    applications/kids-1000
+    applications/kids_legacy
 
 .. toctree::
     :caption: API Documentation
