@@ -1,8 +1,10 @@
+"""Script to process KiDS Legacy data."""
+
 import numpy as np
 from astropy.table import Table
 
 
-def main():
+def process_kids_legacy():
 
     print("Reading in catalog data...")
 
@@ -51,4 +53,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    process_kids_legacy()

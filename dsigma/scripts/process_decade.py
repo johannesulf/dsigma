@@ -1,10 +1,26 @@
+"""Script to process DECADE data."""
+
 import h5py
 import numpy as np
 from astropy.table import Table
 
 
-def main():
+def process_decade():
+    """Process raw DECADE data.
 
+    The script assumes the following files to be present in the working
+    directory.
+
+    * ``shear_catalog_sparse.hdf5``
+    * ``z_grid.npy``
+    * ``ngc_n_of_z.npy``
+    * ``sgc_n_of_z.npy``
+
+    It will produce two files, ``decade_ngc.hdf5`` and ``decade_sgc.hdf5``
+    containing the processed source catalog and calibration :math:`n(z)` for
+    each galactic hemisphere.
+
+    """
     print("Reading in catalog data...")
 
     table_s = Table()
@@ -110,4 +126,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    process_decade()

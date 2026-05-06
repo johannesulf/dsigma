@@ -18,7 +18,7 @@ DES Y3 catalog data is publicly available `here <https://desdr-server.ncsa.illin
     wget $BASE_URL/datavectors/2pt_NG_final_2ptunblind_02_26_21_wnz_maglim_covupdate.fits
     
 
-Then run :program:`dsigma-process-des-y3` (see :func:`dsigma.scripts.process_des_y3.main`) to process the raw files into a single ``des_y3.hdf5`` file used in the steps below.
+Then run :program:`dsigma-process-des-y3` (see :func:`~dsigma.scripts.process_des_y3.process_des_y3`) to process the raw files into a single ``des_y3.hdf5`` file used in the steps below.
 
 Precomputing the Signal
 -----------------------

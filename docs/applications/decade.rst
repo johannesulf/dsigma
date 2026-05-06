@@ -9,9 +9,9 @@ This page explains how to measure galaxy-galaxy lensing using the Dark Energy Ca
 Downloading the Data
 --------------------
 
-A curated DECADE catalog, ``shear_catalog_sparse.hdf`` is publicly available via `Globus <https://app.globus.org/file-manager?origin_id=0b5ae9e1-9026-4b94-bc29-ff5f51f94671>`_. You can also download the :math:`n(z)` files ``NGC_n_of_z.npy``, ``SGC_n_of_z.npy``, and ``z_grid.npy`` from the same location.
+A curated DECADE catalog, ``shear_catalog_sparse.hdf5`` is publicly available via `Globus <https://app.globus.org/file-manager?origin_id=0b5ae9e1-9026-4b94-bc29-ff5f51f94671>`_. You can also download the :math:`n(z)` files ``NGC_n_of_z.npy``, ``SGC_n_of_z.npy``, and ``z_grid.npy`` from the same location.
 
-Then run :program:`dsigma-process-decade` (see :func:`dsigma.scripts.process_decade.main`) to process the raw files into two files: ``decade_ngc.hdf5`` and ``decade_sgc.hdf5``, corresponding to DECADE data in the different galactic hemispheres, each having slightly different selection responses and :math:`n(z)`'s. In the following, we will only use the NGC data.
+Then run :program:`dsigma-process-decade` (see :func:`~dsigma.scripts.process_decade.process_decade`) to process the raw files into two files: ``decade_ngc.hdf5`` and ``decade_sgc.hdf5``, corresponding to DECADE data in the different galactic hemispheres, each having slightly different selection responses and :math:`n(z)`'s. In the following, we will only use the NGC data.
 
 Precomputing the Signal
 -----------------------

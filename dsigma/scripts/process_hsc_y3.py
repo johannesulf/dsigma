@@ -1,9 +1,27 @@
+"""Script to process HSC Y3 data."""
+
 import numpy as np
 from astropy.table import Table, vstack
 
 
-def main():
+def process_hsc_y3():
+    """Process raw HSC Y3 data.
 
+    The script assumes the following files to be present in the working
+    directory.
+
+    * ``GAMA09H.fits.xz``
+    * ``GAMA15H.fits.xz``
+    * ``HECTOMAP.fits.xz``
+    * ``VVDS.fits.xz``
+    * ``WIDE12H.fits.xz``
+    * ``XMM.fits.xz``
+    * ``nz.fits``
+
+    It will produce the file ``hsc_y3.hdf5`` containing the processed source
+    catalog and calibration :math:`n(z)`.
+
+    """
     print("Reading in catalog data...")
 
     fields = ['GAMA09H', 'GAMA15H', 'HECTOMAP', 'VVDS', 'WIDE12H', 'XMM']
@@ -54,4 +72,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    process_hsc_y3()
