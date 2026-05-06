@@ -49,8 +49,8 @@ Overview
     api/jackknife
     api/physics
     api/precompute
+    api/scripts
     api/stacking
-    api/surveys
 
 Authors
 -------
