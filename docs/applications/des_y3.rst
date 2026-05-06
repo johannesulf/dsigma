@@ -48,7 +48,7 @@ Stacking the Signal
 
 We stack the signal in four BOSS redshift bins. Lenses and randoms with no nearby source galaxies are removed first. Jackknife resampling with 100 fields is used to estimate uncertainties.
 
-We apply the METACALIBRATION matrix shear response correction, a scalar shear response correction which accounts for blending and subtract the signal around randoms. Random subtraction removes additive systematics, reduces noise, and is strongly recommended. We do not apply a boost correction, as our estimator may be biased for DES.
+We apply the METACALIBRATION matrix shear response correction, a scalar shear response correction which accounts for blending, and subtract the signal around randoms. Random subtraction removes additive systematics, reduces noise, and is strongly recommended. We do not apply a boost correction, as our estimator may be biased for DES.
 
 .. code-block:: python
 

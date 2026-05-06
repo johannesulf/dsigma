@@ -12,17 +12,17 @@ Overview
    :align: center
 
 .. toctree::
-    :hidden:
     :caption: Getting Started
     :maxdepth: 1
+    :hidden:
 
     start/installation
     start/background
 
 .. toctree::
-    :hidden:
     :caption: Workflow
     :maxdepth: 1
+    :hidden:
 
     workflow/preparation
     workflow/precomputation
@@ -36,6 +36,7 @@ Overview
     :hidden:
 
     applications/intro
+    applications/decade
     applications/des_y3
     applications/hsc_y3
     applications/kids-1000
