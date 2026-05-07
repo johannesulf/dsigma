@@ -1,4 +1,4 @@
-"""Script to process KiDS Legacy data."""
+"""Script to process KiDS-Legacy data."""
 
 import numpy as np
 from astropy.table import Table
