@@ -14,7 +14,7 @@ HSC Y3 catalog data is available from the HSC website after registering. Downloa
 Precomputing the Signal
 -----------------------
 
-We apply a lens-source separation cut of :math:`z_l + 0.3 < \langle z_t \rangle`, where :math:`\langle z_t \rangle` is the mean redshift of the tomographic bin each source belongs to.
+We apply a lens-source separation cut of :math:`z_l < \langle z_t \rangle - 0.3`, where :math:`\langle z_t \rangle` is the mean redshift of the tomographic bin each source belongs to.
 
 .. code-block:: python
 
@@ -26,12 +26,12 @@ We apply a lens-source separation cut of :math:`z_l + 0.3 < \langle z_t \rangle`
 
     table_s = Table.read('hsc_y3.hdf5', path='catalog')
     table_n = Table.read('hsc_y3.hdf5', path='calibration')
-    table_s['z'] = np.sum(table_n['z'][:, np.newaxis] *
-                          table_n['n'], axis=0)[table_s['z_bin']]
+    table_s['z_l_max'] = np.sum(table_n['z'][:, np.newaxis] *
+                          table_n['n'], axis=0)[table_s['z_bin']] - 0.3
 
     rp_bins = np.logspace(-1, 1.6, 14)
     kwargs = dict(cosmology=Planck15, comoving=True, table_n=table_n,
-                  lens_source_cut=0.3, progress_bar=True)
+                  progress_bar=True)
     precompute(table_l, table_s, rp_bins, **kwargs)
     precompute(table_r, table_s, rp_bins, **kwargs)
 

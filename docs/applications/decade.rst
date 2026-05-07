@@ -16,7 +16,7 @@ Then run :program:`dsigma-process-decade` (see :func:`~dsigma.scripts.process_de
 Precomputing the Signal
 -----------------------
 
-We apply a lens-source separation cut of :math:`z_l + 0.1 < z_{t, \rm low}`, where :math:`z_{t, \rm low}` is the lower edge of the tomographic bin each source belongs to `(Anbajagane et al., 2025) <https://doi.org/10.33232/001c.146159>`_.
+We apply a lens-source separation cut of :math:`z_l < z_{t, \rm low} - 0.1`, where :math:`z_{t, \rm low}` is the lower edge of the tomographic bin each source belongs to `(Anbajagane et al., 2025) <https://doi.org/10.33232/001c.146159>`_.
 
 .. code-block:: python
 
@@ -27,12 +27,13 @@ We apply a lens-source separation cut of :math:`z_l + 0.1 < z_{t, \rm low}`, whe
     from dsigma.precompute import precompute
     
     table_s = Table.read('decade_ngc.hdf5', path='catalog')
-    table_s['z'] = np.array([0.0, 0.381, 0.619, 0.803])[table_s['z_bin']]
+    table_s['z_l_max'] = np.array(
+        [0.0, 0.381, 0.619, 0.803])[table_s['z_bin']] - 0.1
     table_n = Table.read('decade_ngc.hdf5', path='calibration')
 
     rp_bins = np.logspace(-1, 1.6, 14)
     kwargs = dict(cosmology=Planck15, comoving=True, table_n=table_n,
-                  lens_source_cut=0.1, progress_bar=True)
+                  progress_bar=True)
     precompute(table_l, table_s, rp_bins, **kwargs)
     precompute(table_r, table_s, rp_bins, **kwargs)
 
