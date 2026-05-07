@@ -37,6 +37,7 @@ Additionally, the following columns may be used in the analysis.
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)
 * ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
 * ``z_bin``: tomographic redshift bin, non-negative and starts at 0
+* ``z_l_max``: maximum lens redshift used for lens-source pairs
 
 Redshift Distributions
 ----------------------
