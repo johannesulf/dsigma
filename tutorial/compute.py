@@ -6,6 +6,7 @@ from astropy.cosmology import Planck15
 from astropy.table import Table, vstack
 
 from dsigma.precompute import precompute
+from dsigma.jackknife import compress_jackknife_fields
 from dsigma.jackknife import compute_jackknife_fields, jackknife_resampling
 from dsigma.stacking import excess_surface_density
 
@@ -107,12 +108,10 @@ for lens_bin in range(len(z_bins) - 1):
              (table_l['z'] < z_bins[lens_bin + 1]))
     use_r = ((z_bins[lens_bin] <= table_r['z']) &
              (table_r['z'] < z_bins[lens_bin + 1]))
-
-    stacking_kwargs['table_r'] = table_r[use_r]
-    stacking_kwargs['return_table'] = True
-    result = excess_surface_density(table_l[use_l], **stacking_kwargs)
-    stacking_kwargs['return_table'] = False
+    stacking_kwargs['table_l'] = compress_jackknife_fields(table_l[use_l])
+    stacking_kwargs['table_r'] = compress_jackknife_fields(table_r[use_r])
+    result = excess_surface_density(**stacking_kwargs, return_table=True)
     result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
-        excess_surface_density, table_l[use_l], **stacking_kwargs)))
+        excess_surface_density, **stacking_kwargs)))
 
     result.write(f'{args.survey.lower()}_{lens_bin}.csv', overwrite=True)

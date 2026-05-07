@@ -1,6 +1,11 @@
 """A Galaxy-Galaxy Lensing Python Package."""
 
-from . import helpers, jackknife, physics, precompute, stacking
+from astropy.cosmology import Planck15
 
-__all__ = ['helpers', 'jackknife', 'physics', 'precompute', 'stacking']
+default_cosmology = Planck15
+
+from . import helpers, jackknife, physics, precompute, stacking   # noqa: E402
+
+__all__ = ['default_cosmology', 'helpers', 'jackknife', 'physics',
+           'precompute', 'stacking']
 __version__ = '1.1.0'

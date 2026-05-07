@@ -1,17 +1,16 @@
 """Module for pre-computing lensing results."""
 
 import multiprocessing as mp
-import numbers
 import queue
 import warnings
 
 import numpy as np
 from astropy import units as u
-from astropy.cosmology import FlatLambdaCDM
 from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
-from scipy.interpolate import interp1d
 
+from . import default_cosmology
+from .helpers import interpolate_over_redshift
 from .physics import critical_surface_density
 from .physics import effective_critical_surface_density
 from .precompute_engine import precompute_engine
@@ -19,9 +18,8 @@ from .precompute_engine import precompute_engine
 __all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
 
 
-def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
-                            lens_source_cut=0):
-    """Calculate the photo-z delta sigma bias as a function of lens redshift.
+def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
+    r"""Calculate the photo-z delta sigma bias as a function of lens redshift.
 
     Parameters
     ----------
@@ -35,29 +33,19 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
-    lens_source_cut : None, float or numpy.ndarray, optional
-        Determine the lens-source redshift separation cut. If None, no cut is
-        applied. If a float, determines the minimum redshift separation between
-        lens and source redshift for lens-source pairs to be used. If an array,
-        it has to be the same length as the source table and determines the
-        maximum lens redshift for a lens-source pair to be used. Default is 0.
 
     Returns
     -------
     f_bias : float or numpy.ndarray
-        The photo-z bias factor, `f_bias`, for the lens redshift(s).
+        The photo-z bias factor, :math:`f_{\rm bias}`, for the lens
+        redshift(s).
 
     """
-    if lens_source_cut is None:
-        z_l_max = np.repeat(np.amax(z_l) + 1, len(table_c))
-    elif isinstance(lens_source_cut, numbers.Number):
-        z_l_max = table_c['z'] - lens_source_cut
-    else:
-        z_l_max = np.array(lens_source_cut)
-
+    z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
+    d_l = interpolate_over_redshift(
+        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     d_s_true = cosmology.comoving_transverse_distance(
         table_c['z_true']).to(u.Mpc).value
@@ -78,7 +66,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
     sigma_crit_true = critical_surface_density(z_l, z_s_true, d_l=d_l,
                                                d_s=d_s_true)
 
-    mask = (z_l_max < z_l) | (z_l > z_s)
+    mask = z_l >= z_l_max
 
     if np.any(np.all(mask, axis=-1)):
         msg = ("Could not find valid calibration sources for some lens "
@@ -90,8 +78,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2,
                    (~mask), axis=-1))
 
 
-def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
-                        lens_source_cut=0):
+def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
     """Calculate the mean offset of source photometric redshifts.
 
     Parameters
@@ -106,12 +93,6 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
-    lens_source_cut : None, float or numpy.ndarray, optional
-        Determine the lens-source redshift separation cut. If None, no cut is
-        applied. If a float, determines the minimum redshift separation between
-        lens and source redshift for lens-source pairs to be used. If an array,
-        it has to be the same length as the source table and determines the
-        maximum lens redshift for a lens-source pair to be used. Default is 0.
 
     Returns
     -------
@@ -119,18 +100,12 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
         The mean source redshift offset for the lens redshift(s).
 
     """
-    if lens_source_cut is None:
-        z_l_max = np.repeat(np.amax(z_l) + 1, len(table_c))
-    elif isinstance(lens_source_cut, numbers.Number):
-        z_l_max = table_c['z'] - lens_source_cut
-    else:
-        z_l_max = np.array(lens_source_cut)
-
+    z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(
-        u.Mpc).value
+    d_l = interpolate_over_redshift(
+        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
+    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     w = table_c['w_sys'] * table_c['w']
 
     if not np.isscalar(z_l):
@@ -146,7 +121,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2,
     sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
     w = w * sigma_crit**weighting
 
-    mask = (z_l_max < z_l) | (z_l > z_s)
+    mask = z_l >= z_l_max
 
     return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
         w * (~mask), axis=-1)
@@ -179,8 +154,7 @@ def get_raw_multiprocessing_array(array):
 
 def precompute(
         table_l, table_s, bins, table_c=None, table_n=None,
-        cosmology=FlatLambdaCDM(H0=100, Om0=0.3), comoving=True,
-        weighting=-2, lens_source_cut=0, nside=256, n_jobs=1,
+        cosmology=None, comoving=True, weighting=-2, nside=256, n_jobs=1,
         progress_bar=False):
     """For all lenses in the catalog, precompute the lensing statistics.
 
@@ -197,17 +171,17 @@ def precompute(
     table_c : astropy.table.Table, optional
         Additional photometric redshift calibration catalog. If provided, this
         will be used to statistically correct the photometric source redshifts
-        and critical surface densities. Default is None.
+        and critical surface densities. Default is ``None``.
     table_n : astropy.table.Table, optional
         Source redshift distributions. If provided, this will be used to
         compute mean source redshifts and critical surface densities. These
         mean quantities would be used instead the individual photometric
         redshift estimates. The table needs to have a `z` column giving the
         redshift and a `n` column with the :math:`n(z)` for all samples.
-        Default is None.
-    cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations. Default is a flat LambdaCDM
-        cosmology with h=1 and Om0=0.3.
+        Default is ``None``.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     comoving : bool, optional
         Whether to use comoving or physical quantities for radial bins (if
         given in physical units) and the excess surface density. Default is
@@ -216,12 +190,6 @@ def precompute(
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
         Default is -2.
-    lens_source_cut : None, float or numpy.ndarray, optional
-        Determine the lens-source redshift separation cut. If None, no cut is
-        applied. If a float, determines the minimum redshift separation between
-        lens and source redshift for lens-source pairs to be used. If an array,
-        it has to be the same length as the source table and determines the
-        maximum lens redshift for a lens-source pair to be used. Default is 0.
     nside : int, optional
         dsigma uses pixelization to group nearby lenses together and process
         them simultaneously. This parameter determines the number of pixels.
@@ -243,6 +211,8 @@ def precompute(
         If there are problems in the input.
 
     """
+    cosmology = default_cosmology if cosmology is None else cosmology
+
     if cosmology.Ok0 != 0:
         msg = "dsigma does not support non-flat cosmologies."
         raise ValueError(msg)
@@ -259,12 +229,20 @@ def precompute(
         msg = f"Number of jobs must be positive integer. Received {n_jobs}."
         raise ValueError(msg)
 
+    if table_c is not None and table_n is not None:
+        msg = "`table_c` and `table_n` cannot both be given."
+        raise ValueError(msg)
+
     if table_n is not None:
+        if 'z' in table_s.colnames:
+            msg = ("When providing tomographic source redshift distributions "
+                   "via the `table_n` argument, the `z` column is ignored.")
+            warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
         if 'z_bin' not in table_s.colnames:
             msg = ("To use source redshift distributions, the source table "
                    "needs to have a `z_bin` column.")
             raise ValueError(msg)
-        if (not np.issubdtype(table_s['z_bin'].data.dtype, np.integer) or
+        if (not np.issubdtype(table_s['z_bin'].dtype, np.integer) or
                 np.any(table_s['z_bin'] < 0)):
             msg = ("The `z_bin` column in the source table must contain only "
                    "non-negative integers.")
@@ -273,6 +251,11 @@ def precompute(
             msg = ("The source table contains more redshift bins than where "
                    "passed via the `table_n` argument.")
             raise ValueError(msg)
+    elif 'z_l_max' in table_s.colnames and np.any(
+            table_s['z_l_max'] > table_s['z']):
+        msg = ("The maximum lens redshift can never be larger than the source "
+               "redshift.")
+        raise ValueError(msg)
 
     hp = HEALPix(nside, order='ring')
     pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
@@ -291,8 +274,6 @@ def precompute(
 
     table_engine_l['z'] = np.ascontiguousarray(
         table_l['z'][argsort_pix_l], dtype=np.float64)
-    table_engine_s['z'] = np.ascontiguousarray(
-        table_s['z'][argsort_pix_s], dtype=np.float64)
 
     for f, f_name in zip([np.sin, np.cos], ['sin', 'cos']):
         for table, argsort_pix, table_engine in zip(
@@ -303,96 +284,73 @@ def precompute(
                     np.ascontiguousarray(f(np.deg2rad(table[angle]))[
                         argsort_pix])
 
-    for key in ['w', 'e_1', 'e_2', 'm', 'e_rms', 'm_sel', 'R_11', 'R_22',
-                'R_12', 'R_21']:
+    for key in ['z', 'z_l_max', 'w', 'e_1', 'e_2', 'm', 'e_rms', 'm_sel',
+                'R_11', 'R_22', 'R_12', 'R_21']:
         if key in table_s.colnames:
             table_engine_s[key] = np.ascontiguousarray(
                 table_s[key][argsort_pix_s], dtype=np.float64)
 
-    if lens_source_cut is None:
-        z_l_max = np.repeat(np.amax(table_l['z']) + 1, len(table_s))
-    elif isinstance(lens_source_cut, numbers.Number):
-        z_l_max = table_s['z'] - lens_source_cut
-    else:
-        z_l_max = np.array(lens_source_cut)
+    if 'z_bin' in table_s.colnames:
+        table_engine_s['z_bin'] = np.ascontiguousarray(
+            table_s['z_bin'][argsort_pix_s], dtype=int)
 
-    table_engine_s['z_l_max'] = np.ascontiguousarray(
-        z_l_max[argsort_pix_s], dtype=np.float64)
+    if 'z_l_max' not in table_engine_s:
+        if table_n is not None:
+            table_engine_s['z_l_max'] = np.ascontiguousarray(
+                np.repeat(np.finfo(np.float64).max, len(table_s)),
+                dtype=np.float64)
+        else:
+            table_engine_s['z_l_max'] = table_engine_s['z']
 
     for table, argsort_pix, table_engine in zip(
             [table_l, table_s], [argsort_pix_l, argsort_pix_s],
             [table_engine_l, table_engine_s]):
+        if 'z' in table.colnames:
+            table_engine['d_com'] = np.ascontiguousarray(
+                interpolate_over_redshift(
+                    cosmology.comoving_transverse_distance,
+                    table_engine['z']).to(u.Mpc).value, dtype=np.float64)
 
-        z_min = np.amin(table['z'])
-        z_max = np.amax(table['z'])
-        z_interp = np.linspace(
-            z_min, z_max, max(10, int((z_max - z_min) / 0.0001)))
-
-        table_engine['d_com'] = np.ascontiguousarray(interp1d(
-            z_interp, cosmology.comoving_transverse_distance(z_interp).to(
-                u.Mpc).value)(table['z'])[argsort_pix])
-
-    if table_c is not None and table_n is None:
-        z_min = np.amin(table_l['z'])
-        z_max = np.amax(table_l['z'])
-        z_interp = np.linspace(
-            z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
-        f_bias_interp = photo_z_dilution_factor(
-            z_interp, table_c, cosmology, weighting=weighting,
-            lens_source_cut=lens_source_cut)
-        f_bias_interp = interp1d(
-            z_interp, f_bias_interp, kind='cubic', bounds_error=False,
-            fill_value=(f_bias_interp[0], f_bias_interp[-1]))
+    if table_c is not None:
+        table_c_copy = table_c.copy()
+        if 'z_l_max' not in table_c_copy.colnames:
+            table_c_copy['z_l_max'] = table_c_copy['z']
         table_engine_l['f_bias'] = np.ascontiguousarray(
-            f_bias_interp(np.array(table_engine_l['z'])), dtype=np.float64)
-        dz_s_interp = mean_photo_z_offset(
-            z_interp, table_c=table_c, cosmology=cosmology,
-            weighting=weighting)
-        dz_s_interp = interp1d(
-            z_interp, dz_s_interp, kind='cubic', bounds_error=False,
-            fill_value=(dz_s_interp[0], dz_s_interp[-1]))
+            interpolate_over_redshift(
+                photo_z_dilution_factor, table_engine_l['z'], table_c_copy,
+                cosmology, weighting=weighting), dtype=np.float64)
         table_engine_l['delta z_s'] = np.ascontiguousarray(
-            dz_s_interp(np.array(table_engine_l['z'])), dtype=np.float64)
+            interpolate_over_redshift(
+                mean_photo_z_offset, table_engine_l['z'], table_c_copy,
+                cosmology, weighting=weighting), dtype=np.float64)
 
-    elif table_c is None and table_n is not None:
+    if table_n is not None:
         n_bins = table_n['n'].data.shape[1]
-        sigma_crit_eff = np.zeros(len(table_l) * n_bins, dtype=np.float64)
-        z_mean = np.zeros(n_bins, dtype=np.float64)
-        for i in range(n_bins):
-            z_min = np.amin(table_l['z'])
-            z_max = min(np.amax(table_l['z']),
-                        np.amax(table_n['z'][table_n['n'][:, i] > 0]))
-            z_interp = np.linspace(
-                z_min, z_max, max(10, int((z_max - z_min) / 0.001)))
+        z_ave = np.array([
+            np.average(table_n['z'], weights=table_n['n'][:, i]) for i in
+            range(n_bins)])
+        table_engine_s['z'] = np.ascontiguousarray(
+            z_ave[table_engine_s['z_bin']], dtype=np.float64)
 
-            sigma_crit_eff_inv_interp = effective_critical_surface_density(
-                z_interp, table_n['z'], table_n['n'][:, i],
-                cosmology=cosmology, comoving=comoving)**-1
-            sigma_crit_eff_inv_interp = interp1d(
-                z_interp, sigma_crit_eff_inv_interp, kind='cubic',
-                bounds_error=False,
-                fill_value=(sigma_crit_eff_inv_interp[0],
-                            sigma_crit_eff_inv_interp[-1]))
-            sigma_crit_eff_inv_interp = sigma_crit_eff_inv_interp(
-                np.array(table_engine_l['z']))
-            sigma_crit_eff_interp = np.repeat(np.inf, len(table_l))
-            mask = sigma_crit_eff_inv_interp == 0
-            sigma_crit_eff_interp[~mask] = sigma_crit_eff_inv_interp[~mask]**-1
-            sigma_crit_eff[i::n_bins] = sigma_crit_eff_interp
-            z_mean[i] = np.average(table_n['z'], weights=table_n['n'][:, i])
+        def _inverse_effective_critical_surface_density(z_l, z_bin):
+            return 1.0 / effective_critical_surface_density(
+                z_l, table_n['z'], table_n['n'][:, z_bin],
+                cosmology=cosmology, comoving=comoving)
+
+        sigma_crit_eff_inv = np.zeros(len(table_l) * n_bins, dtype=np.float64)
+
+        for z_bin in range(n_bins):
+            sigma_crit_eff_inv[z_bin::n_bins] = interpolate_over_redshift(
+                _inverse_effective_critical_surface_density,
+                table_engine_l['z'], z_bin)
+
+        with np.errstate(divide='ignore'):
+            sigma_crit_eff = np.where(
+                sigma_crit_eff_inv > 0, 1.0 / sigma_crit_eff_inv,
+                np.finfo(np.float64).max)
+
         table_engine_l['sigma_crit_eff'] = np.ascontiguousarray(
             sigma_crit_eff, dtype=np.float64)
-        table_engine_s['z_bin'] = np.ascontiguousarray(
-            table_s['z_bin'][argsort_pix_s], dtype=int)
-        # Overwrite the photometric redshifts in the source table. These
-        # redshifts will be used to compute the mean source redshifts for each
-        # lens.
-        table_engine_s['z'] = np.ascontiguousarray(
-            z_mean[table_s['z_bin']][argsort_pix_s], dtype=np.float64)
-
-    elif table_c is not None and table_s is not None:
-        msg = "`table_c` and `table_n` cannot both be given."
-        raise ValueError(msg)
 
     # Create arrays that will hold the final results.
     table_engine_r = {}
@@ -401,18 +359,12 @@ def precompute(
     key_list = ['sum 1', 'sum w_ls', 'sum w_ls e_t', 'sum w_ls z_s',
                 'sum w_ls e_t sigma_crit', 'sum w_ls sigma_crit']
 
-    if 'm' in table_s.colnames:
-        key_list.append('sum w_ls m')
-
-    if 'e_rms' in table_s.colnames:
-        key_list.append('sum w_ls (1 - e_rms^2)')
-
-    if 'm_sel' in table_s.colnames:
-        key_list.append('sum w_ls m_sel')
-
-    if (('R_11' in table_s.colnames) and ('R_12' in table_s.colnames) and
-            ('R_21' in table_s.colnames) and ('R_22' in table_s.colnames)):
-        key_list.append('sum w_ls R_T')
+    for table_s_key, table_r_key in zip(
+        ['m', 'e_rms', 'm_sel', 'R_11'],
+        ['sum w_ls m', 'sum w_ls (1 - e_rms^2)', 'sum w_ls m_sel',
+         'sum w_ls R_T']):
+        if table_s_key in table_s.colnames:
+            key_list.append(table_r_key)
 
     for key in key_list:
         table_engine_r[key] = np.ascontiguousarray(

@@ -3,8 +3,9 @@
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
-from astropy.cosmology import FlatLambdaCDM
 from scipy.special import jn_zeros, jv
+
+from . import default_cosmology
 
 __all__ = ['critical_surface_density', 'effective_critical_surface_density',
            'lens_magnification_shear_bias', 'mpc_per_degree',
@@ -13,12 +14,14 @@ __all__ = ['critical_surface_density', 'effective_critical_surface_density',
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
 
-def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
-                   comoving=False):
+def mpc_per_degree(z, cosmology=None, comoving=False):
     """Estimate the angular scale in Mpc/degree at certain redshift.
 
     Parameters
     ----------
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     z : float or numpy.ndarray
         Redshift of the object.
     cosmology : astropy.cosmology, optional
@@ -33,6 +36,8 @@ def mpc_per_degree(z, cosmology=FlatLambdaCDM(H0=100, Om0=0.3),
         Physical scale in unit of Mpc/degree.
 
     """
+    cosmology = default_cosmology if cosmology is None else cosmology
+
     if comoving:
         return (cosmology.comoving_transverse_distance(z).to(u.Mpc).value *
                 np.deg2rad(1))
@@ -91,8 +96,8 @@ def projection_angle(ra_l, dec_l, ra_s, dec_s):
     return cos_2phi, sin_2phi
 
 
-def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
-                             d_s=None):
+def critical_surface_density(
+        z_l, z_s, cosmology=None, comoving=True, d_l=None, d_s=None):
     """Compute the critical surface density.
 
     Parameters
@@ -101,9 +106,10 @@ def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
         Redshift of lens.
     z_s : float or numpy.ndarray
         Redshift of source.
-    cosmology : astropy.cosmology, optional
+    cosmology : astropy.cosmology or None, optional
         Cosmology to assume for calculations. Only used if comoving distances
-        are not passed.
+        are not passed. If ``None``, use ``dsigma.default_cosmology``. Default
+        is ``None``.
     comoving : bool, optional
         Flag for using comoving instead of physical units.
     d_l : float or numpy.ndarray
@@ -119,6 +125,7 @@ def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
         Critical surface density for each lens-source pair.
 
     """
+    cosmology = default_cosmology if cosmology is None else cosmology
     if d_l is None:
         d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     if d_s is None:
@@ -139,8 +146,8 @@ def critical_surface_density(z_l, z_s, cosmology=None, comoving=True, d_l=None,
     return _sigma_crit_factor * dist_term
 
 
-def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
-                                       comoving=True):
+def effective_critical_surface_density(
+        z_l, z_s, n_s, cosmology=None, comoving=True):
     """Compute the effective critical surface density.
 
     Parameters
@@ -152,8 +159,9 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
     n_s : numpy.ndarray
         Fraction of source galaxies in each redshift bin. Does not need to be
         normalized.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     comoving : boolean, optional
         Flag for using comoving instead of physical unit.
 
@@ -164,6 +172,7 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
         source redshift distribution.
 
     """
+    cosmology = default_cosmology if cosmology is None else cosmology
     d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
 
@@ -188,9 +197,9 @@ def effective_critical_surface_density(z_l, z_s, n_s, cosmology,
     return np.inf
 
 
-def lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, camb_results,
-                                  n_z=10, n_ell=200, bessel_function_zeros=100,
-                                  k_max=1e3):
+def lens_magnification_shear_bias(
+        theta, alpha_l, z_l, z_s, camb_results, n_z=10, n_ell=200,
+        bessel_function_zeros=100, k_max=1e3):
     r"""Compute the lens magnification bias to the mean tangential shear.
 
     This function is based on equations (13) and (14) in Unruh et al. (2020).
