@@ -30,10 +30,10 @@ Issues = "https://github.com/johannesulf/dsigma/issues"
 Changelog = "https://github.com/johannesulf/dsigma/blob/main/CHANGELOG.md"
 
 [project.scripts]
-dsigma-process-decade = "dsigma.scripts.process_decade:main"
-dsigma-process-des-y3 = "dsigma.scripts.process_des_y3:main"
-dsigma-process-hsc-y3 = "dsigma.scripts.process_hsc_y3:main"
-dsigma-process-kids-legacy = "dsigma.scripts.process_kids_legacy:main"
+dsigma-process-decade = "dsigma.scripts.process_decade:process_decade"
+dsigma-process-des-y3 = "dsigma.scripts.process_des_y3:process_des_y3"
+dsigma-process-hsc-y3 = "dsigma.scripts.process_hsc_y3:process_hsc_y3"
+dsigma-process-kids-legacy = "dsigma.scripts.process_kids_legacy:process_kids_legacy"
 
 [tool.setuptools]
 packages = ["dsigma", "dsigma.scripts"]

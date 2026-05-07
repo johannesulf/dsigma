@@ -26,7 +26,7 @@ In the framework of general relativity, mass and energy affect the space-time me
     \Sigma_\mathrm{crit} (z_l, z_s) = \frac{c^2}{4\pi G} \frac{D_A (z_s)}{
         D_A (z_l) D_A (z_l, z_s)} \, .
 
-In the above equation, :math:`D_A` denotes the angular diameter distance as a function of redshift :math:`z`. Particularly, :math:`z_s` denotes the redshift of the "source" which emitted the light. In the weak lensing regime, the surface densities of the lenses are small compared to the critical surface density, i.e., :math:`\Delta\Sigma \lll \Sigma_\mathrm{crit}`. In this regime, gravitational lensing will cause small, subtle changes in the apparent shapes of background source  galaxies. Particularly, the shapes of background source galaxies will be preferentially aligned perpendicular (if :math:`\Delta\Sigma > 0`) to the foreground lens galaxies. This alignment can be expressed in the mean tangential shear :math:`\gamma_t`. In the weak lensing regime, the relationship between the different quantities is straightforward:
+In the above equation, :math:`D_A` denotes the angular diameter distance as a function of redshift :math:`z`. Particularly, :math:`z_s` denotes the redshift of the "source" which emitted the light. In the weak lensing regime, the surface densities of the lenses are small compared to the critical surface density, i.e., :math:`\Delta\Sigma \ll \Sigma_\mathrm{crit}`. In this regime, gravitational lensing will cause small, subtle changes in the apparent shapes of background source galaxies. Particularly, the shapes of background source galaxies will be preferentially aligned perpendicular (if :math:`\Delta\Sigma > 0`) to the foreground lens galaxies. This alignment can be expressed in the mean tangential shear :math:`\gamma_t`. In the weak lensing regime, the relationship between the different quantities is straightforward:
 
 .. math::
 
@@ -61,7 +61,7 @@ Another reason for using :code:`dsigma` is that the above estimator will be bias
 Lens Selection Bias
 ~~~~~~~~~~~~~~~~~~~
 
-Often, our lens sample is not complete. For example, we might only have redshifts for a subset of all lens galaxies. Since redshifts are required to estimate :math:`\Delta\Sigma`, lens galaxies without redshifts must be excluded from the analysis. However, depending on the properties of the lens incompleteness, the intrinsic :math:`\Delta\Sigma` is often correlated with whether a lens galaxy makes it into our sample. Thus, the naive :math:`\Delta\Sigma` estimate using the incomplete lens sample could be biased concerning the :math:`\Delta\Sigma` of the complete sample. Assigning suitable systematic weights :math:`w_{\mathrm{sys}, l}` to the lens galaxies can counteract this effect. In this case, we replace the above estimator with
+Often, our lens sample is not complete. For example, we might only have redshifts for a subset of all lens galaxies. Since redshifts are required to estimate :math:`\Delta\Sigma`, lens galaxies without redshifts must be excluded from the analysis. However, depending on the properties of the lens incompleteness, the intrinsic :math:`\Delta\Sigma` is often correlated with whether a lens galaxy makes it into our sample. Thus, the naive :math:`\Delta\Sigma` estimate using the incomplete lens sample could be biased relative to the :math:`\Delta\Sigma` of the complete sample. Assigning suitable systematic weights :math:`w_{\mathrm{sys}, l}` to the lens galaxies can counteract this effect. In this case, we replace the above estimator with
 
 .. math::
     
@@ -120,11 +120,11 @@ The photometric redshift correction above only accounts for the average effect o
 
     b =
         \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}}{\sum_{rs}
-              w_{\mathrm{sys}, l} w_{ls}} \, .
+              w_{\mathrm{sys}, r} w_{rs}} \, .
 
 Note that the sum in the denominator goes over a set of random lenses with the same overall redshift and spatial extent as the actual lenses. Effectively, we are trying to detect any over-abundance of sources close to lenses instead of random points. If sources cluster around lenses, i.e., there is an over-abundance of sources physically associated with the lenses, then :math:`b \geq 1`. To apply the correction, we multiply the raw lensing signal by the radially dependent boost factor :math:`b`.
 
-Note, however, that this boost factor estimate might be biased for various shape detection algorithms. For example, it is not unreasonable to assume that a more significant fraction of potential source galaxies is rejected close to massive cluster lenses due to increased blending between different sources. Such an effect would lead to biases in estimating :math:`b`.
+Note, however, that this boost factor estimate might be biased for various shape detection algorithms. For example, it is not unreasonable to assume that a larger fraction of potential source galaxies is rejected close to massive cluster lenses due to increased blending between different sources. Such an effect would lead to biases in estimating :math:`b`.
 
 Shear Response
 ~~~~~~~~~~~~~~
@@ -146,7 +146,7 @@ The Dark Energy Survey uses the shear measurement code METACALIBRATION. This cod
     \mathbf{R} = \frac{\partial \mathbf{e}}{\partial \mathbf{\gamma}} =
                  \begin{bmatrix} R_{11} & R_{12}\\R_{21} & R_{22} \end{bmatrix}
 
-This formalism allows it to quantify, for example, how the sensitivity to shape distortions depends on the direction. However, this does not change the response formalism substantially. Instead of averaging the (scalar) bias, we average the projection of the response tensor onto the tangential direction of the lens-source pair,
+This formalism allows us to quantify, for example, how the sensitivity to shape distortions depends on the direction. However, this does not change the response formalism substantially. Instead of averaging the (scalar) bias, we average the projection of the response tensor onto the tangential direction of the lens-source pair,
 
 .. math::
 
@@ -173,9 +173,9 @@ Source Selection Bias
 
 While the shear response and responsivity describe how the measured shapes of individual galaxies are affected by the measurement pipeline, the selection bias :math:`m_\mathrm{sel}` describes the phenomenon that the selection of sources, i.e., quality cuts, can depend on the intrinsic shape itself. If not corrected, this effect could lead to biases in the mean tangential shear.
 
-Correcting for selection bias is handled differently between different surveys. :code:`dsigma` implements this by calculating per-object estimates of :math:`m_\mathrm{sel}`. One can then calculate a mean :math:`m_\mathrm{sel}` and correct the measurements for the selection bias in the same way as for the shear response term :math:`m` describe above. Luckily, the selection bias affects the shear only at the level of :math:`\sim 1\%`.
+Correcting for selection bias is handled differently between different surveys. :code:`dsigma` implements this by calculating per-object estimates of :math:`m_\mathrm{sel}`. One can then calculate a mean :math:`m_\mathrm{sel}` and correct the measurements for the selection bias in the same way as for the shear response term :math:`m` described above. Luckily, the selection bias affects the shear only at the level of :math:`\sim 1\%`.
 
-Please have a look at the tutorials for DES and HSC to see how this is implemented in practice. For HSC in particular, the multiplicative selection bias takes the form
+For HSC in particular, the multiplicative selection bias takes the form
 
 .. math::
 
@@ -192,4 +192,4 @@ This can be generalized to a per-object estimate of :math:`m_\mathrm{sel}` by se
 Random Subtraction
 ~~~~~~~~~~~~~~~~~~
 
-Often, we can calculate the lensing signal around a set of random lenses with the same overall redshift and spatial distribution as the actual lenses. If these random lenses are genuinely random, they do not correlate with the large-scale matter field. As a result, they should give a lensing amplitude consistent with 0. However, lensing systematics like systematic shears can lead to non-zero signals, even for random points. Subtracting those points can alleviate such systematic errors. Furthermore, even without lensing systematics, subtracting randoms leads to a reduced variance of the lensing signal on large scales, as shown in `Singh et al. (2017) <https://ui.adsabs.harvard.edu/abs/2017MNRAS.471.3827S/abstract>`_.
+Often, we can calculate the lensing signal around a set of random lenses with the same overall redshift and spatial distribution as the actual lenses. If these random lenses are genuinely random, they do not correlate with the large-scale matter field. As a result, they should give a lensing amplitude consistent with 0. However, lensing systematics like systematic shears can lead to non-zero signals, even for random points. Subtracting those points can alleviate such systematic errors. Furthermore, even without lensing systematics, subtracting randoms leads to a reduced variance of the lensing signal on large scales, as shown in `Singh et al. (2017) <https://doi.org/10.1093/mnras/stx1828>`_. Subtracting randoms is almost always recommended. However, it comes at an increased computational cost since the random catalog must have a higher number density than the lens catalog to avoid introducing additional noise.

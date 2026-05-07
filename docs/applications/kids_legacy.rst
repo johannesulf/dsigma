@@ -1,29 +1,27 @@
-Dark Energy Survey (DES)
-========================
+Kilo-Degree Survey (KiDS)
+=========================
 
 .. note::
-    This is an unofficial guide to using DES data with ``dsigma``. It has not been reviewed by the DES collaboration. For questions about the data products themselves, refer to the `official DES documentation <https://des.ncsa.illinois.edu/releases/y3a2>`_.
+    This is an unofficial guide to using KiDS data with ``dsigma``. It has not been reviewed by the KiDS collaboration. For questions about the data products themselves, refer to the `official KiDS documentation <https://kids.strw.leidenuniv.nl/DR5/legacy_wl.php>`_.
 
-This page explains how to measure galaxy-galaxy lensing using the DES Y3 shape catalog.
+This page explains how to measure galaxy-galaxy lensing using the KiDS-Legacy shape catalog.
 
 Downloading the Data
 --------------------
 
-DES Y3 catalog data is publicly available `here <https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files>`_. Download the required files with:
+KiDS-Legacy catalogs are publicly available `here <https://kids.strw.leidenuniv.nl/DR5/legacy_wl.php>`_. Download the required files with:
 
 .. code-block:: bash
 
-    BASE_URL=https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files
-    wget $BASE_URL/y3kp_cats/{DESY3_sompz_v0.50.h5,DESY3_metacal_v03-004.h5,DESY3_indexcat.h5}
-    wget $BASE_URL/datavectors/2pt_NG_final_2ptunblind_02_26_21_wnz_maglim_covupdate.fits
-    
+    BASE_URL=https://kids.strw.leidenuniv.nl/DR5/data_files
+    wget $BASE_URL/{KiDS_Legacy_NS_unblind_final.fits.gz,KiDZ_Legacy_unblind_final.fits}
 
-Then run :program:`dsigma-process-des-y3` (see :func:`~dsigma.scripts.process_des_y3.process_des_y3`) to process the raw files into a single ``des_y3.hdf5`` file used in the steps below.
+Then run :program:`dsigma-process-kids-legacy` (see :func:`~dsigma.scripts.process_kids_legacy.process_kids_legacy`) to process the raw files into a single ``kids_legacy.hdf5`` file used in the steps below.
 
 Precomputing the Signal
 -----------------------
 
-We apply a lens-source separation cut of :math:`z_l < z_{t, \rm low} - 0.1`, where :math:`z_{t, \rm low}` is the lower edge of the tomographic bin each source belongs to `(Myles et al., 2021) <https://doi.org/10.1093/mnras/stab1515>`_.
+We apply a lens-source separation cut of :math:`z_l < z_{t, \rm low} - 0.1`, where :math:`z_{t, \rm low}` is the lower edge of the tomographic bin each source belongs to `(Wright et al., 2026) <https://doi.org/10.1051/0004-6361/202554909>`_.
 
 .. code-block:: python
 
@@ -32,11 +30,11 @@ We apply a lens-source separation cut of :math:`z_l < z_{t, \rm low} - 0.1`, whe
     from astropy.table import Table
 
     from dsigma.precompute import precompute
-    
-    table_s = Table.read('des_y3.hdf5', path='catalog')
+
+    table_s = Table.read('kids_legacy.hdf5', path='catalog')
     table_s['z_l_max'] = np.array(
-        [0.0, 0.358, 0.631, 0.872])[table_s['z_bin']] - 0.1
-    table_n = Table.read('des_y3.hdf5', path='calibration')
+        [0.1, 0.3, 0.5, 0.7, 0.9])[table_s['z_bin']] - 0.1
+    table_n = Table.read('kids_legacy.hdf5', path='calibration')
 
     rp_bins = np.logspace(-1, 1.6, 14)
     kwargs = dict(cosmology=Planck15, comoving=True, table_n=table_n,
@@ -49,7 +47,7 @@ Stacking the Signal
 
 We stack the signal in four BOSS redshift bins. Lenses and randoms with no nearby source galaxies are removed first. Jackknife resampling with 100 fields is used to estimate uncertainties.
 
-We apply the METACALIBRATION matrix shear response correction, a scalar shear response correction which accounts for blending, and subtract the signal around randoms. Random subtraction removes additive systematics, reduces noise, and is strongly recommended. We do not apply a boost correction, as our estimator may be biased for DES.
+We apply a scalar shear response correction and subtract the signal around randoms. Random subtraction removes additive systematics, reduces noise, and is strongly recommended. We do not apply a boost correction, as our estimator may be biased for KiDS.
 
 .. code-block:: python
 
@@ -67,7 +65,6 @@ We apply the METACALIBRATION matrix shear response correction, a scalar shear re
     compute_jackknife_fields(table_r, centers)
 
     kwargs = dict(scalar_shear_response_correction=True,
-                  matrix_shear_response_correction=True,
                   random_subtraction=True)
     z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
@@ -80,9 +77,9 @@ We apply the METACALIBRATION matrix shear response correction, a scalar shear re
         result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
             excess_surface_density, table_l_bin, table_r=table_r_bin, **kwargs)))
 
-        result.write(f'des_{lens_bin}.csv', overwrite=True)
+        result.write(f'kids_{lens_bin}.csv', overwrite=True)
 
 Acknowledgments
 ---------------
 
-If you use DES Y3 data in your research, please follow the acknowledgment guidelines on the `DES Y3 data release page <https://des.ncsa.illinois.edu/releases/y3a2>`_.
+If you use KiDS-Legacy data in your research, please follow the `KiDS-Legacy acknowledgment guidelines <https://kids.strw.leidenuniv.nl/DR5/acknowledgments.php>`_.

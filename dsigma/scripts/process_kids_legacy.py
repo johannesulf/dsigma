@@ -1,9 +1,22 @@
+"""Script to process KiDS-Legacy data."""
+
 import numpy as np
 from astropy.table import Table
 
 
-def main():
+def process_kids_legacy():
+    """Process raw KiDS-Legacy data.
 
+    The script assumes the following files to be present in the working
+    directory.
+
+    * ``KiDS_Legacy_NS_unblind_final.fits.gz``
+    * ``KiDZ_Legacy_unblind_final.fits``
+
+    It will produce the file ``kids_legacy.hdf5`` containing the processed
+    source catalog and calibration :math:`n(z)`.
+
+    """
     print("Reading in catalog data...")
 
     table_s = Table.read('KiDS_Legacy_NS_unblind_final.fits.gz')
@@ -51,4 +64,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    process_kids_legacy()

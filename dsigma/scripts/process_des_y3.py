@@ -1,10 +1,25 @@
+"""Script to process DES Y3 data."""
+
 import h5py
 import numpy as np
 from astropy.table import Table
 
 
-def main():
+def process_des_y3():
+    """Process raw DES Y3 data.
 
+    The script assumes the following files to be present in the working
+    directory.
+
+    * ``DESY3_sompz_v0.50.h5``
+    * ``DESY3_metacal_v03-004.h5``
+    * ``DESY3_indexcat.h5``
+    * ``2pt_NG_final_2ptunblind_02_26_21_wnz_maglim_covupdate.fits``
+
+    It will produce the file ``des_y3.hdf5`` containing the processed source
+    catalog and calibration :math:`n(z)`.
+
+    """
     print("Reading in catalog data...")
 
     table_s = Table()
@@ -80,4 +95,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    process_des_y3()
