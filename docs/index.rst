@@ -17,6 +17,7 @@ Overview
     :hidden:
 
     start/installation
+    start/quickstart
     start/background
 
 .. toctree::
