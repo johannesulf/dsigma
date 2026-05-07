@@ -41,7 +41,9 @@ def precompute_engine(
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
     cdef double[::1] d_com_l = table_l['d_com']
-    cdef double[::1] d_com_s = table_s['d_com']
+    cdef double[::1] d_com_s
+    if 'd_com' in table_s:
+        d_com_s = table_s['d_com']
     cdef double[::1] sin_ra_l = table_l['sin ra']
     cdef double[::1] cos_ra_l = table_l['cos ra']
     cdef double[::1] sin_dec_l = table_l['sin dec']
@@ -55,7 +57,7 @@ def precompute_engine(
     cdef double[::1] e_2 = table_s['e_2']
     cdef double[::1] z_l_max = table_s['z_l_max']
 
-    cdef bint has_sigma_crit_eff = 'sigma_crit_eff' in table_l.keys()
+    cdef bint has_sigma_crit_eff = 'sigma_crit_eff' in table_l
     cdef int n_z_bins = 0
     cdef double[::1] sigma_crit_eff
     cdef long[::1] z_bin
@@ -64,22 +66,22 @@ def precompute_engine(
         sigma_crit_eff = table_l['sigma_crit_eff']
         z_bin = table_s['z_bin']
 
-    cdef bint has_m = 'm' in table_s.keys()
+    cdef bint has_m = 'm' in table_s
     cdef double[::1] m
     if has_m:
         m = table_s['m']
 
-    cdef bint has_e_rms = 'e_rms' in table_s.keys()
+    cdef bint has_e_rms = 'e_rms' in table_s
     cdef double[::1] e_rms
     if has_e_rms:
         e_rms = table_s['e_rms']
 
-    cdef bint has_m_sel = 'm_sel' in table_s.keys()
+    cdef bint has_m_sel = 'm_sel' in table_s
     cdef double[::1] m_sel
     if has_m_sel:
         m_sel = table_s['m_sel']
 
-    cdef bint has_R_matrix = 'R_11' in table_s.keys()
+    cdef bint has_R_matrix = 'R_11' in table_s
     cdef double[::1] R_11, R_12, R_21, R_22
     if has_R_matrix:
         R_11 = table_s['R_11']

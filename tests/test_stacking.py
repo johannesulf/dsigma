@@ -16,8 +16,8 @@ def test_treecorr(test_catalogs, n_jobs):
     try:
         import treecorr
     except ImportError:
-        warnings.warn('TreeCorr is not installed. Skipping test.',
-                      RuntimeWarning)
+        msg = "TreeCorr is not installed. Skipping test."
+        warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
         return None
 
     table_l, table_s = test_catalogs
@@ -128,8 +128,6 @@ def test_f_bias_2(test_catalogs):
 def test_nz(test_catalogs):
 
     table_l, table_s = test_catalogs
-    table_s = table_s
-    table_l = table_l
 
     # Create an n(z) distribution where each source has its own n(z) that peaks
     # at the intrinsic z. Thus, including the n(z) shouldn't change the result.
@@ -138,8 +136,12 @@ def test_nz(test_catalogs):
     table_n['z'] = table_s['z']
     table_n['n'] = np.eye(len(table_s))
 
+    # Reduce the number of unique values to save time.
+    table_l['z'] = np.round(table_l['z'], decimals=3)
+
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.precompute(table_l, table_s, rp_bins)
+    table_s.remove_column('z')
     table_l_nz = precompute.precompute(
         table_l.copy(), table_s, rp_bins, table_n=table_n)
 

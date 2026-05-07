@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for DECADE and KiDS-Legacy.
+- Added the helper function `dsigma.helpers.interpolate_over_redshift` as part of a code refactoring.
 
 ### Changed
 
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `dsigma.surveys` was removed.
+- The `lens_source_cut` keyword argument has been removed. Please specify the maximum lens redshift via the `z_l_max` column.
 
 ## [1.1.0] - 2025-06-25
 
