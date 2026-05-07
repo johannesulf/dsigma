@@ -14,10 +14,10 @@ To run the precomputation, we must first make decisions regarding the radial bin
 
     rp_bins = np.logspace(-1, 1, 11)
     cosmology = Planck15
-    lens_source_cut = 0.1
+    table_s['z_l_max'] = table_s['z'] - 0.1
 
     # Perform the precomputation.
     precompute(table_l, table_s, rp_bins, cosmology=cosmology, comoving=True,
-               lens_source_cut=lens_source_cut, progress_bar=True, n_jobs=4)
+               progress_bar=True, n_jobs=4)
 
 After the precomputation, we can stack the signal around each lens to obtain the total lensing signal. Cuts on the lens sample can be applied later, immediately before stacking. Consequently, after performing the precomputation, we can easily derive lensing signals for arbitrary sub-samples of the lens catalog.
