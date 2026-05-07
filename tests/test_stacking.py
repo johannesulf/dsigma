@@ -21,6 +21,7 @@ def test_treecorr(test_catalogs, n_jobs):
         return None
 
     table_l, table_s = test_catalogs
+    table_s['z'] = 1e3
     theta_bins = np.logspace(0, 1, 11)
 
     cat_l = treecorr.Catalog(ra=table_l['ra'], dec=table_l['dec'],
@@ -35,8 +36,7 @@ def test_treecorr(test_catalogs, n_jobs):
     ng.process(cat_l, cat_s)
 
     table_l = precompute.precompute(
-        table_l, table_s, theta_bins * u.deg, weighting=0,
-        lens_source_cut=None, n_jobs=n_jobs)
+        table_l, table_s, theta_bins * u.deg, weighting=0, n_jobs=n_jobs)
 
     assert np.all(
         np.array(ng.npairs, dtype=int) == stacking.number_of_pairs(table_l))
