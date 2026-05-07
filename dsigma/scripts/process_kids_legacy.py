@@ -5,7 +5,7 @@ from astropy.table import Table
 
 
 def process_kids_legacy():
-    """Process raw HSC Y3 data.
+    """Process raw KiDS-Legacy data.
 
     The script assumes the following files to be present in the working
     directory.
