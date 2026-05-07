@@ -45,4 +45,9 @@ In this quick example, we will calculate the lensing amplitude around galaxies i
     plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc}]$')
     plt.ylabel(r'ESD $r_p \times \Delta \Sigma \, [10^6 M_\odot / \mathrm{pc}]$')
 
+.. image:: plot.png
+   :width: 80 %
+   :align: center
+
+
 For more details, refer to the workflow and application pages.
