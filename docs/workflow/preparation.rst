@@ -1,9 +1,9 @@
 Data Preparation
 ================
 
-We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Fortunately, many data sets are publicly available, such as data from HSC or CFHTLenS. Once we have obtained the data, we need to convert it into a format understandable by :code:`dsigma`.
+We need a lens and a source catalog to calculate the galaxy-galaxy lensing signal. Several publicly available datasets are supported, as described in the Applications section. Once we have obtained the data, we need to convert it into a format understandable by ``dsigma``.
 
-Generally, :code:`dsigma` expects all lens, source, and calibration catalogs to be :code:`astropy` tables with data stored in specific, pre-defined columns.
+Generally, ``dsigma`` expects all lens, source, and calibration catalogs to be ``astropy`` tables with data stored in specific, pre-defined columns.
 
 Lens Catalog
 ------------
@@ -32,19 +32,28 @@ The following columns are required for source catalogs.
 Additionally, the following columns may be used in the analysis.
 
 * ``m``: multiplicative shear bias
+* ``m_sel``: selection bias
 * ``e_rms``: root mean square ellipticity
 * ``R_2``: HSC resolution factor (0=unresolved, 1=resolved)
 * ``R_11``, ``R_22``, ``R_12``, ``R_21``: METACALIBRATION shear response
 * ``z_bin``: tomographic redshift bin, non-negative and starts at 0
 
+Redshift Distributions
+----------------------
+
+For most modern weak lensing surveys, sources are divided into tomographic bins. Each tomographic bins has a redshift distribution :math:`n(z)`. These can be specified as follows:
+
+* ``z``: redshift grid
+* ``n``: :math:`n(z)`, must be two-dimensional, i.e., the value for each bin at redshift :math:`z`
+
 Calibration Catalog
 -------------------
 
-The following columns are required in (optional) calibration catalogs.
+As an alternative to redshift distributions, photometric redshifts can be corrected using the :math:`f_{\rm bias}` correction, which requires a calibration catalog.
 
 * ``z``: best-fit photometric redshift
 * ``z_true``: "true" redshift
 * ``w``: inverse variance weight for galaxy shape
 * ``w_sys``: systematic weight :math:`w_{\mathrm{sys}}`
 
-The weight :math:`w_{\mathrm{sys}}` is used to offset, for example, color differences between the source and the calibration catalog. Additionally, the columns ``z_low`` and ``z_err`` may also be present in the calibration catalog with the same meaning as in the source catalog.
+The weight :math:`w_{\mathrm{sys}}` is used to offset, for example, color differences between the source and the calibration catalog.

@@ -9,15 +9,7 @@ This page explains how to measure galaxy-galaxy lensing using the HSC Y3 shape c
 Downloading the Data
 --------------------
 
-HSC Y3 catalog data is available from the HSC website after registering. Download the required files with:
-
-.. code-block:: none
-
-    BASE_URL=https://hsc-release.mtk.nao.ac.jp/archive/filetree/shape_catalog_y3/
-    wget $BASE_URL/catalog_obs_reGaus_public/{GAMA09H,GAMA15H,HECTOMAP,VVDS,WIDE12H,XMM}.fits.xz
-    wget $BASE_URL/li23/nz/nz.fits
-
-Then run :program:`dsigma-process-hsc-y3` (see :func:`~dsigma.scripts.process_hsc_y3.process_hsc_y3`) to process the raw files into a single ``hsc_y3.hdf5`` file used in the steps below.
+HSC Y3 catalog data is available from the HSC website after registering. Download the `flat files <https://hsc-release.mtk.nao.ac.jp/archive/filetree/shape_catalog_y3/catalog_obs_reGaus_public/>`_ and `n(z) file <https://hsc-release.mtk.nao.ac.jp/archive/filetree/shape_catalog_y3/li23/nz/nz.fits>`_. Then run :program:`dsigma-process-hsc-y3` (see :func:`~dsigma.scripts.process_hsc_y3.process_hsc_y3`) to process the raw files into a single ``hsc_y3.hdf5`` file used in the steps below.
 
 Precomputing the Signal
 -----------------------

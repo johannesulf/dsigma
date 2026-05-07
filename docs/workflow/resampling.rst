@@ -13,7 +13,7 @@ where :math:`d` is the observable computed from the entire sample and :math:`d_i
 Constructing Jackknife Fields
 -----------------------------
 
-:code:`dsigma` uses a combination of DBSCAN and K-means clustering for determining jackknife fields. The jackknife fields are determined via :math:`n_{\mathrm{jk}}` centers and lenses are associated to each jackknife field based on the nearest center. This allows use to easily use the same jackknife fields for both lenses and randoms. The following code will construct 100 jackknife fields.
+:code:`dsigma` uses a combination of DBSCAN and K-means clustering for determining jackknife fields. The jackknife fields are determined via :math:`n_{\mathrm{jk}}` centers and lenses are associated to each jackknife field based on the nearest center. This makes it straightforward to use the same jackknife fields for both lenses and randoms. The following code will construct 100 jackknife fields.
 
 .. code-block:: python
 
@@ -27,7 +27,7 @@ In the above code, ``table_l`` and ``table_r`` are the precompute results for a 
 Jackknife Resampling
 --------------------
 
-We are now ready to derive uncertainties on any summary statistic derived from the entire lens and (optionally) random samples. The following code calculates the covariance matrix on the galaxy-galaxy lensing signal.
+We are now ready to derive uncertainties for any summary statistic derived from the entire lens and (optionally) random samples. The following code calculates the covariance matrix on the galaxy-galaxy lensing signal.
 
 .. code-block:: python
 

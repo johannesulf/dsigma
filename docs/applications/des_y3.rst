@@ -11,7 +11,7 @@ Downloading the Data
 
 DES Y3 catalog data is publicly available `here <https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files>`_. Download the required files with:
 
-.. code-block:: none
+.. code-block:: bash
 
     BASE_URL=https://desdr-server.ncsa.illinois.edu/despublic/y3a2_files
     wget $BASE_URL/y3kp_cats/{DESY3_sompz_v0.50.h5,DESY3_metacal_v03-004.h5,DESY3_indexcat.h5}

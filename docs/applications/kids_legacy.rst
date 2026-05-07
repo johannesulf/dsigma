@@ -11,7 +11,7 @@ Downloading the Data
 
 KiDS-Legacy catalogs are publicly available `here <https://kids.strw.leidenuniv.nl/DR5/legacy_wl.php>`_. Download the required files with:
 
-.. code-block:: none
+.. code-block:: bash
 
     BASE_URL=https://kids.strw.leidenuniv.nl/DR5/data_files
     wget $BASE_URL/{KiDS_Legacy_NS_unblind_final.fits.gz,KiDZ_Legacy_unblind_final.fits}
