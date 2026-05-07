@@ -3,7 +3,6 @@
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
-from astropy.cosmology import FlatLambdaCDM
 from scipy.special import jn_zeros, jv
 
 from . import default_cosmology
