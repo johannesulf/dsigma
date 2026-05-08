@@ -136,8 +136,10 @@ def test_nz(test_catalogs):
     table_n['z'] = table_s['z']
     table_n['n'] = np.eye(len(table_s))
 
-    # Reduce the number of unique values to save time.
-    table_l['z'] = np.round(table_l['z'], decimals=3)
+    # Place all lenses in front of the sources. Otherwise, some rounding errors
+    # may result in different numebers of pairs due to 0 weights. This also
+    # save computation time.
+    table_l['z'] = 0.15
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.precompute(table_l, table_s, rp_bins)
