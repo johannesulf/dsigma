@@ -2,7 +2,7 @@
 
 import numpy as np
 from astropy import units as u
-from astropy.cosmology import FlatLambdaCDM
+from astropy.cosmology import Cosmology
 from astropy.table import Table
 from astropy.units import UnitConversionError
 
@@ -287,7 +287,7 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         The lens magnification bias in each radial bin.
 
     """
-    cosmology = FlatLambdaCDM(H0=table_l.meta['H0'], Om0=table_l.meta['Om0'])
+    cosmology = Cosmology.from_format(table_l.meta['cosmology'], format='yaml')
 
     z_l = mean_lens_redshift(table_l)
     z_s = mean_source_redshift(table_l)

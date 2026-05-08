@@ -311,19 +311,6 @@ def precompute(
                     cosmology.comoving_transverse_distance,
                     table_engine['z']).to(u.Mpc).value, dtype=np.float64)
 
-    if table_c is not None:
-        table_c_copy = table_c.copy()
-        if 'z_l_max' not in table_c_copy.colnames:
-            table_c_copy['z_l_max'] = table_c_copy['z']
-        table_engine_l['f_bias'] = np.ascontiguousarray(
-            interpolate_over_redshift(
-                photo_z_dilution_factor, table_engine_l['z'], table_c_copy,
-                cosmology, weighting=weighting), dtype=np.float64)
-        table_engine_l['delta z_s'] = np.ascontiguousarray(
-            interpolate_over_redshift(
-                mean_photo_z_offset, table_engine_l['z'], table_c_copy,
-                cosmology, weighting=weighting), dtype=np.float64)
-
     if table_n is not None:
         n_bins = table_n['n'].data.shape[1]
         z_ave = np.array([
@@ -371,9 +358,6 @@ def precompute(
             np.zeros(n_results, dtype=(
                 np.int64 if key == 'sum 1' else np.float64)))
 
-    z_l = np.array(table_engine_l['z'])
-    d_com_l = np.array(table_engine_l['d_com'])
-
     if not isinstance(bins, u.quantity.Quantity):
         bins = bins * u.Mpc
 
@@ -381,9 +365,10 @@ def precompute(
         theta_bins = np.tile(bins.to(u.rad).value, len(table_l))
     except UnitConversionError:
         theta_bins = (np.tile(bins.to(u.Mpc).value, len(table_l)) /
-                      np.repeat(d_com_l, len(bins))).flatten()
+                      np.repeat(table_engine_l['d_com'], len(bins))).flatten()
         if not comoving:
-            theta_bins *= (1 + np.repeat(z_l, len(bins))).flatten()
+            theta_bins *= (
+                1 + np.repeat(table_engine_l['z'], len(bins))).flatten()
 
     dist_3d_sq_bins = np.minimum(4 * np.sin(theta_bins / 2.0)**2, 2.0)
 
@@ -420,31 +405,38 @@ def precompute(
         for i in range(n_jobs):
             processes[i].join()
 
+    if n_jobs > 1:
+        for key in table_engine_r:
+            table_engine_r[key] = np.array(table_engine_r[key])
+
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
     for key in table_engine_r:
-        table_l[key] = np.array(table_engine_r[key]).reshape(
+        table_l[key] = table_engine_r[key].reshape(
             len(table_l), len(bins) - 1)[inv_argsort_pix_l]
 
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
 
-    if 'f_bias' in table_engine_l:
-        table_l['sum w_ls sigma_crit f_bias'] = (
-            np.array(table_engine_l['f_bias'])[inv_argsort_pix_l][
-                :, np.newaxis] * table_l['sum w_ls sigma_crit'])
-        table_l['sum w_ls e_t sigma_crit f_bias'] = (
-            np.array(table_engine_l['f_bias'])[inv_argsort_pix_l][
-                :, np.newaxis] * table_l['sum w_ls e_t sigma_crit'])
+    if table_c is not None:
+        table_c_copy = table_c.copy()
+        if 'z_l_max' not in table_c_copy.colnames:
+            table_c_copy['z_l_max'] = table_c_copy['z']
 
-    if 'delta z_s' in table_engine_l:
+        f_bias = interpolate_over_redshift(
+            photo_z_dilution_factor, table_l['z'], table_c_copy,
+            cosmology, weighting=weighting)
+        for key in ['sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit']:
+            table_l[f'{key} f_bias'] = f_bias[:, np.newaxis] * table_l[key]
+
+        delta_z_s = interpolate_over_redshift(
+            mean_photo_z_offset, table_l['z'], table_c_copy,
+            cosmology, weighting=weighting)
         table_l['sum w_ls z_s'] = (
-            table_l['sum w_ls z_s'] - table_l['sum w_ls'] * np.array(
-                table_engine_l['delta z_s'])[inv_argsort_pix_l][:, np.newaxis])
+            table_l['sum w_ls z_s'] - table_l['sum w_ls'] * delta_z_s[
+                :, np.newaxis])
 
     table_l.meta['bins'] = bins
     table_l.meta['comoving'] = comoving
-    table_l.meta['H0'] = cosmology.H0.value
-    table_l.meta['Ok0'] = cosmology.Ok0
-    table_l.meta['Om0'] = cosmology.Om0
+    table_l.meta['cosmology'] = cosmology.to_format('yaml')
     table_l.meta['weighting'] = weighting
 
     return table_l

@@ -39,9 +39,9 @@ if args.survey.lower() == 'decade':
     table_s = Table.read('decade_ngc.hdf5', path='catalog')
     table_n = Table.read('decade_ngc.hdf5', path='calibration')
 
-    table_s['z'] = np.array([0.0, 0.381, 0.619, 0.803])[table_s['z_bin']]
+    table_s['z_l_max'] = np.array(
+        [0.0, 0.381, 0.619, 0.803])[table_s['z_bin']] - 0.1
 
-    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
                            matrix_shear_response_correction=True)
 
@@ -50,9 +50,9 @@ elif args.survey.lower() == 'des':
     table_s = Table.read('des_y3.hdf5', path='catalog')
     table_n = Table.read('des_y3.hdf5', path='calibration')
 
-    table_s['z'] = np.array([0.0, 0.358, 0.631, 0.872])[table_s['z_bin']]
+    table_s['z_l_max'] = np.array(
+        [0.0, 0.358, 0.631, 0.872])[table_s['z_bin']] - 0.1
 
-    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
                            matrix_shear_response_correction=True)
 
@@ -63,9 +63,8 @@ elif args.survey.lower() == 'hsc':
 
     z_ave = np.array([np.average(table_n['z'], weights=table_n['n'][:, z_bin])
                       for z_bin in range(4)])
-    table_s['z'] = z_ave[table_s['z_bin']]
+    table_s['z_l_max'] = z_ave[table_s['z_bin']] - 0.3
 
-    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.3)
     stacking_kwargs = dict(scalar_shear_response_correction=True,
                            shear_responsivity_correction=True,
                            selection_bias_correction=True)
@@ -75,18 +74,17 @@ elif args.survey.lower() == 'kids':
     table_s = Table.read('kids_legacy.hdf5', path='catalog')
     table_n = Table.read('kids_legacy.hdf5', path='calibration')
 
-    table_s['z'] = np.array([0.1, 0.42, 0.58, 0.71, 0.90, 1.14])[
-        table_s['z_bin']]
+    table_s['z_l_max'] = np.array([0.1, 0.42, 0.58, 0.71, 0.90, 1.14])[
+        table_s['z_bin']] - 0.1
 
-    precompute_kwargs = dict(table_n=table_n, lens_source_cut=0.1)
     stacking_kwargs = dict(scalar_shear_response_correction=True)
 
 else:
     raise ValueError("Survey must be 'decade', 'des', 'hsc' or 'kids'.")
 
-precompute_kwargs.update(dict(
-    n_jobs=os.cpu_count(), comoving=True, cosmology=cosmology,
-    progress_bar=True))
+precompute_kwargs = dict(
+    table_n=table_n, n_jobs=os.cpu_count(), comoving=True,
+    cosmology=cosmology, progress_bar=True)
 
 # Pre-compute the signal.
 precompute(table_l, table_s, rp_bins, **precompute_kwargs)
@@ -103,15 +101,16 @@ compute_jackknife_fields(table_r, centers)
 # Stack the signal.
 stacking_kwargs['random_subtraction'] = True
 
-for lens_bin in range(len(z_bins) - 1):
-    use_l = ((z_bins[lens_bin] <= table_l['z']) &
-             (table_l['z'] < z_bins[lens_bin + 1]))
-    use_r = ((z_bins[lens_bin] <= table_r['z']) &
-             (table_r['z'] < z_bins[lens_bin + 1]))
-    stacking_kwargs['table_l'] = compress_jackknife_fields(table_l[use_l])
-    stacking_kwargs['table_r'] = compress_jackknife_fields(table_r[use_r])
-    result = excess_surface_density(**stacking_kwargs, return_table=True)
+for lens_bin, (z_min, z_max) in enumerate(zip(z_bins[:-1], z_bins[1:])):
+    table_l_bin = compress_jackknife_fields(
+        table_l[(z_min <= table_l['z']) & (table_l['z'] < z_max)])
+    table_r_bin = compress_jackknife_fields(
+        table_r[(z_min <= table_r['z']) & (table_r['z'] < z_max)])
+
+    result = excess_surface_density(
+        table_l_bin, table_r=table_r_bin, return_table=True, **stacking_kwargs)
     result['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
-        excess_surface_density, **stacking_kwargs)))
+        excess_surface_density, table_l_bin, table_r=table_r_bin,
+        **stacking_kwargs)))
 
     result.write(f'{args.survey.lower()}_{lens_bin}.csv', overwrite=True)

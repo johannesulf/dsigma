@@ -40,21 +40,21 @@ def interpolate_over_redshift(f, z, *args, **kwargs):
         If redshifts are negative.
 
     """
-    if np.any(z < 0):
-        msg = "Redshifts cannot be negative."
-        raise ValueError(msg)
+    z_min, z_max = np.amin(z), np.amax(z)
 
-    z_unique, unique_inverse = np.unique(z, return_inverse=True)
-    if len(z_unique) <= 10000:
-        y = f(z_unique, *args, **kwargs)[unique_inverse]
-    else:
-        a_support = np.linspace(1.0 / (1 + np.amax(z)), 1.0 / (1 + np.amin(z)),
-                                10000)
-        y_support = f(1 / a_support - 1, *args, **kwargs)
-        y = make_interp_spline(a_support, y_support)(1.0 / (1 + z))
-    
-        if isinstance(y_support, Quantity):
-            y = y * y_support.unit
+    if z_min == z_max:
+        return np.repeat(f(z[0], *args, **kwargs), len(z))
+
+    a_support = np.linspace(1.0 / (1 + z_max), 1.0 / (1 + z_min), 10000)
+    y_support = f(1 / a_support - 1, *args, **kwargs)
+
+    # Interpolating the sorted array is faster.
+    idx = np.argsort(z)
+    y = make_interp_spline(a_support, y_support)(1.0 / (1 + z[idx]))
+    y[idx] = y
+
+    if isinstance(y_support, Quantity):
+        y = y * y_support.unit
 
     return y
 
