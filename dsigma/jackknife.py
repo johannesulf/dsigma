@@ -129,23 +129,32 @@ def compress_jackknife_fields(table):
         exactly as many rows as there are jackknife fields.
 
     """
-    all_field_jk = np.unique(table['field_jk'])
-    table_jk = Table(table[:len(all_field_jk)], copy=True)
+    table = table.copy()
+    table.sort('field_jk')
+    table_jk = Table()
 
-    for i, field_jk in enumerate(all_field_jk):
-        mask = table['field_jk'] == field_jk
-        for key in table.colnames:
-            if key == 'field_jk':
-                table_jk[i][key] = table[key][mask][0]
-            elif key in ['w_sys', 'sum 1']:
-                table_jk[i][key] = np.sum(table[key][mask], axis=0)
-            else:
-                with warnings.catch_warnings():
-                    if np.any(np.isnan(table[key][mask])):
-                        warnings.simplefilter(
-                            'ignore', category=RuntimeWarning)
-                    table_jk[i][key] = np.average(
-                        table[key][mask], weights=table['w_sys'][mask], axis=0)
+    table_jk['field_jk'], counts = np.unique(
+        table['field_jk'], return_counts=True)
+
+    for key in table.colnames:
+
+        if not (key in ['w_sys', 'ra', 'dec', 'z'] or key[:3] == 'sum'):
+            continue
+
+        table_jk[key] = np.zeros((len(table_jk), ) + table[key].shape[1:],
+                                 dtype=table[key].dtype)
+
+        for i in range(len(table_jk)):
+            k_min = 0 if i == 0 else np.cumsum(counts)[i - 1]
+            k_max = np.cumsum(counts)[i]
+            if key == 'w_sys':
+                table_jk[i][key] = np.sum(table[key][k_min:k_max])
+            elif key == 'sum 1':
+                table_jk[i][key] = np.sum(table[key][k_min:k_max], axis=0)
+            elif np.sum(table['w_sys'][k_min:k_max]) > 0:
+                table_jk[key][i] = np.average(
+                    table[key][k_min:k_max],
+                    weights=table['w_sys'][k_min:k_max], axis=0)
 
     return table_jk
 
@@ -192,7 +201,7 @@ def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
 
 
 def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
-                         table_r_2=None, **kwargs):
+                         table_r_2=None, compress=True, **kwargs):
     """Compute the covariance of a function from jackknife re-sampling.
 
     Parameters
@@ -204,18 +213,23 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
     table_l : astropy.table.Table
         Precompute results for the lenses. The catalog must have jackknife
         regions assigned to it.
-    table_r : optional, astropy.table.Table, optional
+    table_r :astropy.table.Table, optional
         Precompute results for random lenses. The input function must accept
         the random lens table via the `table_r` keyword argument. Default
         is None.
-    table_l_2 : optional, astropy.table.Table
+    table_l_2 : astropy.table.Table, optional
         Precompute results for a second set of lenses.The input function must
         accept the second lens table via the `table_l_2` keyword argument.
         Default is None.
-    table_r_2 : optional, astropy.table.Table, optional
+    table_r_2 : astropy.table.Table, optional
         Precompute results for a second set of random lenses. The input
         function must accept the second random lens table via the `table_r_2`
         keyword argument. Default is None.
+    compress : bool
+        If ``True``, compress jackknife fields via
+        ``dsigma.jackknife.compress_jackknife_fields`` before performing the
+        jackknife calculation. This can substantially improve performance.
+        Default is ``True``.
     kwargs : dict, optional
         Additional keyword arguments to be passed to the function.
 
@@ -226,6 +240,15 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
 
     """
     samples = []
+
+    if compress:
+        table_l = compress_jackknife_fields(table_l)
+        if table_r is not None:
+            table_r = compress_jackknife_fields(table_r)
+        if table_l_2 is not None:
+            table_l_2 = compress_jackknife_fields(table_l_2)
+        if table_r_2 is not None:
+            table_r_2 = compress_jackknife_fields(table_r_2)
 
     for field_jk in np.unique(table_l['field_jk']):
         for name, table in zip(['table_r', 'table_l_2', 'table_r_2'],
