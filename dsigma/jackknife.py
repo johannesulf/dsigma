@@ -1,7 +1,5 @@
 """Module containing jackknife resampling functions."""
 
-import warnings
-
 import astropy.units as u
 import numpy as np
 from astropy.table import Table
