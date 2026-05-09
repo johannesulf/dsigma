@@ -8,8 +8,7 @@ from scipy.special import jn_zeros, jv
 from . import default_cosmology
 
 __all__ = ['critical_surface_density', 'effective_critical_surface_density',
-           'lens_magnification_shear_bias', 'mpc_per_degree',
-           'projection_angle']
+           'lens_magnification_shear_bias', 'mpc_per_degree']
 
 _sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
 
@@ -44,56 +43,6 @@ def mpc_per_degree(z, cosmology=None, comoving=False):
 
     return (cosmology.angular_diameter_distance(z).to(u.Mpc).value *
             np.deg2rad(1))
-
-
-def projection_angle(ra_l, dec_l, ra_s, dec_s):
-    r"""Calculate projection angle between lens and sources.
-
-    Parameters
-    ----------
-    ra_l, dec_l : float or numpy.ndarray
-        Coordinates of the lens galaxies in degrees.
-    ra_s, dec_s : float or numpy.ndarray
-        Coordinates of the source galaxies in degrees.
-
-    Returns
-    -------
-    cos_2phi, sin_2phi : float or numpy.ndarray
-        The :math:`\cos` and :math:`\sin` of :math:`2 \phi`, where
-        :math:`\phi` is the angle measured from right ascension direction to a
-        line connecting the lens and source galaxies.
-
-    """
-    # Convert everything into radians.
-    ra_l, dec_l = np.deg2rad(ra_l), np.deg2rad(dec_l)
-    ra_s, dec_s = np.deg2rad(ra_s), np.deg2rad(dec_s)
-
-    # Calculate the tan(phi).
-    mask = np.cos(dec_s) * np.sin(ra_s - ra_l) != 0
-
-    if hasattr(mask, "__len__"):
-        tan_phi = (
-            (np.cos(dec_l) * np.sin(dec_s) - np.sin(dec_l) * np.cos(dec_s) *
-             np.cos(ra_s - ra_l))[mask] /
-            (np.cos(dec_s) * np.sin(ra_s - ra_l))[mask])
-
-        cos_2phi = np.repeat(-1.0, len(mask))
-        sin_2phi = np.repeat(0.0, len(mask))
-
-        cos_2phi[mask] = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
-        sin_2phi[mask] = 2.0 * tan_phi / (1.0 + tan_phi * tan_phi)
-    elif mask:
-        tan_phi = (
-            (np.cos(dec_l) * np.sin(dec_s) - np.sin(dec_l) * np.cos(dec_s) *
-             np.cos(ra_s - ra_l)) / (np.cos(dec_s) * np.sin(ra_s - ra_l)))
-
-        cos_2phi = (2.0 / (1.0 + tan_phi * tan_phi)) - 1.0
-        sin_2phi = (2.0 * tan_phi / (1.0 + tan_phi * tan_phi))
-    else:
-        cos_2phi = -1
-        sin_2phi = 0
-
-    return cos_2phi, sin_2phi
 
 
 def critical_surface_density(
