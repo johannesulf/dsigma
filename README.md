@@ -2,6 +2,7 @@
 
 [![Unit Testing Status](https://img.shields.io/github/actions/workflow/status/johannesulf/dsigma/tests.yml?branch=main&label=tests)](https://github.com/johannesulf/dsigma/actions)
 [![Documentation Status](https://img.shields.io/readthedocs/dsigma)](https://dsigma.readthedocs.io/en/latest/)
+[![Code Coverage](https://img.shields.io/coverallsCoverage/github/johannesulf/dsigma)](https://coveralls.io/github/johannesulf/dsigma?branch=main)
 [![PyPI](https://img.shields.io/pypi/v/dsigma?color=blue)](https://pypi.org/project/dsigma/)
 [![License: MIT](https://img.shields.io/github/license/johannesulf/dsigma?color=blue)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
 ![Language: Python](https://img.shields.io/github/languages/top/johannesulf/dsigma)
