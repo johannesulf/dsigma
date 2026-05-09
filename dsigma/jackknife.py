@@ -1,5 +1,7 @@
 """Module containing jackknife resampling functions."""
 
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 from astropy.table import Table
@@ -130,6 +132,7 @@ def compress_jackknife_fields(table):
     table = table.copy()
     table.sort('field_jk')
     table_jk = Table()
+    table_jk.meta = deepcopy(table.meta)
 
     table_jk['field_jk'], counts = np.unique(
         table['field_jk'], return_counts=True)

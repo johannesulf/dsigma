@@ -43,14 +43,12 @@ def raw_tangential_shear(table_l):
 
     Returns
     -------
-    delta_sigma : numpy.ndarray
+    gt : numpy.ndarray
         The raw, uncorrected tangential shear in each radial bin.
 
     """
-    return (np.sum(table_l['sum w_ls e_t'].data *
-                   table_l['w_sys'].data[:, None], axis=0) /
-            np.sum(table_l['sum w_ls'].data * table_l['w_sys'].data[:, None],
-                   axis=0))
+    return (np.dot(table_l['w_sys'].data, table_l['sum w_ls e_t'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def raw_excess_surface_density(table_l):
@@ -63,14 +61,13 @@ def raw_excess_surface_density(table_l):
 
     Returns
     -------
-    delta_sigma : numpy.ndarray
+    ds : numpy.ndarray
         The raw, uncorrected excess surface density in each radial bin.
 
     """
-    return (np.sum(table_l['sum w_ls e_t sigma_crit'].data *
-                   table_l['w_sys'].data[:, None], axis=0) /
-            np.sum(table_l['sum w_ls'].data *
-                   table_l['w_sys'].data[:, None], axis=0))
+    return (np.dot(table_l['w_sys'].data,
+                   table_l['sum w_ls e_t sigma_crit'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def photo_z_dilution_factor(table_l):
@@ -87,10 +84,10 @@ def photo_z_dilution_factor(table_l):
         Photometric redshift bias :math:`f_{\mathrm{bias}}`.
 
     """
-    return (np.sum(table_l['sum w_ls e_t sigma_crit f_bias'].data *
-                   table_l['w_sys'].data[:, None], axis=0) /
-            np.sum(table_l['sum w_ls e_t sigma_crit'].data *
-                   table_l['w_sys'].data[:, None], axis=0))
+    return (np.dot(table_l['w_sys'].data,
+                   table_l['sum w_ls e_t sigma_crit f_bias'].data) /
+            np.dot(table_l['w_sys'].data,
+                   table_l['sum w_ls e_t sigma_crit'].data))
 
 
 def boost_factor(table_l, table_r):
@@ -113,12 +110,9 @@ def boost_factor(table_l, table_r):
 
     """
     return (
-        np.sum(table_l['sum w_ls'].data *
-               table_l['w_sys'].data[:, None], axis=0) /
-        np.sum(table_l['w_sys'].data) /
-        np.sum(table_r['sum w_ls'].data *
-               table_r['w_sys'].data[:, None], axis=0) *
-        np.sum(table_r['w_sys'].data))
+        np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data) /
+        np.dot(table_r['w_sys'].data, table_r['sum w_ls'].data) *
+        np.sum(table_r['w_sys'].data) / np.sum(table_l['w_sys'].data))
 
 
 def scalar_shear_response_factor(table_l, selection_bias=False):
@@ -143,11 +137,8 @@ def scalar_shear_response_factor(table_l, selection_bias=False):
     """
     m = 'm_sel' if selection_bias else 'm'
 
-    return (
-        np.sum(table_l[f'sum w_ls {m}'].data *
-               table_l['w_sys'].data[:, None], axis=0) /
-        np.sum(table_l['sum w_ls'].data *
-               table_l['w_sys'].data[:, None], axis=0))
+    return (np.dot(table_l['w_sys'].data, table_l[f'sum w_ls {m}'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def matrix_shear_response_factor(table_l):
@@ -167,10 +158,8 @@ def matrix_shear_response_factor(table_l):
         Tangential shear response factor in each radial bin.
 
     """
-    return (
-        np.sum(table_l['sum w_ls R_T'] * table_l['w_sys'][:, None],
-               axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+    return (np.dot(table_l['w_sys'], table_l['sum w_ls R_T']) /
+            np.dot(table_l['w_sys'], table_l['sum w_ls']))
 
 
 def shear_responsivity_factor(table_l):
@@ -187,10 +176,8 @@ def shear_responsivity_factor(table_l):
         Shear responsitivity factor in each radial bin.
 
     """
-    return (
-        np.sum(table_l['sum w_ls (1 - e_rms^2)'] *
-               table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+    return (np.dot(table_l['w_sys'], table_l['sum w_ls (1 - e_rms^2)']) /
+            np.dot(table_l['w_sys'], table_l['sum w_ls']))
 
 
 def mean_lens_redshift(table_l):
@@ -207,9 +194,8 @@ def mean_lens_redshift(table_l):
         Mean lens redshift in each bin.
 
     """
-    return (
-        np.sum(table_l['sum w_ls z_l'] * table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+    return (np.dot(table_l['w_sys'], table_l['sum w_ls z_l']) /
+            np.dot(table_l['w_sys'], table_l['sum w_ls']))
 
 
 def mean_source_redshift(table_l):
@@ -226,9 +212,8 @@ def mean_source_redshift(table_l):
         Mean source redshift in each bin.
 
     """
-    return (
-        np.sum(table_l['sum w_ls z_s'] * table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+    return (np.dot(table_l['w_sys'], table_l['sum w_ls z_s']) /
+            np.dot(table_l['w_sys'], table_l['sum w_ls']))
 
 
 def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
@@ -240,7 +225,7 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
         Precompute results for the lenses.
     photo_z_dilution_correction : bool, optional
         If True, correct for photo-z biases. This can only be done if a
-        calibration catalog has been provided in the Precomputation phase.
+        calibration catalog has been provided in the precomputation phase.
         Default is False.
 
     Returns
@@ -250,12 +235,11 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
 
     """
     if photo_z_dilution_correction:
-        key = 'sum w_ls sigma_crit f_bias'
+        key = 'sigma_crit f_bias'
     else:
-        key = 'sum w_ls sigma_crit'
-    return (
-        np.sum(table_l[key] * table_l['w_sys'][:, None], axis=0) /
-        np.sum(table_l['sum w_ls'] * table_l['w_sys'][:, None], axis=0))
+        key = 'sigma_crit'
+    return (np.dot(table_l['w_sys'], table_l[f'sum w_ls {key}']) /
+            np.dot(table_l['w_sys'], table_l['sum w_ls']))
 
 
 def lens_magnification_bias(table_l, alpha_l, camb_results,
