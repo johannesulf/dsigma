@@ -234,7 +234,7 @@ def precompute(
         if 'z' in table_s.colnames:
             msg = ("When providing tomographic source redshift distributions "
                    "via the `table_n` argument, the `z` column is ignored.")
-            warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
+            warnings.warn(msg, category=UserWarning, stacklevel=2)
         if 'z_bin' not in table_s.colnames:
             msg = ("To use source redshift distributions, the source table "
                    "needs to have a `z_bin` column.")
@@ -244,7 +244,7 @@ def precompute(
             msg = ("The `z_bin` column in the source table must contain only "
                    "non-negative integers.")
             raise ValueError(msg)
-        if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:
+        if np.amax(table_s['z_bin']) >= table_n['n'].data.shape[1]:
             msg = ("The source table contains more redshift bins than where "
                    "passed via the `table_n` argument.")
             raise ValueError(msg)

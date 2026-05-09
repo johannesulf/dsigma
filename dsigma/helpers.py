@@ -5,8 +5,7 @@ from scipy.interpolate import make_interp_spline
 
 from astropy.units.quantity import Quantity
 
-__all__ = ['interpolate_over_redshift', 'cartesian_to_spherical',
-           'spherical_to_cartesian']
+__all__ = ['interpolate_over_redshift', 'spherical_to_cartesian']
 
 
 def interpolate_over_redshift(f, z, *args, **kwargs):
@@ -79,28 +78,3 @@ def spherical_to_cartesian(ra, dec):
     y = np.sin(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
     z = np.sin(np.deg2rad(dec))
     return x, y, z
-
-
-def cartesian_to_spherical(x, y, z):
-    """Convert cartesian coordinates to spherical coordinates.
-
-    Parameters
-    ----------
-    x : float or numpy.ndarray
-        x-coordinate.
-    y : float or numpy.ndarray
-        y-coordinate.
-    z : float or numpy.ndarray
-        z-coordinate.
-
-    Returns
-    -------
-    ra, dec : float or numpy.ndarray
-        Spherical coordinates.
-
-    """
-    r = np.sqrt(x**2 + y**2 + z**2)
-    ra = np.arctan2(y, x)
-    ra = np.where(ra < 0, ra + 2 * np.pi, ra)
-    dec = np.arcsin(z / r)
-    return np.rad2deg(ra), np.rad2deg(dec)
