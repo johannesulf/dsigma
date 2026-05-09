@@ -24,5 +24,6 @@ def test_catalogs():
     table_s['w'] = np.random.random(n_s) * 0.2 + 0.9
     table_s['e_1'] = np.random.normal(loc=0, scale=0.2, size=n_s)
     table_s['e_2'] = np.random.normal(loc=0, scale=0.2, size=n_s)
+    table_s['m'] = np.random.normal(loc=0.8, scale=0.1, size=n_s)
 
     return table_l, table_s

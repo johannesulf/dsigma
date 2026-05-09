@@ -24,24 +24,30 @@ def test_treecorr(test_catalogs, n_jobs):
     table_s['z'] = 1e3
     theta_bins = np.logspace(0, 1, 11)
 
-    cat_l = treecorr.Catalog(ra=table_l['ra'], dec=table_l['dec'],
-                             ra_units='deg', dec_units='deg')
-    cat_s = treecorr.Catalog(ra=table_s['ra'], dec=table_s['dec'],
-                             g1=table_s['e_1'], g2=table_s['e_2'],
-                             ra_units='deg', dec_units='deg', w=table_s['w'])
-
-    ng = treecorr.NGCorrelation(
-        max_sep=np.amax(theta_bins), min_sep=np.amin(theta_bins),
-        nbins=len(theta_bins) - 1, sep_units='deg', metric='Arc', brute=True)
-    ng.process(cat_l, cat_s)
+    cat_l = treecorr.Catalog(
+        ra=table_l['ra'], dec=table_l['dec'], ra_units='deg', dec_units='deg')
+    cat_s = treecorr.Catalog(
+        ra=table_s['ra'], dec=table_s['dec'], k=table_s['m'],
+        g1=table_s['e_1'], g2=table_s['e_2'], ra_units='deg', dec_units='deg',
+        w=table_s['w'])
 
     table_l = precompute.precompute(
         table_l, table_s, theta_bins * u.deg, weighting=0, n_jobs=n_jobs)
 
+    kwargs = dict(
+        max_sep=np.amax(theta_bins), min_sep=np.amin(theta_bins),
+        nbins=len(theta_bins) - 1, sep_units='deg', metric='Arc', brute=True)
+    ng = treecorr.NGCorrelation(**kwargs)
+    ng.process(cat_l, cat_s)
+    nk = treecorr.NKCorrelation(**kwargs)
+    nk.process(cat_l, cat_s)
+
     assert np.all(
         np.array(ng.npairs, dtype=int) == stacking.number_of_pairs(table_l))
-    assert np.all(np.isclose(
-        ng.xi, stacking.raw_tangential_shear(table_l), atol=1e-9, rtol=0))
+    assert np.all(np.isclose(ng.xi, stacking.raw_tangential_shear(
+        table_l), atol=1e-9, rtol=0))
+    assert np.all(np.isclose(nk.xi, stacking.scalar_shear_response_factor(
+        table_l), atol=1e-8, rtol=0))
 
 
 def test_comoving(test_catalogs):
