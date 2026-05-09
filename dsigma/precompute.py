@@ -132,20 +132,17 @@ def get_raw_multiprocessing_array(array):
 
     Parameters
     ----------
-    array : numpy.ndarray or None
+    array : numpy.ndarray
         Input array.
 
     Returns
     -------
-    array_mp : multiprocessing.RawArray or None
-        Output array. None if input is None.
+    array_mp : multiprocessing.RawArray
+        Output array.
 
     """
-    if array is None:
-        return None
-
-    array_mp = mp.RawArray('l' if np.issubdtype(array.dtype, np.integer) else
-                           'd', len(array))
+    array_mp = mp.RawArray(
+        'l' if np.issubdtype(array.dtype, np.integer) else 'd', len(array))
     array_np = np.ctypeslib.as_array(array_mp)
     array_np[:] = array
 

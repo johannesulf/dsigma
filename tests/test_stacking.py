@@ -98,7 +98,6 @@ def test_f_bias_1(test_catalogs):
     table_c['z_true'] = table_s['z']
     table_c['w'] = 1.0
     table_c['w_sys'] = 1.0
-    table_c['z_l_max'] = table_s['z']
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.precompute(table_l, table_s, rp_bins, table_c=table_c)
@@ -117,7 +116,6 @@ def test_f_bias_2(test_catalogs):
     table_c['z_true'] = 0.7
     table_c['w'] = 1.0
     table_c['w_sys'] = 1.0
-    table_c['z_l_max'] = table_c['z']
 
     rp_bins = np.logspace(0, 1, 11)
     table_l = precompute.precompute(table_l, table_s, rp_bins, table_c=table_c)
