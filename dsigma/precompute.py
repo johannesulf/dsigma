@@ -44,8 +44,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
     z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = interpolate_over_redshift(
-        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     d_s_true = cosmology.comoving_transverse_distance(
         table_c['z_true']).to(u.Mpc).value
@@ -103,8 +102,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
     z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = interpolate_over_redshift(
-        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     w = table_c['w_sys'] * table_c['w']
 
@@ -417,9 +415,10 @@ def precompute(
         table_c_copy = table_c.copy()
         if 'z_l_max' not in table_c_copy.colnames:
             table_c_copy['z_l_max'] = table_c_copy['z']
+        print(table_l['z'])
 
         f_bias = interpolate_over_redshift(
-            photo_z_dilution_factor, table_l['z'], table_c_copy,
+            photo_z_dilution_factor, table_l['z'].data, table_c_copy,
             cosmology, weighting=weighting)
         for key in ['sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit']:
             table_l[f'{key} f_bias'] = f_bias[:, np.newaxis] * table_l[key]

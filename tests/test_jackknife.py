@@ -1,9 +1,8 @@
-from dsigma import jackknife, precompute, stacking
 import numpy as np
 import pytest
-
 from astropy import units as u
 
+from dsigma import jackknife, precompute, stacking
 from fixtures import test_catalogs
 
 
