@@ -39,9 +39,12 @@ def test_random_subtraction(test_catalogs):
     kwargs = dict(scalar_shear_response_correction=True,
                   matrix_shear_response_correction=True,
                   shear_responsivity_correction=True,
-                  selection_bias_correction=True, return_table=True)
+                  selection_bias_correction=True,
+                  table_r=table_l, random_subtraction=True)
 
-    assert np.allclose(0, stacking.excess_surface_density(table_l, **kwargs),
-                       rtol=0, atol=1e-9)
-    assert np.allclose(0, stacking.tangential_shear(table_l, **kwargs),
-                       rtol=0, atol=1e-9)
+    assert np.allclose(
+        0, stacking.excess_surface_density(
+            table_l, **kwargs), rtol=0, atol=1e-9)
+    assert np.allclose(
+        0, stacking.tangential_shear(
+            table_l, **kwargs), rtol=0, atol=1e-9)
