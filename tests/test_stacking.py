@@ -42,9 +42,19 @@ def test_random_subtraction(test_catalogs):
                   selection_bias_correction=True,
                   table_r=table_l, random_subtraction=True)
 
-    assert np.allclose(
-        0, stacking.excess_surface_density(
-            table_l, **kwargs), rtol=0, atol=1e-9)
-    assert np.allclose(
-        0, stacking.tangential_shear(
-            table_l, **kwargs), rtol=0, atol=1e-9)
+    for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
+        assert np.allclose(0, stat(table_l, **kwargs), rtol=0, atol=1e-9)
+
+
+def test_boost_factor(test_catalogs):
+    # Check that the boost factor works.
+
+    table_l, table_s = test_catalogs
+    rp_bins = np.logspace(0, 1, 11)
+
+    table_l = precompute.precompute(table_l, table_s, rp_bins)
+    kwargs = dict(boost_correction=True, table_r=table_l)
+
+    for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
+        assert np.allclose(stat(table_l), stat(table_l, **kwargs), rtol=0,
+                           atol=1e-9)
