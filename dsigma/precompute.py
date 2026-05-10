@@ -44,8 +44,7 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
     z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = interpolate_over_redshift(
-        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     d_s_true = cosmology.comoving_transverse_distance(
         table_c['z_true']).to(u.Mpc).value
@@ -103,8 +102,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
     z_l_max = table_c['z_l_max']
     z_s = table_c['z']
     z_s_true = table_c['z_true']
-    d_l = interpolate_over_redshift(
-        cosmology.comoving_transverse_distance, z_l).to(u.Mpc).value
+    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
     d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
     w = table_c['w_sys'] * table_c['w']
 
@@ -132,20 +130,17 @@ def get_raw_multiprocessing_array(array):
 
     Parameters
     ----------
-    array : numpy.ndarray or None
+    array : numpy.ndarray
         Input array.
 
     Returns
     -------
-    array_mp : multiprocessing.RawArray or None
-        Output array. None if input is None.
+    array_mp : multiprocessing.RawArray
+        Output array.
 
     """
-    if array is None:
-        return None
-
-    array_mp = mp.RawArray('l' if np.issubdtype(array.dtype, np.integer) else
-                           'd', len(array))
+    array_mp = mp.RawArray(
+        'l' if np.issubdtype(array.dtype, np.integer) else 'd', len(array))
     array_np = np.ctypeslib.as_array(array_mp)
     array_np[:] = array
 
@@ -237,7 +232,7 @@ def precompute(
         if 'z' in table_s.colnames:
             msg = ("When providing tomographic source redshift distributions "
                    "via the `table_n` argument, the `z` column is ignored.")
-            warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
+            warnings.warn(msg, category=UserWarning, stacklevel=2)
         if 'z_bin' not in table_s.colnames:
             msg = ("To use source redshift distributions, the source table "
                    "needs to have a `z_bin` column.")
@@ -247,7 +242,7 @@ def precompute(
             msg = ("The `z_bin` column in the source table must contain only "
                    "non-negative integers.")
             raise ValueError(msg)
-        if np.amax(table_s['z_bin']) > table_n['n'].data.shape[1]:
+        if np.amax(table_s['z_bin']) >= table_n['n'].data.shape[1]:
             msg = ("The source table contains more redshift bins than where "
                    "passed via the `table_n` argument.")
             raise ValueError(msg)
@@ -420,9 +415,10 @@ def precompute(
         table_c_copy = table_c.copy()
         if 'z_l_max' not in table_c_copy.colnames:
             table_c_copy['z_l_max'] = table_c_copy['z']
+        print(table_l['z'])
 
         f_bias = interpolate_over_redshift(
-            photo_z_dilution_factor, table_l['z'], table_c_copy,
+            photo_z_dilution_factor, table_l['z'].data, table_c_copy,
             cosmology, weighting=weighting)
         for key in ['sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit']:
             table_l[f'{key} f_bias'] = f_bias[:, np.newaxis] * table_l[key]

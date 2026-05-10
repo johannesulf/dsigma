@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - All survey-specific functionality is now in scripts such as `dsigma-process-des-y3`.
+- In the results table of `dsigma.stacking.tangential_shear`, the `et` and `et_raw` columns were renamed to `gt` and `gt_raw`.
 
 ### Removed
 
