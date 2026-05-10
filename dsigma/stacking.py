@@ -333,11 +333,11 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
 
     Returns
     -------
-    e_t : numpy.ndarray or astropy.table.Table
+    gt : numpy.ndarray or astropy.table.Table
         The tangential shear in each radial bin specified in the precomputation
         phase. If `return_table` is True, will return a table with detailed
         information for each radial bin. The final result is in the column
-        `et`.
+        `gt`.
 
     Raises
     ------
@@ -352,8 +352,8 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
     result['rp_max'] = table_l.meta['bins'][1:]
     result['n_pairs'] = number_of_pairs(table_l)
     result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
-    result['et_raw'] = raw_tangential_shear(table_l)
-    result['et'] = raw_tangential_shear(table_l)
+    result['gt_raw'] = raw_tangential_shear(table_l)
+    result['gt'] = raw_tangential_shear(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
     result['z_s'] = mean_source_redshift(table_l)
 
@@ -363,41 +363,41 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
                    "from a random catalog.")
             raise ValueError(msg)
         result['b'] = boost_factor(table_l, table_r)
-        result['et'] *= result['b']
+        result['gt'] *= result['b']
 
     if scalar_shear_response_correction:
         result['1+m'] = 1 + scalar_shear_response_factor(table_l)
-        result['et'] /= result['1+m']
+        result['gt'] /= result['1+m']
 
     if matrix_shear_response_correction:
         result['R_t'] = matrix_shear_response_factor(table_l)
-        result['et'] /= result['R_t']
+        result['gt'] /= result['R_t']
 
     if shear_responsivity_correction:
         result['2R'] = 2 * shear_responsivity_factor(table_l)
-        result['et'] /= result['2R']
+        result['gt'] /= result['2R']
 
     if selection_bias_correction:
         result['1+m_sel'] = 1 + scalar_shear_response_factor(
             table_l, selection_bias=True)
-        result['et'] /= result['1+m_sel']
+        result['gt'] /= result['1+m_sel']
 
     if random_subtraction:
         if table_r is None:
             msg = ("Cannot subtract random results without results from a "
                    "random catalog.")
             raise ValueError(msg)
-        result['et_r'] = tangential_shear(
+        result['gt_r'] = tangential_shear(
             table_r, boost_correction=False,
             scalar_shear_response_correction=scalar_shear_response_correction,
             matrix_shear_response_correction=matrix_shear_response_correction,
             shear_responsivity_correction=shear_responsivity_correction,
             selection_bias_correction=selection_bias_correction,
             random_subtraction=False, return_table=False)
-        result['et'] -= result['et_r']
+        result['gt'] -= result['gt_r']
 
     if not return_table:
-        return result['et'].data
+        return result['gt'].data
 
     return result
 
@@ -447,7 +447,7 @@ def excess_surface_density(table_l, table_r=None,
 
     Returns
     -------
-    delta_sigma : numpy.ndarray or astropy.table.Table
+    ds : numpy.ndarray or astropy.table.Table
         The excess surface density in each radial bin specified in the
         precomputation phase. If `return_table` is True, will return a table
         with detailed information for each radial bin. The final result is in

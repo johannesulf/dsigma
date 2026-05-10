@@ -98,13 +98,13 @@ def test_brute_foce(test_catalogs):
         sum_w_ls_e_t_sigma_crit += table_l['w_sys'][i] * np.histogram(
             rp, bins=rp_bins, weights=w_ls * e_t * sigma_crit)[0]
 
-    table_r = precompute.precompute(
+    table_l = precompute.precompute(
         table_l, table_s, rp_bins, cosmology=cosmology)
 
-    assert np.all(sum_1 == stacking.number_of_pairs(table_r))
-    assert np.allclose(stacking.tangential_shear(table_r),
+    assert np.all(sum_1 == stacking.number_of_pairs(table_l))
+    assert np.allclose(stacking.tangential_shear(table_l),
                        sum_w_ls_e_t / sum_w_ls, rtol=0, atol=1e-9)
-    assert np.allclose(stacking.raw_excess_surface_density(table_r),
+    assert np.allclose(stacking.raw_excess_surface_density(table_l),
                        sum_w_ls_e_t_sigma_crit / sum_w_ls, rtol=0, atol=1e-9)
 
 

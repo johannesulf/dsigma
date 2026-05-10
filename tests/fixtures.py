@@ -28,5 +28,10 @@ def test_catalogs():
     table_s['e_2'] = np.random.normal(loc=0, scale=0.2, size=n_s)
     table_s['m'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
     table_s['m_sel'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
+    table_s['e_rms'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
+    table_s['R_11'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
+    table_s['R_12'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
+    table_s['R_21'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
+    table_s['R_22'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
 
     return table_l, table_s
