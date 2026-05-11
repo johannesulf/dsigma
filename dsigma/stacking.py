@@ -353,7 +353,6 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
     result['rp_min'] = table_l.meta['bins'][:-1]
     result['rp_max'] = table_l.meta['bins'][1:]
     result['n_pairs'] = number_of_pairs(table_l)
-    result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
     result['gt_raw'] = raw_tangential_shear(table_l)
     result['gt'] = raw_tangential_shear(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
@@ -467,7 +466,6 @@ def excess_surface_density(table_l, table_r=None,
     result['rp_min'] = table_l.meta['bins'][:-1]
     result['rp_max'] = table_l.meta['bins'][1:]
     result['n_pairs'] = number_of_pairs(table_l)
-    result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
     result['ds_raw'] = raw_excess_surface_density(table_l)
     result['ds'] = raw_excess_surface_density(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
