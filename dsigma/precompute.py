@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 from astropy import units as u
+from astropy.cosmology import units as cu
 from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
 
@@ -304,7 +305,9 @@ def precompute(
             table_engine['d_com'] = np.ascontiguousarray(
                 interpolate_over_redshift(
                     cosmology.comoving_transverse_distance,
-                    table_engine['z']).to(u.Mpc).value, dtype=np.float64)
+                    table_engine['z']).to(
+                        u.Mpc / cu.littleh, cu.with_H0(cosmology.H0)).value,
+                dtype=np.float64)
 
     if table_n is not None:
         n_bins = table_n['n'].data.shape[1]
@@ -324,7 +327,7 @@ def precompute(
         for z_bin in range(n_bins):
             sigma_crit_eff_inv[z_bin::n_bins] = interpolate_over_redshift(
                 _inverse_effective_critical_surface_density,
-                table_engine_l['z'], z_bin)
+                table_engine_l['z'], z_bin).value
 
         with np.errstate(divide='ignore'):
             sigma_crit_eff = np.where(
@@ -354,12 +357,13 @@ def precompute(
                 np.int64 if key == 'sum 1' else np.float64)))
 
     if not isinstance(bins, u.quantity.Quantity):
-        bins = bins * u.Mpc
+        bins = bins * u.Mpc / cu.littleh
 
     try:
         theta_bins = np.tile(bins.to(u.rad).value, len(table_l))
     except UnitConversionError:
-        theta_bins = (np.tile(bins.to(u.Mpc).value, len(table_l)) /
+        bins = bins.to(u.Mpc / cu.littleh, cu.with_H0(cosmology.H0))
+        theta_bins = (np.tile(bins.value, len(table_l)) /
                       np.repeat(table_engine_l['d_com'], len(bins))).flatten()
         if not comoving:
             theta_bins *= (
@@ -409,13 +413,16 @@ def precompute(
         table_l[key] = table_engine_r[key].reshape(
             len(table_l), len(bins) - 1)[inv_argsort_pix_l]
 
+    for key in ['sum w_ls e_t sigma_crit', 'sum w_ls sigma_crit']:
+        table_l[key] = u.Quantity(
+            table_l[key], cu.littleh * u.Msun / u.pc**2, copy=False)
+
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
 
     if table_c is not None:
         table_c_copy = table_c.copy()
         if 'z_l_max' not in table_c_copy.colnames:
             table_c_copy['z_l_max'] = table_c_copy['z']
-        print(table_l['z'])
 
         f_bias = interpolate_over_redshift(
             photo_z_dilution_factor, table_l['z'].data, table_c_copy,
@@ -432,7 +439,7 @@ def precompute(
 
     table_l.meta['bins'] = bins
     table_l.meta['comoving'] = comoving
-    table_l.meta['cosmology'] = cosmology.to_format('yaml')
+    table_l.meta['cosmology'] = cosmology
     table_l.meta['weighting'] = weighting
 
     return table_l

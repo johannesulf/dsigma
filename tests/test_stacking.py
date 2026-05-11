@@ -43,7 +43,7 @@ def test_random_subtraction(test_catalogs):
                   table_r=table_l, random_subtraction=True)
 
     for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
-        assert np.allclose(0, stat(table_l, **kwargs), rtol=0, atol=1e-9)
+        assert np.all(0 == stat(table_l, **kwargs))
 
 
 def test_boost_factor(test_catalogs):
