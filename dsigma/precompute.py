@@ -42,40 +42,31 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         redshift(s).
 
     """
-    z_l_max = table_c['z_l_max']
-    z_s = table_c['z']
-    z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
-    d_s_true = cosmology.comoving_transverse_distance(
-        table_c['z_true']).to(u.Mpc).value
-    w = table_c['w_sys'] * table_c['w']
+    z_l_max = table_c['z_l_max'].data
+    z_s = table_c['z'].data
+    z_s_true = table_c['z_true'].data
+    d_l = cosmology.comoving_transverse_distance(z_l)
+    d_s = cosmology.comoving_transverse_distance(z_s)
+    d_s_true = cosmology.comoving_transverse_distance(z_s_true)
 
-    if hasattr(z_l, '__len__'):
-        shape = (len(z_l), len(table_c))
-        z_s = np.tile(z_s, len(z_l)).reshape(shape)
-        z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-        d_s = np.tile(d_s, len(z_l)).reshape(shape)
-        d_s_true = np.tile(d_s_true, len(z_l)).reshape(shape)
-        z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-        w = np.tile(w, len(z_l)).reshape(shape)
-        z_l = np.repeat(z_l, len(table_c)).reshape(shape)
-        d_l = np.repeat(d_l, len(table_c)).reshape(shape)
+    def f_bias(z_l, d_l):
+        sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+        sigma_crit_true = critical_surface_density(
+            z_l, z_s_true, d_l=d_l, d_s=d_s_true)
+        w_ls = (table_c['w_sys'].data * table_c['w'].data *
+                sigma_crit_phot.value**weighting)
+        use = (w_ls > 0) & (z_l < z_l_max)
+        if not np.any(use):
+            return 1
+        with np.errstate(divide='ignore'):
+            return 1.0 / np.average(
+                sigma_crit_phot[use] / sigma_crit_true[use],
+                weights=w_ls[use]).value
 
-    sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    sigma_crit_true = critical_surface_density(z_l, z_s_true, d_l=d_l,
-                                               d_s=d_s_true)
+    if not hasattr(z_l, '__len__'):
+        return f_bias(z_l, d_l)
 
-    mask = z_l >= z_l_max
-
-    if np.any(np.all(mask, axis=-1)):
-        msg = ("Could not find valid calibration sources for some lens "
-               "redshifts. The f_bias correction may be undefined.")
-        warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
-
-    return (np.sum((w * sigma_crit_phot**weighting) * (~mask), axis=-1) /
-            np.sum((w * sigma_crit_phot**(weighting + 1) / sigma_crit_true) *
-                   (~mask), axis=-1))
+    return np.array([f_bias(z_l[i], d_l[i]) for i in range(len(z_l))])
 
 
 def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
@@ -100,30 +91,25 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         The mean source redshift offset for the lens redshift(s).
 
     """
-    z_l_max = table_c['z_l_max']
-    z_s = table_c['z']
-    z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
-    w = table_c['w_sys'] * table_c['w']
+    z_l_max = table_c['z_l_max'].data
+    z_s = table_c['z'].data
+    z_s_true = table_c['z_true'].data
+    d_l = cosmology.comoving_transverse_distance(z_l)
+    d_s = cosmology.comoving_transverse_distance(z_s)
 
-    if not np.isscalar(z_l):
-        shape = (len(z_l), len(table_c))
-        z_s = np.tile(z_s, len(z_l)).reshape(shape)
-        z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-        d_s = np.tile(d_s, len(z_l)).reshape(shape)
-        z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-        w = np.tile(w, len(z_l)).reshape(shape)
-        z_l = np.repeat(z_l, len(table_c)).reshape(shape)
-        d_l = np.repeat(d_l, len(table_c)).reshape(shape)
+    def dz(z_l, d_l):
+        sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+        w_ls = (table_c['w_sys'].data * table_c['w'].data *
+                sigma_crit.value**weighting)
+        use = (w_ls > 0) & (z_l < z_l_max)
+        if not np.any(use):
+            return 1
+        return np.average((z_s - z_s_true)[use], weights=w_ls[use])
 
-    sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    w = w * sigma_crit**weighting
+    if not hasattr(z_l, '__len__'):
+        return dz(z_l, d_l)
 
-    mask = z_l >= z_l_max
-
-    return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
-        w * (~mask), axis=-1)
+    return np.array([dz(z_l[i], d_l[i]) for i in range(len(z_l))])
 
 
 def get_raw_multiprocessing_array(array):
@@ -254,8 +240,16 @@ def precompute(
         raise ValueError(msg)
 
     hp = HEALPix(nside, order='ring')
-    pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
-    pix_s = hp.lonlat_to_healpix(table_s['ra'] * u.deg, table_s['dec'] * u.deg)
+
+    def in_degrees(data):
+        if data.unit == u.Unit(''):
+            data = u.Quantity(data.value, u.deg, copy=False)
+        return data.to(u.deg)
+
+    pix_l = hp.lonlat_to_healpix(in_degrees(table_l['ra'].quantity),
+                                 in_degrees(table_l['dec'].quantity))
+    pix_s = hp.lonlat_to_healpix(in_degrees(table_s['ra'].quantity),
+                                 in_degrees(table_s['dec'].quantity))
     argsort_pix_l = np.argsort(pix_l)
     argsort_pix_s = np.argsort(pix_s)
     u_pix_l, n_pix_l = np.unique(pix_l, return_counts=True)
@@ -277,7 +271,7 @@ def precompute(
                 [table_engine_l, table_engine_s]):
             for angle in ['ra', 'dec']:
                 table_engine[f'{f_name} {angle}'] =\
-                    np.ascontiguousarray(f(np.deg2rad(table[angle]))[
+                    np.ascontiguousarray(f(in_degrees(table[angle].quantity))[
                         argsort_pix])
 
     for key in ['z', 'z_l_max', 'w', 'e_1', 'e_2', 'm', 'e_rms', 'm_sel',
