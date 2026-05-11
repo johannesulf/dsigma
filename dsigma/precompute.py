@@ -19,7 +19,7 @@ from .precompute_engine import precompute_engine
 __all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
 
 
-def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
+def photo_z_dilution_factor(z_l, table_c, cosmology=None, weighting=-2):
     r"""Calculate the photo-z delta sigma bias as a function of lens redshift.
 
     Parameters
@@ -28,8 +28,9 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         Redshift(s) of the lens.
     table_c : astropy.table.Table
         Photometric redshift calibration catalog.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     weighting : float, optional
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
@@ -42,34 +43,42 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         redshift(s).
 
     """
-    z_l_max = table_c['z_l_max'].data
-    z_s = table_c['z'].data
-    z_s_true = table_c['z_true'].data
+    cosmology = default_cosmology if cosmology is None else cosmology
+
     d_l = cosmology.comoving_transverse_distance(z_l)
+    z_s = table_c['z'].data
     d_s = cosmology.comoving_transverse_distance(z_s)
+    z_s_true = table_c['z_true'].data
     d_s_true = cosmology.comoving_transverse_distance(z_s_true)
+    z_l_max = table_c['z_l_max'].data if 'z_l_max' in table_c.colnames else z_s
+    w_s = table_c['w_sys'].data * table_c['w'].data
 
-    def f_bias(z_l, d_l):
-        sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-        sigma_crit_true = critical_surface_density(
-            z_l, z_s_true, d_l=d_l, d_s=d_s_true)
-        w_ls = (table_c['w_sys'].data * table_c['w'].data *
-                sigma_crit_phot.value**weighting)
-        use = (w_ls > 0) & (z_l < z_l_max)
-        if not np.any(use):
-            return 1
-        with np.errstate(divide='ignore'):
-            return 1.0 / np.average(
-                sigma_crit_phot[use] / sigma_crit_true[use],
-                weights=w_ls[use]).value
+    if hasattr(z_l, '__len__'):
+        z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
+        d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
+        z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
+        z_s_true = np.tile(z_s_true, len(z_l)).reshape(z_l.shape)
+        d_s_true = np.tile(d_s_true, len(z_l)).reshape(z_l.shape)
+        z_l_max = np.tile(z_l_max, len(z_l)).reshape(z_l.shape)
+        w_s = np.tile(w_s, len(z_l)).reshape(z_l.shape)
 
-    if not hasattr(z_l, '__len__'):
-        return f_bias(z_l, d_l)
+    sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+    sigma_crit_true = critical_surface_density(
+        z_l, z_s_true, d_l=d_l, d_s=d_s_true)
+    w_ls = np.where(z_l < z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
-    return np.array([f_bias(z_l[i], d_l[i]) for i in range(len(z_l))])
+    with np.errstate(divide='ignore'):
+        f_bias = (np.sum(w_ls, axis=-1) / np.sum(w_ls * np.where(
+            w_ls > 0, sigma_crit_phot / sigma_crit_true, 0), axis=-1)).value
+
+    # If no lens-source pair is found, default to 1.
+    f_bias = np.where(np.sum(w_ls, axis=-1) == 0, 1, f_bias)
+
+    return f_bias
 
 
-def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
+def mean_photo_z_offset(z_l, table_c, cosmology=None, weighting=-2):
     """Calculate the mean offset of source photometric redshifts.
 
     Parameters
@@ -78,8 +87,9 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         Redshift(s) of the lens.
     table_c : astropy.table.Table, optional
         Photometric redshift calibration catalog.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     weighting : float, optional
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
@@ -91,25 +101,35 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         The mean source redshift offset for the lens redshift(s).
 
     """
-    z_l_max = table_c['z_l_max'].data
-    z_s = table_c['z'].data
-    z_s_true = table_c['z_true'].data
+    cosmology = default_cosmology if cosmology is None else cosmology
+
     d_l = cosmology.comoving_transverse_distance(z_l)
+    z_s = table_c['z'].data
     d_s = cosmology.comoving_transverse_distance(z_s)
+    z_s_true = table_c['z_true'].data
+    z_l_max = table_c['z_l_max'].data if 'z_l_max' in table_c.colnames else z_s
+    w_s = table_c['w_sys'].data * table_c['w'].data
 
-    def dz(z_l, d_l):
-        sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-        w_ls = (table_c['w_sys'].data * table_c['w'].data *
-                sigma_crit.value**weighting)
-        use = (w_ls > 0) & (z_l < z_l_max)
-        if not np.any(use):
-            return 1
-        return np.average((z_s - z_s_true)[use], weights=w_ls[use])
+    if hasattr(z_l, '__len__'):
+        z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
+        d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
+        z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
+        z_s_true = np.tile(z_s_true, len(z_l)).reshape(z_l.shape)
+        z_l_max = np.tile(z_l_max, len(z_l)).reshape(z_l.shape)
+        w_s = np.tile(w_s, len(z_l)).reshape(z_l.shape)
 
-    if not hasattr(z_l, '__len__'):
-        return dz(z_l, d_l)
+    sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+    w_ls = np.where(z_l > z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
-    return np.array([dz(z_l[i], d_l[i]) for i in range(len(z_l))])
+    with np.errstate(divide='ignore'):
+        dz = (np.sum(w_ls, axis=-1) / np.sum(
+            w_ls * (z_s - z_s_true), axis=-1)).value
+
+    # If no lens-source pair is found, default to 0.
+    dz = np.where(np.sum(w_ls, axis=-1) == 0, 0, dz)
+
+    return dz
 
 
 def get_raw_multiprocessing_array(array):
@@ -414,19 +434,15 @@ def precompute(
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
 
     if table_c is not None:
-        table_c_copy = table_c.copy()
-        if 'z_l_max' not in table_c_copy.colnames:
-            table_c_copy['z_l_max'] = table_c_copy['z']
-
         f_bias = interpolate_over_redshift(
-            photo_z_dilution_factor, table_l['z'].data, table_c_copy,
-            cosmology, weighting=weighting)
+            photo_z_dilution_factor, table_l['z'].data, table_c,
+            cosmology=cosmology, weighting=weighting)
         for key in ['sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit']:
             table_l[f'{key} f_bias'] = f_bias[:, np.newaxis] * table_l[key]
 
         delta_z_s = interpolate_over_redshift(
-            mean_photo_z_offset, table_l['z'], table_c_copy,
-            cosmology, weighting=weighting)
+            mean_photo_z_offset, table_l['z'], table_c,
+            cosmology=cosmology, weighting=weighting)
         table_l['sum w_ls z_s'] = (
             table_l['sum w_ls z_s'] - table_l['sum w_ls'] * delta_z_s[
                 :, np.newaxis])
