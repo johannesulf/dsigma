@@ -32,8 +32,8 @@ We apply a lens-source separation cut of :math:`z_l < z_{t, \rm low} - 0.1`, whe
     from dsigma.precompute import precompute
 
     table_s = Table.read('kids_legacy.hdf5', path='catalog')
-    table_s['z_l_max'] = np.array(
-        [0.1, 0.3, 0.5, 0.7, 0.9])[table_s['z_bin']] - 0.1
+    table_s['z_l_max'] = np.array([0.1, 0.42, 0.58, 0.71, 0.90, 1.14])[
+        table_s['z_bin']] - 0.1
     table_n = Table.read('kids_legacy.hdf5', path='calibration')
 
     rp_bins = np.logspace(-1, 1.6, 14)
