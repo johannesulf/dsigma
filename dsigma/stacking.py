@@ -66,7 +66,7 @@ def raw_excess_surface_density(table_l):
 
     """
     return (np.dot(table_l['w_sys'].data,
-                   table_l['sum w_ls e_t sigma_crit'].data) /
+                   table_l['sum w_ls e_t sigma_crit'].quantity) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
@@ -158,8 +158,8 @@ def matrix_shear_response_factor(table_l):
         Tangential shear response factor in each radial bin.
 
     """
-    return (np.dot(table_l['w_sys'], table_l['sum w_ls R_T']) /
-            np.dot(table_l['w_sys'], table_l['sum w_ls']))
+    return (np.dot(table_l['w_sys'].data, table_l['sum w_ls R_T'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def shear_responsivity_factor(table_l):
@@ -176,8 +176,9 @@ def shear_responsivity_factor(table_l):
         Shear responsitivity factor in each radial bin.
 
     """
-    return (np.dot(table_l['w_sys'], table_l['sum w_ls (1 - e_rms^2)']) /
-            np.dot(table_l['w_sys'], table_l['sum w_ls']))
+    return (
+        np.dot(table_l['w_sys'].data, table_l['sum w_ls (1 - e_rms^2)'].data) /
+        np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def mean_lens_redshift(table_l):
@@ -194,8 +195,8 @@ def mean_lens_redshift(table_l):
         Mean lens redshift in each bin.
 
     """
-    return (np.dot(table_l['w_sys'], table_l['sum w_ls z_l']) /
-            np.dot(table_l['w_sys'], table_l['sum w_ls']))
+    return (np.dot(table_l['w_sys'].data, table_l['sum w_ls z_l'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def mean_source_redshift(table_l):
@@ -212,8 +213,8 @@ def mean_source_redshift(table_l):
         Mean source redshift in each bin.
 
     """
-    return (np.dot(table_l['w_sys'], table_l['sum w_ls z_s']) /
-            np.dot(table_l['w_sys'], table_l['sum w_ls']))
+    return (np.dot(table_l['w_sys'].data, table_l['sum w_ls z_s'].data) /
+            np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
@@ -238,8 +239,9 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
         key = 'sigma_crit f_bias'
     else:
         key = 'sigma_crit'
-    return (np.dot(table_l['w_sys'], table_l[f'sum w_ls {key}']) /
-            np.dot(table_l['w_sys'], table_l['sum w_ls']))
+    return (
+        np.dot(table_l['w_sys'].data, table_l[f'sum w_ls {key}'].quantity) /
+        np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
 def lens_magnification_bias(table_l, alpha_l, camb_results,
@@ -351,7 +353,6 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
     result['rp_min'] = table_l.meta['bins'][:-1]
     result['rp_max'] = table_l.meta['bins'][1:]
     result['n_pairs'] = number_of_pairs(table_l)
-    result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
     result['gt_raw'] = raw_tangential_shear(table_l)
     result['gt'] = raw_tangential_shear(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
@@ -465,7 +466,6 @@ def excess_surface_density(table_l, table_r=None,
     result['rp_min'] = table_l.meta['bins'][:-1]
     result['rp_max'] = table_l.meta['bins'][1:]
     result['n_pairs'] = number_of_pairs(table_l)
-    result['rp'] = np.sqrt(result['rp_min'] * result['rp_max'])
     result['ds_raw'] = raw_excess_surface_density(table_l)
     result['ds'] = raw_excess_surface_density(table_l)
     result['z_l'] = mean_lens_redshift(table_l)
@@ -516,6 +516,6 @@ def excess_surface_density(table_l, table_r=None,
         result['ds'] -= result['ds_r']
 
     if not return_table:
-        return result['ds'].data
+        return result['ds'].quantity
 
     return result

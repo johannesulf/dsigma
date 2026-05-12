@@ -2,15 +2,14 @@
 # cython: nonecheck=False, cdivision=True, initializedcheck=False
 
 import queue as Queue
-import numpy as np
-from tqdm import tqdm
-from astropy_healpix import HEALPix
-from astropy import units as u
 from libc.math cimport sin, cos, sqrt, fmax, pow
-from scipy.spatial import cKDTree
 
+import numpy as np
 from astropy import constants as c
 from astropy import units as u
+from astropy_healpix import HEALPix
+from scipy.spatial import cKDTree
+from tqdm import tqdm
 
 
 cdef double sigma_crit_factor = (

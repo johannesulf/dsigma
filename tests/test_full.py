@@ -4,6 +4,7 @@ import pytest
 import treecorr
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM, WMAP7
+from astropy.cosmology import units as cu
 from astropy.table import Table
 
 from dsigma import physics, precompute, stacking
@@ -45,7 +46,7 @@ def test_treecorr(test_catalogs, n_jobs):
         table_l), atol=1e-8, rtol=0))
 
 
-def test_brute_foce(test_catalogs):
+def test_brute_force(test_catalogs):
     # Test against a simple brute-force calculation.
 
     table_l, table_s = test_catalogs
@@ -65,7 +66,7 @@ def test_brute_foce(test_catalogs):
         return cos_2phi, sin_2phi
 
     cosmology = WMAP7
-    rp_bins = np.logspace(-1, 1, 11) * u.Mpc
+    rp_bins = np.logspace(-1, 1, 11) * u.Mpc / cu.littleh
     sum_1 = np.zeros(len(rp_bins) - 1, dtype=int)
     sum_w_ls = np.zeros(len(rp_bins) - 1)
     sum_w_ls_e_t = np.zeros(len(rp_bins) - 1)
@@ -78,14 +79,16 @@ def test_brute_foce(test_catalogs):
             np.cos(np.deg2rad(table_l['dec'][i])) *
             np.cos(np.deg2rad(table_s['dec'])) *
             np.cos(np.deg2rad(table_l['ra'][i] - table_s['ra'])))
-        rp = WMAP7.comoving_distance(table_l['z'][i]) * theta
+        rp = WMAP7.comoving_distance(table_l['z'][i]).to(
+            u.Mpc / cu.littleh, cu.with_H0(cosmology.H0)) * theta
         use = (table_s['z'] > table_l['z'][i]) & (rp <= np.amax(rp_bins))
         if not np.any(use):
             continue
         rp = rp[use]
         sum_1 += np.histogram(rp, bins=rp_bins)[0]
         sigma_crit = physics.critical_surface_density(
-            z_l=table_l['z'][i], z_s=table_s['z'][use], cosmology=cosmology)
+            z_l=table_l['z'][i], z_s=table_s['z'][use],
+            cosmology=cosmology).value
         w_ls = table_s['w'][use] / sigma_crit**2
         sum_w_ls += table_l['w_sys'][i] * np.histogram(
             rp, bins=rp_bins, weights=w_ls)[0]
@@ -104,7 +107,7 @@ def test_brute_foce(test_catalogs):
     assert np.all(sum_1 == stacking.number_of_pairs(table_l))
     assert np.allclose(stacking.tangential_shear(table_l),
                        sum_w_ls_e_t / sum_w_ls, rtol=0, atol=1e-9)
-    assert np.allclose(stacking.raw_excess_surface_density(table_l),
+    assert np.allclose(stacking.raw_excess_surface_density(table_l).value,
                        sum_w_ls_e_t_sigma_crit / sum_w_ls, rtol=0, atol=1e-9)
 
 
@@ -129,25 +132,24 @@ def test_comoving(test_catalogs):
 
 
 def test_little_h(test_catalogs):
-    # Check that results are the same when including little h.
+    # Check that results do not depend on h.
 
     table_l, table_s = test_catalogs
 
-    cosmology = FlatLambdaCDM(100, 0.3)
-    h = 0.7
-    cosmology_h = FlatLambdaCDM(100 * h, 0.3)
+    cosmology_1 = FlatLambdaCDM(100, 0.3)
+    cosmology_2 = FlatLambdaCDM(70, 0.3)
 
     rp_bins = np.logspace(0, 1, 11)
-    table_l = precompute.precompute(
-        table_l, table_s, rp_bins, cosmology=cosmology)
-    table_l_h = precompute.precompute(
-        table_l.copy(), table_s, rp_bins / h, cosmology=cosmology_h)
+    table_l_1 = precompute.precompute(
+        table_l.copy(), table_s, rp_bins, cosmology=cosmology_1)
+    table_l_2 = precompute.precompute(
+        table_l.copy(), table_s, rp_bins, cosmology=cosmology_2)
 
-    assert np.all(stacking.number_of_pairs(table_l) ==
-                  stacking.number_of_pairs(table_l_h))
+    assert np.all(stacking.number_of_pairs(table_l_1) ==
+                  stacking.number_of_pairs(table_l_2))
     assert np.all(np.isclose(
-        stacking.raw_excess_surface_density(table_l),
-        stacking.raw_excess_surface_density(table_l_h) / h, atol=1e-9, rtol=0))
+        stacking.raw_excess_surface_density(table_l_1),
+        stacking.raw_excess_surface_density(table_l_2), atol=1e-9, rtol=0))
 
 
 def test_f_bias_1(test_catalogs):

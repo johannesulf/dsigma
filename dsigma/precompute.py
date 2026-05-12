@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 from astropy import units as u
+from astropy.cosmology import units as cu
 from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
 
@@ -18,7 +19,7 @@ from .precompute_engine import precompute_engine
 __all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
 
 
-def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
+def photo_z_dilution_factor(z_l, table_c, cosmology=None, weighting=-2):
     r"""Calculate the photo-z delta sigma bias as a function of lens redshift.
 
     Parameters
@@ -27,8 +28,9 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         Redshift(s) of the lens.
     table_c : astropy.table.Table
         Photometric redshift calibration catalog.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     weighting : float, optional
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
@@ -41,43 +43,42 @@ def photo_z_dilution_factor(z_l, table_c, cosmology, weighting=-2):
         redshift(s).
 
     """
-    z_l_max = table_c['z_l_max']
-    z_s = table_c['z']
-    z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
-    d_s_true = cosmology.comoving_transverse_distance(
-        table_c['z_true']).to(u.Mpc).value
-    w = table_c['w_sys'] * table_c['w']
+    cosmology = default_cosmology if cosmology is None else cosmology
+
+    d_l = cosmology.comoving_transverse_distance(z_l)
+    z_s = table_c['z'].data
+    d_s = cosmology.comoving_transverse_distance(z_s)
+    z_s_true = table_c['z_true'].data
+    d_s_true = cosmology.comoving_transverse_distance(z_s_true)
+    z_l_max = table_c['z_l_max'].data if 'z_l_max' in table_c.colnames else z_s
+    w_s = table_c['w_sys'].data * table_c['w'].data
 
     if hasattr(z_l, '__len__'):
-        shape = (len(z_l), len(table_c))
-        z_s = np.tile(z_s, len(z_l)).reshape(shape)
-        z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-        d_s = np.tile(d_s, len(z_l)).reshape(shape)
-        d_s_true = np.tile(d_s_true, len(z_l)).reshape(shape)
-        z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-        w = np.tile(w, len(z_l)).reshape(shape)
-        z_l = np.repeat(z_l, len(table_c)).reshape(shape)
-        d_l = np.repeat(d_l, len(table_c)).reshape(shape)
+        z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
+        d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
+        z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
+        z_s_true = np.tile(z_s_true, len(z_l)).reshape(z_l.shape)
+        d_s_true = np.tile(d_s_true, len(z_l)).reshape(z_l.shape)
+        z_l_max = np.tile(z_l_max, len(z_l)).reshape(z_l.shape)
+        w_s = np.tile(w_s, len(z_l)).reshape(z_l.shape)
 
     sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    sigma_crit_true = critical_surface_density(z_l, z_s_true, d_l=d_l,
-                                               d_s=d_s_true)
+    sigma_crit_true = critical_surface_density(
+        z_l, z_s_true, d_l=d_l, d_s=d_s_true)
+    w_ls = np.where(z_l < z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
-    mask = z_l >= z_l_max
+    with np.errstate(divide='ignore'):
+        f_bias = (np.sum(w_ls, axis=-1) / np.sum(w_ls * np.where(
+            w_ls > 0, sigma_crit_phot / sigma_crit_true, 0), axis=-1)).value
 
-    if np.any(np.all(mask, axis=-1)):
-        msg = ("Could not find valid calibration sources for some lens "
-               "redshifts. The f_bias correction may be undefined.")
-        warnings.warn(msg, category=RuntimeWarning, stacklevel=2)
+    # If no lens-source pair is found, default to 1.
+    f_bias = np.where(np.sum(w_ls, axis=-1) == 0, 1, f_bias)
 
-    return (np.sum((w * sigma_crit_phot**weighting) * (~mask), axis=-1) /
-            np.sum((w * sigma_crit_phot**(weighting + 1) / sigma_crit_true) *
-                   (~mask), axis=-1))
+    return f_bias
 
 
-def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
+def mean_photo_z_offset(z_l, table_c, cosmology=None, weighting=-2):
     """Calculate the mean offset of source photometric redshifts.
 
     Parameters
@@ -86,8 +87,9 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         Redshift(s) of the lens.
     table_c : astropy.table.Table, optional
         Photometric redshift calibration catalog.
-    cosmology : astropy.cosmology
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     weighting : float, optional
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
@@ -99,30 +101,35 @@ def mean_photo_z_offset(z_l, table_c, cosmology, weighting=-2):
         The mean source redshift offset for the lens redshift(s).
 
     """
-    z_l_max = table_c['z_l_max']
-    z_s = table_c['z']
-    z_s_true = table_c['z_true']
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(table_c['z']).to(u.Mpc).value
-    w = table_c['w_sys'] * table_c['w']
+    cosmology = default_cosmology if cosmology is None else cosmology
 
-    if not np.isscalar(z_l):
-        shape = (len(z_l), len(table_c))
-        z_s = np.tile(z_s, len(z_l)).reshape(shape)
-        z_s_true = np.tile(z_s_true, len(z_l)).reshape(shape)
-        d_s = np.tile(d_s, len(z_l)).reshape(shape)
-        z_l_max = np.tile(z_l_max, len(z_l)).reshape(shape)
-        w = np.tile(w, len(z_l)).reshape(shape)
-        z_l = np.repeat(z_l, len(table_c)).reshape(shape)
-        d_l = np.repeat(d_l, len(table_c)).reshape(shape)
+    d_l = cosmology.comoving_transverse_distance(z_l)
+    z_s = table_c['z'].data
+    d_s = cosmology.comoving_transverse_distance(z_s)
+    z_s_true = table_c['z_true'].data
+    z_l_max = table_c['z_l_max'].data if 'z_l_max' in table_c.colnames else z_s
+    w_s = table_c['w_sys'].data * table_c['w'].data
 
-    sigma_crit = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    w = w * sigma_crit**weighting
+    if hasattr(z_l, '__len__'):
+        z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
+        d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
+        z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
+        d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
+        z_s_true = np.tile(z_s_true, len(z_l)).reshape(z_l.shape)
+        z_l_max = np.tile(z_l_max, len(z_l)).reshape(z_l.shape)
+        w_s = np.tile(w_s, len(z_l)).reshape(z_l.shape)
 
-    mask = z_l >= z_l_max
+    sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
+    w_ls = np.where(z_l > z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
-    return np.sum((z_s - z_s_true) * w * (~mask), axis=-1) / np.sum(
-        w * (~mask), axis=-1)
+    with np.errstate(divide='ignore'):
+        dz = (np.sum(w_ls, axis=-1) / np.sum(
+            w_ls * (z_s - z_s_true), axis=-1)).value
+
+    # If no lens-source pair is found, default to 0.
+    dz = np.where(np.sum(w_ls, axis=-1) == 0, 0, dz)
+
+    return dz
 
 
 def get_raw_multiprocessing_array(array):
@@ -253,8 +260,16 @@ def precompute(
         raise ValueError(msg)
 
     hp = HEALPix(nside, order='ring')
-    pix_l = hp.lonlat_to_healpix(table_l['ra'] * u.deg, table_l['dec'] * u.deg)
-    pix_s = hp.lonlat_to_healpix(table_s['ra'] * u.deg, table_s['dec'] * u.deg)
+
+    def in_degrees(data):
+        if data.unit == u.Unit(''):
+            data = u.Quantity(data.value, u.deg, copy=False)
+        return data.to(u.deg)
+
+    pix_l = hp.lonlat_to_healpix(in_degrees(table_l['ra'].quantity),
+                                 in_degrees(table_l['dec'].quantity))
+    pix_s = hp.lonlat_to_healpix(in_degrees(table_s['ra'].quantity),
+                                 in_degrees(table_s['dec'].quantity))
     argsort_pix_l = np.argsort(pix_l)
     argsort_pix_s = np.argsort(pix_s)
     u_pix_l, n_pix_l = np.unique(pix_l, return_counts=True)
@@ -276,7 +291,7 @@ def precompute(
                 [table_engine_l, table_engine_s]):
             for angle in ['ra', 'dec']:
                 table_engine[f'{f_name} {angle}'] =\
-                    np.ascontiguousarray(f(np.deg2rad(table[angle]))[
+                    np.ascontiguousarray(f(in_degrees(table[angle].quantity))[
                         argsort_pix])
 
     for key in ['z', 'z_l_max', 'w', 'e_1', 'e_2', 'm', 'e_rms', 'm_sel',
@@ -304,7 +319,9 @@ def precompute(
             table_engine['d_com'] = np.ascontiguousarray(
                 interpolate_over_redshift(
                     cosmology.comoving_transverse_distance,
-                    table_engine['z']).to(u.Mpc).value, dtype=np.float64)
+                    table_engine['z']).to(
+                        u.Mpc / cu.littleh, cu.with_H0(cosmology.H0)).value,
+                dtype=np.float64)
 
     if table_n is not None:
         n_bins = table_n['n'].data.shape[1]
@@ -324,7 +341,7 @@ def precompute(
         for z_bin in range(n_bins):
             sigma_crit_eff_inv[z_bin::n_bins] = interpolate_over_redshift(
                 _inverse_effective_critical_surface_density,
-                table_engine_l['z'], z_bin)
+                table_engine_l['z'], z_bin).value
 
         with np.errstate(divide='ignore'):
             sigma_crit_eff = np.where(
@@ -354,12 +371,13 @@ def precompute(
                 np.int64 if key == 'sum 1' else np.float64)))
 
     if not isinstance(bins, u.quantity.Quantity):
-        bins = bins * u.Mpc
+        bins = bins * u.Mpc / cu.littleh
 
     try:
         theta_bins = np.tile(bins.to(u.rad).value, len(table_l))
     except UnitConversionError:
-        theta_bins = (np.tile(bins.to(u.Mpc).value, len(table_l)) /
+        bins = bins.to(u.Mpc / cu.littleh, cu.with_H0(cosmology.H0))
+        theta_bins = (np.tile(bins.value, len(table_l)) /
                       np.repeat(table_engine_l['d_com'], len(bins))).flatten()
         if not comoving:
             theta_bins *= (
@@ -409,30 +427,29 @@ def precompute(
         table_l[key] = table_engine_r[key].reshape(
             len(table_l), len(bins) - 1)[inv_argsort_pix_l]
 
+    for key in ['sum w_ls e_t sigma_crit', 'sum w_ls sigma_crit']:
+        table_l[key] = u.Quantity(
+            table_l[key], cu.littleh * u.Msun / u.pc**2, copy=False)
+
     table_l['sum w_ls z_l'] = table_l['z'][:, np.newaxis] * table_l['sum w_ls']
 
     if table_c is not None:
-        table_c_copy = table_c.copy()
-        if 'z_l_max' not in table_c_copy.colnames:
-            table_c_copy['z_l_max'] = table_c_copy['z']
-        print(table_l['z'])
-
         f_bias = interpolate_over_redshift(
-            photo_z_dilution_factor, table_l['z'].data, table_c_copy,
-            cosmology, weighting=weighting)
+            photo_z_dilution_factor, table_l['z'].data, table_c,
+            cosmology=cosmology, weighting=weighting)
         for key in ['sum w_ls sigma_crit', 'sum w_ls e_t sigma_crit']:
             table_l[f'{key} f_bias'] = f_bias[:, np.newaxis] * table_l[key]
 
         delta_z_s = interpolate_over_redshift(
-            mean_photo_z_offset, table_l['z'], table_c_copy,
-            cosmology, weighting=weighting)
+            mean_photo_z_offset, table_l['z'], table_c,
+            cosmology=cosmology, weighting=weighting)
         table_l['sum w_ls z_s'] = (
             table_l['sum w_ls z_s'] - table_l['sum w_ls'] * delta_z_s[
                 :, np.newaxis])
 
     table_l.meta['bins'] = bins
     table_l.meta['comoving'] = comoving
-    table_l.meta['cosmology'] = cosmology.to_format('yaml')
+    table_l.meta['cosmology'] = cosmology
     table_l.meta['weighting'] = weighting
 
     return table_l

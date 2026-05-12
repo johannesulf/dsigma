@@ -3,6 +3,7 @@
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
+from astropy.cosmology import units as cu
 from scipy.special import jn_zeros, jv
 
 from . import default_cosmology
@@ -10,39 +11,37 @@ from . import default_cosmology
 __all__ = ['critical_surface_density', 'effective_critical_surface_density',
            'lens_magnification_shear_bias', 'mpc_per_degree']
 
-_sigma_crit_factor = (c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
-
 
 def mpc_per_degree(z, cosmology=None, comoving=False):
-    """Estimate the angular scale in Mpc/degree at certain redshift.
+    r"""Calculate the conversion factor between angular and physical scales.
 
     Parameters
     ----------
-    cosmology : astropy.cosmology or None, optional
-        Cosmology to assume for calculations. If ``None``, use
-        ``dsigma.default_cosmology``. Default is ``None``.
     z : float or numpy.ndarray
         Redshift of the object.
-    cosmology : astropy.cosmology, optional
-        Cosmology to assume for calculations.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to use for calculation. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
     comoving : bool, optional
         Use comoving distance instead of physical distance when True.
         Default is ``False``.
 
     Returns
     -------
-    float or numpy.ndarray
-        Physical scale in unit of Mpc/degree.
+    factor : astropy.units.quantity.Quantity
+        Conversion factor.
 
     """
     cosmology = default_cosmology if cosmology is None else cosmology
 
     if comoving:
-        return (cosmology.comoving_transverse_distance(z).to(u.Mpc).value *
-                np.deg2rad(1))
+        d = cosmology.comoving_transverse_distance(z)
+    else:
+        d = cosmology.angular_diameter_distance(z)
 
-    return (cosmology.angular_diameter_distance(z).to(u.Mpc).value *
-            np.deg2rad(1))
+    d = d.to(u.Mpc / cu.littleh, cu.with_H0(cosmology.H0))
+
+    return (d / u.rad).to(u.Mpc / cu.littleh / u.deg)
 
 
 def critical_surface_density(
@@ -61,38 +60,36 @@ def critical_surface_density(
         is ``None``.
     comoving : bool, optional
         Flag for using comoving instead of physical units.
-    d_l : float or numpy.ndarray
+    d_l : astropy.units.quantity.Quantity
         Comoving transverse distance to the lens. If not given, it is
         calculated from the redshift provided.
-    d_s : float or numpy.ndarray
+    d_s : astropy.units.quantity.Quantity
         Comoving transverse distance to the source. If not given, it is
         calculated from the redshift provided.
 
     Returns
     -------
-    sigma_crit : float or numpy.ndarray
+    sigma_crit : astropy.units.quantity.Quantity
         Critical surface density for each lens-source pair.
 
     """
     cosmology = default_cosmology if cosmology is None else cosmology
+
     if d_l is None:
-        d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
+        d_l = cosmology.comoving_transverse_distance(z_l)
     if d_s is None:
-        d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
+        d_s = cosmology.comoving_transverse_distance(z_s)
 
-    dist_term = (1e-6 * (d_s / (1 + z_s)) / (d_l / (1 + z_l)) /
-                 (np.where(d_s > d_l, d_s - d_l, 1) / (1 + z_s)))
-
-    if np.isscalar(dist_term):
-        if d_s <= d_l:
-            dist_term = np.inf
-    else:
-        dist_term[d_s <= d_l] = np.inf
+    with np.errstate(divide='ignore'):
+        sigma_crit = c.c**2 / (4 * np.pi * c.G) * (
+            (d_s / (1 + z_s)) / (d_l / (1 + z_l)) / ((d_s - d_l) / (1 + z_s)))
+    sigma_crit = np.where(d_s <= d_l, np.inf * sigma_crit.unit, sigma_crit)
 
     if comoving:
-        dist_term /= (1.0 + z_l)**2
+        sigma_crit /= (1.0 + z_l)**2
 
-    return _sigma_crit_factor * dist_term
+    return sigma_crit.to(
+        cu.littleh * u.Msun / u.pc**2, cu.with_H0(cosmology.H0))
 
 
 def effective_critical_surface_density(
@@ -116,34 +113,28 @@ def effective_critical_surface_density(
 
     Returns
     -------
-    sigma_crit_eff : float or numpy.ndarray
+    sigma_crit_eff : astropy.units.quantity.Quantity
         Effective critical surface density for the lens redshift given the
-        source redshift distribution.
+        source redshift distribution. Has the same length as `z_l`.
 
     """
     cosmology = default_cosmology if cosmology is None else cosmology
-    d_l = cosmology.comoving_transverse_distance(z_l).to(u.Mpc).value
-    d_s = cosmology.comoving_transverse_distance(z_s).to(u.Mpc).value
+    d_l = cosmology.comoving_transverse_distance(z_l)
+    d_s = cosmology.comoving_transverse_distance(z_s)
 
-    if not np.isscalar(z_l):
+    if hasattr(z_l, '__len__'):
         z_l = np.repeat(z_l, len(z_s)).reshape((len(z_l), len(z_s)))
         d_l = np.repeat(d_l, len(z_s)).reshape(z_l.shape)
         z_s = np.tile(z_s, len(z_l)).reshape(z_l.shape)
         d_s = np.tile(d_s, len(z_l)).reshape(z_l.shape)
         n_s = np.tile(n_s, len(z_l)).reshape(z_l.shape)
 
-    sigma_crit = critical_surface_density(z_l, z_s, cosmology=cosmology,
-                                          comoving=comoving, d_l=d_l, d_s=d_s)
+    sigma_crit_eff_inv = 1.0 / critical_surface_density(
+        z_l=z_l, d_l=d_l, z_s=z_s, d_s=d_s, comoving=comoving)
+    sigma_crit_eff_inv = np.average(sigma_crit_eff_inv, weights=n_s, axis=-1)
 
-    if not np.isscalar(z_l):
-        sigma_crit_eff = np.repeat(np.inf, len(z_l))
-        mask = np.average(sigma_crit**-1, axis=-1, weights=n_s) == 0
-        sigma_crit_eff[~mask] = np.average(sigma_crit**-1, axis=-1,
-                                           weights=n_s)[~mask]**-1
-        return sigma_crit_eff
-    if np.average(sigma_crit**-1, weights=n_s) > 0:
-        return np.average(sigma_crit**-1, weights=n_s)**-1
-    return np.inf
+    with np.errstate(divide='ignore'):
+        return 1.0 / sigma_crit_eff_inv
 
 
 def lens_magnification_shear_bias(
