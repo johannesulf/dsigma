@@ -186,7 +186,7 @@ def _to_camb(cosmology, sigma_8, n_s, z):
         nu_mass_eigenstates=len(np.unique(m_nu[m_nu > 0])),
         nu_mass_numbers=np.unique(m_nu[m_nu > 0], return_counts=True)[1],
         nu_mass_degeneracies=np.unique(m_nu[m_nu > 0]),
-        ns=n_s, As=a_s, NonLinear='NonLinear_pk', kmax=2000.0, redshifts=z)
+        ns=n_s, As=a_s, NonLinear='NonLinear_pk', kmax=1000.0, redshifts=z)
 
     results = camb.get_results(pars)
 
@@ -286,7 +286,7 @@ def lens_magnification_shear_bias(
 
     Returns
     -------
-    et_lm : float
+    gt : float or numpy.ndarray
         Bias in the mean tangential shear due to lens magnification effects.
 
     """
@@ -302,12 +302,13 @@ def lens_magnification_shear_bias(
     d_s = cosmology.angular_diameter_distance(z_s)
 
     def f(theta, z, ell):
+        z_u, idx = np.unique(z, return_inverse=True)
         k = (ell + 0.5) / ((1 + z) * cosmology.angular_diameter_distance(
-            z).to(u.Mpc).value)
+            z_u).to(u.Mpc).value[idx])
         return ((1 + z)**2 * ell * jv(2, ell * theta) *
-                (cosmology.H0 / cosmology.H(z)) *
-                cosmology.angular_diameter_distance_z1z2(z, z_l) / d_l *
-                cosmology.angular_diameter_distance_z1z2(z, z_s) / d_s *
+                (cosmology.H0 / cosmology.H(z_u)[idx]) *
+                cosmology.angular_diameter_distance_z1z2(z_u, z_l)[idx] / d_l *
+                cosmology.angular_diameter_distance_z1z2(z_u, z_s)[idx] / d_s *
                 np.where(k > k_max, 0, np.array(
                     [p(z_i, k_i) for z_i, k_i in zip(z, k)])))
 
@@ -323,5 +324,5 @@ def lens_magnification_shear_bias(
 
     integral = integral * u.Mpc**3  # units for the P(k) used earlier
 
-    return 2 * (alpha_l - 1) * integral * (
-        9 * cosmology.H0**3 * cosmology.Om0**2 / (8 * np.pi * c.c**3))
+    return (2 * (alpha_l - 1) * 9 * cosmology.H0**3 * cosmology.Om0**2 /
+            (8 * np.pi * c.c**3) * integral).to(u.dimensionless_unscaled).value
