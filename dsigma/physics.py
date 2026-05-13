@@ -1,8 +1,11 @@
 """Physics functions for the dsigma pipeline."""
 
+from functools import partial
+
 import numpy as np
 from astropy import constants as c
 from astropy import units as u
+from astropy.cosmology import FlatLambdaCDM
 from astropy.cosmology import units as cu
 from scipy.special import jn_zeros, jv
 
@@ -137,33 +140,138 @@ def effective_critical_surface_density(
         return 1.0 / sigma_crit_eff_inv
 
 
+def _to_camb(cosmology, sigma_8, n_s, z):
+    r"""Convert an astropy cosmology object into a CAMB result object.
+
+    Parameters
+    ----------
+    cosmology : astropy.cosmology.FlatLambdaCDM
+        Astropy cosmology.
+    sigma_8 : float
+        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`.
+    n_s : float
+        Primordial power spectrum index. Default is 0.96.
+    z : numpy.ndarray
+        Redshifts for which to compute the power spectrum.
+
+    Raises
+    ------
+    ValueError
+        If cosmology is not instance of ``astropy.cosmology.FlatLambdaCDM``.
+
+    Returns
+    -------
+    results : camb.results.CAMBdata
+        CAMB results object that contains information about the matter power
+        spectrum.
+
+    """
+    if not isinstance(cosmology, FlatLambdaCDM):
+        msg = "Cosmology must be instance of astropy.cosmology.FlatLambdaCDM."
+        raise ValueError(msg)
+
+    import camb
+
+    h = cosmology.H0.to(u.km / u.s / u.Mpc).value / 100
+    a_s = 2e-9  # initial guess
+    m_nu = cosmology.m_nu.to(u.eV).value
+
+    # TODO: Somebody should check this, especially in regards to neutrinos.
+    pars = camb.set_params(
+        H0=100 * h, omch2=(cosmology.Om0 - cosmology.Ob0) * h**2,
+        ombh2=cosmology.Ob0 * h**2, omnuh2=cosmology.Onu0 * h**2,
+        TCMB=cosmology.Tcmb0.to(u.K).value,
+        num_nu_massless=cosmology.Neff - np.sum(m_nu > 0),
+        num_nu_massive=np.sum(m_nu > 0),
+        nu_mass_eigenstates=len(np.unique(m_nu[m_nu > 0])),
+        nu_mass_numbers=np.unique(m_nu[m_nu > 0], return_counts=True)[1],
+        nu_mass_degeneracies=np.unique(m_nu[m_nu > 0]),
+        ns=n_s, As=a_s, NonLinear='NonLinear_pk', kmax=2000.0, redshifts=z)
+
+    results = camb.get_results(pars)
+
+    # Iterate to get the sigma_8 value correct.
+    while np.abs(np.log(sigma_8 / results.get_sigma8_0())) > 1e-9:
+        a_s *= (sigma_8 / results.get_sigma8_0())**2
+        pars.InitPower.set_params(ns=n_s, As=a_s)
+        results = camb.get_results(pars)
+
+    return results
+
+
+def _gaussian_quadrature_2d(f, n_x, x_min, x_max, n_y, y_min, y_max):
+    """Integrate a two-dimensional function using Gaussian quadrature.
+
+    Parameters
+    ----------
+    f : callable
+        Function to integrate.
+    n_x : int
+        Number of points in the x-dimension.
+    x_min : float
+        Lower integration limit for x.
+    x_max : float
+        Upper integration limit for x.
+    n_y : int
+        Number of points in the y-dimension.
+    y_min : float
+        Lower integration limit for y.
+    y_max : float
+        Upper integration limit for y.
+
+    Returns
+    -------
+    integral : float
+        Computed integral.
+
+    """
+    x, w_x = np.polynomial.legendre.leggauss(n_x)
+    x = (x_max - x_min) / 2.0 * x + (x_max + x_min) / 2.0
+    w_x = w_x * (x_max - x_min) / 2.0
+
+    y, w_y = np.polynomial.legendre.leggauss(n_y)
+    y = (y_max - y_min) / 2.0 * y + (y_max + y_min) / 2.0
+    w_y = w_y * (y_max - y_min) / 2.0
+
+    x, y = np.meshgrid(x, y)
+    z = f(x.ravel(), y.ravel())
+    w_z = np.outer(w_x, w_y).T.ravel()
+
+    return np.sum(z * w_z)
+
+
 def lens_magnification_shear_bias(
-        theta, alpha_l, z_l, z_s, camb_results, n_z=10, n_ell=200,
-        bessel_function_zeros=100, k_max=1e3):
+        theta, alpha_l, z_l, z_s, cosmology=None, sigma_8=0.82, n_s=0.96,
+        n_z=10, n_ell=1000, bessel_function_zeros=100, k_max=1e3):
     r"""Compute the lens magnification bias to the mean tangential shear.
 
     This function is based on equations (13) and (14) in Unruh et al. (2020).
 
     Parameters
     ----------
-    theta : float or astropy.units.quantity.Quantity
-        Angular separation :math:`\theta` from the lens sample. If not quantity
-        is given, the separation is assumed to be in radians.
+    theta : float, numpy.ndarray or astropy.units.quantity.Quantity
+        Angular separation :math:`\theta` from the lens sample. If it has no
+        unit, assume the value is given in radians.
     alpha_l : float
         Local slope of the flux distribution of lenses near the flux limit.
     z_l : float
         Redshift of lens.
     z_s : float
         Redshift of source.
-    camb_results : camb.results.CAMBdata
-        CAMB results object that contains information on cosmology and the
-        matter power spectrum.
+    cosmology : astropy.cosmology or None, optional
+        Cosmology to assume for calculations. If ``None``, use
+        ``dsigma.default_cosmology``. Default is ``None``.
+    sigma_8 : float, optional
+        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
+        0.82.
+    n_s : float, optional
+        Primordial power spectrum index. Default is 0.96.
     n_z : int, optional
         Number of redshift bins used in the integral. Larger numbers will be
-        more accurate.
+        more accurate. Default is 10.
     n_ell : int, optional
         Number of :math:`\ell` bins used in the integral. Larger numbers will
-        be more accurate.
+        be more accurate. Default is 200.
     bessel_function_zeros : int, optional
         The calculation involves an integral over the second order Bessel
         function :math:`J_2 (\ell \theta)` from :math:`\ell = 0` to
@@ -182,57 +290,38 @@ def lens_magnification_shear_bias(
         Bias in the mean tangential shear due to lens magnification effects.
 
     """
-    camb_interp = camb_results.get_matter_power_interpolator(
-        hubble_units=False, k_hunit=False)
+    cosmology = default_cosmology if cosmology is None else cosmology
 
-    if not isinstance(theta, u.quantity.Quantity):
-        theta = theta * u.rad
-
+    if not isinstance(theta, u.Quantity):
+        theta *= u.rad
     theta = theta.to(u.rad).value
 
-    ell_min = 0
+    r = _to_camb(cosmology, sigma_8, n_s, np.linspace(z_l, 0, 10))
+    p = r.get_matter_power_interpolator(hubble_units=False, k_hunit=False).P
+    d_l = cosmology.angular_diameter_distance(z_l)
+    d_s = cosmology.angular_diameter_distance(z_s)
+
+    def f(theta, z, ell):
+        k = (ell + 0.5) / ((1 + z) * cosmology.angular_diameter_distance(
+            z).to(u.Mpc).value)
+        return ((1 + z)**2 * ell * jv(2, ell * theta) *
+                (cosmology.H0 / cosmology.H(z)) *
+                cosmology.angular_diameter_distance_z1z2(z, z_l) / d_l *
+                cosmology.angular_diameter_distance_z1z2(z, z_s) / d_s *
+                np.where(k > k_max, 0, np.array(
+                    [p(z_i, k_i) for z_i, k_i in zip(z, k)])))
+
     ell_max = np.amax(jn_zeros(2, bessel_function_zeros)) / theta
-    z_min = 0
-    z_max = min(z_l, z_s)
 
-    z, w_z = np.polynomial.legendre.leggauss(n_z)
-    z = (z_max - z_min) / 2.0 * z + (z_max + z_min) / 2.0
-    w_z = w_z * (z_max - z_min) / 2.0
+    if not hasattr(theta, '__len__'):
+        integral = _gaussian_quadrature_2d(
+            partial(f, theta), n_z, 0, z_l, n_ell, 0, ell_max)
+    else:
+        integral = np.array([_gaussian_quadrature_2d(
+            partial(f, theta[i]), n_z, 0, z_l, n_ell, 0, ell_max[i]) for i in
+            range(len(theta))])
 
-    ell, w_ell = np.polynomial.legendre.leggauss(n_ell)
-    ell = (ell_max - ell_min) / 2.0 * ell + (ell_max + ell_min) / 2.0
-    w_ell = w_ell * (ell_max - ell_min) / 2.0
+    integral = integral * u.Mpc**3  # units for the P(k) used earlier
 
-    int_z = np.array([
-        (1 + z_i)**2 / (2 * np.pi) *
-        camb_results.hubble_parameter(0) /
-        camb_results.hubble_parameter(z_i) *
-        camb_results.angular_diameter_distance2(z_i, z_l) *
-        camb_results.angular_diameter_distance2(z_i, z_s) /
-        camb_results.angular_diameter_distance(z_l) /
-        camb_results.angular_diameter_distance(z_s) for z_i in z])
-
-    d_ang = np.array([
-        camb_results.angular_diameter_distance(z_i) for z_i in z])
-    z = np.tile(z, n_ell)
-    int_z = np.tile(int_z, n_ell)
-    d_ang = np.tile(d_ang, n_ell)
-    w_z = np.tile(w_z, n_ell)
-
-    int_ell = ell * jv(2, ell * theta)
-    ell = np.repeat(ell, n_z)
-    int_ell = np.repeat(int_ell, n_z)
-    w_ell = np.repeat(w_ell, n_z)
-
-    k = (ell + 0.5) / ((1 + z) * d_ang)
-
-    int_z_ell = np.array([camb_interp.P(z[i], k[i]) for i in range(len(k))])
-    int_z_ell = np.where(k > k_max, 0, int_z_ell)
-
-    gamma = np.sum(int_z * int_ell * int_z_ell * w_z * w_ell)
-    gamma = ((gamma * u.Mpc**3) * 9 * camb_results.Params.H0**3 * u.km**3 /
-             u.s**3 / u.Mpc**3 *
-             (camb_results.Params.omch2 + camb_results.Params.ombh2)**2 /
-             (camb_results.Params.H0 / 100)**4 / 4 / c.c**3)
-
-    return 2 * (alpha_l - 1) * gamma.to(u.dimensionless_unscaled).value
+    return 2 * (alpha_l - 1) * integral * (
+        9 * cosmology.H0**3 * cosmology.Om0**2 / (8 * np.pi * c.c**3))
