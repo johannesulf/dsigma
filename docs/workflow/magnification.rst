@@ -11,21 +11,21 @@ However, the magnification of lens galaxies by foreground structures at :math:`z
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
+
     from astropy import units as u
     from dsigma.physics import lens_magnification_shear_bias
     from astropy.cosmology import FlatLambdaCDM
-    
+
     z_l = 0.41
     z_s = 0.99
-    
+
     # Millennium simulation cosmology
     cosmology = FlatLambdaCDM(Ob0=0.045, Om0=0.25, H0=73, Tcmb0=2.7)
     sigma_8 = 0.9
     n_s = 1.0
-    
+
     theta = np.geomspace(0.5, 20, 30) * u.arcmin
-    
+
     for alpha_l in [0.44, 0.66, 0.85, 1.06, 1.56, 2.03, 2.71]:
         gt = lens_magnification_shear_bias(
             theta, alpha_l, z_l, z_s, cosmology=cosmology, sigma_8=sigma_8,
