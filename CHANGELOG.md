@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - All survey-specific functionality is now in scripts such as `dsigma-process-des-y3`.
 - In the results table of `dsigma.stacking.tangential_shear`, the `et` and `et_raw` columns were renamed to `gt` and `gt_raw`.
+- Instead of taking an instance of `camb.results.CAMBdata` as input, `dsigma.physics.lens_magnification_shear_bias` and `dsigma.physics.lens_magnification_bias` now convert between `astropy` and `camb`, internally. The user only needs to provide `sigma_8` and `n_s`.
 
 ### Removed
 
