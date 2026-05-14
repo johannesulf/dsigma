@@ -1,6 +1,8 @@
 import numpy as np
 from astropy import units as u
+from astropy.cosmology import FlatLambdaCDM
 from astropy.cosmology import units as cu
+from scipy.interpolate import make_interp_spline
 
 from dsigma import default_cosmology, physics
 
@@ -62,7 +64,7 @@ def test_to_camb():
         cosmology_astropy.Onu(z), rtol=5e-2, atol=0)
 
 
-def test_aussian_quadrature_2d():
+def test_gaussian_quadrature_2d():
     # Test 2d Gaussian quadrature on an analytic example.
 
     def f(x, y):
@@ -77,3 +79,29 @@ def test_aussian_quadrature_2d():
         physics._gaussian_quadrature_2d(f, 10, x_min, x_max, 10, y_min, y_max),
         (x_max**3 - x_min**3) / 3.0 * (y_max - y_min) +
         (x_max - x_min) * (np.cos(y_min) - np.cos(y_max)))
+
+
+def test_lens_magnification():
+    # Compare the results from dsigma to those shown in Unruh et al. (2020).
+
+    z_l = 0.41
+    z_s = 0.99
+
+    # Millennium simulation cosmology
+    cosmology = FlatLambdaCDM(Ob0=0.045, Om0=0.25, H0=73, Tcmb0=2.7255)
+    sigma_8 = 0.9
+    n_s = 1.0
+
+    theta = np.geomspace(0.5, 20, 30) * u.arcmin
+
+    alpha_l = 2.71
+    gt = physics.lens_magnification_shear_bias(
+        theta, alpha_l, z_l, z_s, cosmology=cosmology, sigma_8=sigma_8,
+        n_s=n_s)
+
+    # digitized from Unruh et al. (2020)
+    gt_unruh = 1e-5 * make_interp_spline(
+        [0.556, 0.834, 1.26, 1.95, 2.95, 4.51, 6.86, 10.5, 15.9, 19.0],
+        [4.49, 4.80, 4.99, 5.00, 4.74, 4.19, 3.41, 2.56, 1.78, 1.52])(theta)
+
+    assert np.allclose(gt, gt_unruh, rtol=0.1, atol=0)

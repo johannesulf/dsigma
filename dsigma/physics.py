@@ -157,7 +157,9 @@ def _to_camb(cosmology, sigma_8, n_s, z):
     Raises
     ------
     ValueError
-        If cosmology is not instance of ``astropy.cosmology.FlatLambdaCDM``.
+        If cosmology is not an instance of ``astropy.cosmology.FlatLambdaCDM``.
+    ImportError
+        If ``camb`` is not installed.
 
     Returns
     -------
@@ -170,11 +172,16 @@ def _to_camb(cosmology, sigma_8, n_s, z):
         msg = "Cosmology must be instance of astropy.cosmology.FlatLambdaCDM."
         raise ValueError(msg)
 
-    import camb
+    try:
+        import camb
+    except ImportError:
+        msg = "CAMB needs to be installed for this operation."
+        raise ImportError(msg)
 
     h = cosmology.H0.to(u.km / u.s / u.Mpc).value / 100
     a_s = 2e-9  # initial guess
-    m_nu = cosmology.m_nu.to(u.eV).value
+    m_nu = (np.zeros(0) if cosmology.m_nu is None else
+            cosmology.m_nu.to(u.eV).value)
 
     # TODO: Somebody should check this, especially in regards to neutrinos.
     pars = camb.set_params(
