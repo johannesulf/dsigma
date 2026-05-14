@@ -2,7 +2,7 @@
 
 import numpy as np
 from astropy import units as u
-from astropy.cosmology import Cosmology
+from astropy.cosmology import units as cu
 from astropy.table import Table
 from astropy.units import UnitConversionError
 
@@ -244,9 +244,12 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
         np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
-def lens_magnification_bias(table_l, alpha_l, camb_results,
+def lens_magnification_bias(table_l, alpha_l, sigma_8=0.82, n_s=0.96,
                             photo_z_dilution_correction=False, shear=False):
-    """Estimate the additive lens magnification bias.
+    r"""Estimate the additive lens magnification bias.
+
+    Note that the assumed cosmology is taken from ``table_l.meta['cosmology']``
+    which is added by ``precompute``.
 
     Parameters
     ----------
@@ -254,9 +257,11 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         Precompute results for the lenses.
     alpha_l : float
         The response of the lenses to magnification.
-    camb_results : camb.results.CAMBdata
-        CAMB results object that contains information on cosmology and the
-        matter power spectrum.
+    sigma_8 : float, optional
+        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
+        0.82.
+    n_s : float, optional
+        Primordial power spectrum index. Default is 0.96.
     photo_z_dilution_correction : bool, optional
         If True, correct the mean critical surface density for photo-z biases.
         Not used if `shear` is True. This should be consistent with what is
@@ -273,22 +278,24 @@ def lens_magnification_bias(table_l, alpha_l, camb_results,
         The lens magnification bias in each radial bin.
 
     """
-    cosmology = Cosmology.from_format(table_l.meta['cosmology'], format='yaml')
+    cosmology = table_l.meta['cosmology']
+    bins = table_l.meta['bins']
+    comoving = table_l.meta['comoving']
+    # Average over bins assuming constant density per area.
+    bins = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
 
     z_l = mean_lens_redshift(table_l)
     z_s = mean_source_redshift(table_l)
-    bins = table_l.meta['bins']
-    d = 2.0 / 3.0 * np.diff(bins**3) / np.diff(bins**2)
 
     try:
-        theta = d.to(u.rad).value
+        theta = bins.to(u.rad)
     except UnitConversionError:
-        theta = np.deg2rad(d.to(u.Mpc).value / mpc_per_degree(
-            z_l, cosmology=cosmology, comoving=table_l.meta['comoving']))
+        theta = (bins / mpc_per_degree(
+            z_l, cosmology=cosmology, comoving=comoving)).to(
+                u.rad, cu.with_H0(cosmology.H0))
 
-    gt = np.array([lens_magnification_shear_bias(
-        theta[i], alpha_l, z_l[i], z_s[i], camb_results) for i in
-        range(len(theta))])
+    gt = lens_magnification_shear_bias(
+        theta, alpha_l, z_l, z_s, cosmology, sigma_8=sigma_8, n_s=n_s)
 
     if shear:
         return gt

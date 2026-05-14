@@ -1,18 +1,106 @@
 import numpy as np
+from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
+from astropy.cosmology import units as cu
+from scipy.interpolate import make_interp_spline
 
-from dsigma.physics import critical_surface_density
+from dsigma import default_cosmology, physics
 
 
 def test_critical_surface_density():
+    # Perform some plausibility checks for the critical surface density.
 
-    cosmology = FlatLambdaCDM(100, 0.3)
     z_l = 0.3
     z_s = 0.5
 
-    sigma_crit_com = critical_surface_density(z_l, z_s, cosmology)
-    sigma_crit_phy = critical_surface_density(z_l, z_s, cosmology,
-                                              comoving=False)
+    # result should have correct units
+    sigma_crit = physics.critical_surface_density(z_l, z_s)
+    assert isinstance(sigma_crit, u.Quantity)
+    sigma_crit.to(cu.littleh * u.Msun / u.pc**2)
+
+    # comoving should be included correctly
+    sigma_crit_com = physics.critical_surface_density(z_l, z_s)
+    sigma_crit_phy = physics.critical_surface_density(z_l, z_s, comoving=False)
 
     assert np.isclose(sigma_crit_com * (1 + z_l)**2,
                       sigma_crit_phy, rtol=0, atol=1e-12)
+
+    # critical surface density is infinite if lens behind source
+    z_l = 0.8
+    z_s = 0.5
+    sigma_crit = physics.critical_surface_density(z_l, z_s)
+    assert sigma_crit == np.inf
+
+
+def test_to_camb():
+    # Test that we can convert to CAMB correctly.
+
+    sigma_8 = 0.7
+    cosmology_astropy = default_cosmology
+    cosmology_camb = physics._to_camb(cosmology_astropy, sigma_8, 0.96,
+                                      [1, 0.5, 0])
+
+    assert np.isclose(cosmology_camb.get_sigma8_0(), sigma_8)
+
+    z = np.linspace(0, 5, 20)
+
+    assert np.allclose(
+        cosmology_astropy.angular_diameter_distance(z).to(u.Mpc).value,
+        cosmology_camb.angular_diameter_distance(z), rtol=3e-5, atol=0)
+
+    assert np.allclose(
+        cosmology_camb.get_Omega('photon', z),
+        cosmology_astropy.Ogamma(z), rtol=5e-5, atol=0)
+
+    assert np.allclose(
+        cosmology_camb.get_Omega('baryon', z) +
+        cosmology_camb.get_Omega('cdm', z),
+        cosmology_astropy.Om(z), rtol=0, atol=5e-5)
+
+    assert np.allclose(
+        cosmology_camb.get_Omega('neutrino', z) +
+        cosmology_camb.get_Omega('nu', z),
+        cosmology_astropy.Onu(z), rtol=1e-2, atol=0)
+
+
+def test_gaussian_quadrature_2d():
+    # Test 2d Gaussian quadrature on an analytic example.
+
+    def f(x, y):
+        return x**2 + np.sin(y)
+
+    x_min = -2.5
+    x_max = +2.4
+    y_min = -1.2
+    y_max = 1.3
+
+    assert np.isclose(
+        physics._gaussian_quadrature_2d(f, 10, x_min, x_max, 10, y_min, y_max),
+        (x_max**3 - x_min**3) / 3.0 * (y_max - y_min) +
+        (x_max - x_min) * (np.cos(y_min) - np.cos(y_max)))
+
+
+def test_lens_magnification():
+    # Compare the results from dsigma to those shown in Unruh et al. (2020).
+
+    z_l = 0.41
+    z_s = 0.99
+
+    # Millennium simulation cosmology
+    cosmology = FlatLambdaCDM(Ob0=0.045, Om0=0.25, H0=73, Tcmb0=2.7255)
+    sigma_8 = 0.9
+    n_s = 1.0
+
+    theta = np.geomspace(0.5, 20, 30) * u.arcmin
+
+    alpha_l = 2.71
+    gt = physics.lens_magnification_shear_bias(
+        theta, alpha_l, z_l, z_s, cosmology=cosmology, sigma_8=sigma_8,
+        n_s=n_s)
+
+    # digitized from Unruh et al. (2020)
+    gt_unruh = 1e-5 * make_interp_spline(
+        [0.556, 0.834, 1.26, 1.95, 2.95, 4.51, 6.86, 10.5, 15.9, 19.0],
+        [4.49, 4.80, 4.99, 5.00, 4.74, 4.19, 3.41, 2.56, 1.78, 1.52])(theta)
+
+    assert np.allclose(gt, gt_unruh, rtol=0.1, atol=0)
