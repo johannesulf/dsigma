@@ -16,7 +16,7 @@ __all__ = ['critical_surface_density', 'effective_critical_surface_density',
 
 
 def mpc_per_degree(z, cosmology=None, comoving=False):
-    r"""Calculate the conversion factor between angular and physical scales.
+    """Calculate the conversion factor between angular and physical scales.
 
     Parameters
     ----------
@@ -183,10 +183,12 @@ def _to_camb(cosmology, sigma_8, n_s, z):
     m_nu = (np.zeros(0) if cosmology.m_nu is None else
             cosmology.m_nu.to(u.eV).value)
 
-    # TODO: Somebody should check this, especially in regards to neutrinos.
+    # Note that astropy considers all neutrinos for Onu but CAMB only takes
+    # into account massive neutrinos for "nu". That's why we use the
+    # Onu h^2 = sum m_nu / 93.14 eV formula.
     pars = camb.set_params(
         H0=100 * h, omch2=(cosmology.Om0 - cosmology.Ob0) * h**2,
-        ombh2=cosmology.Ob0 * h**2, omnuh2=cosmology.Onu0 * h**2,
+        ombh2=cosmology.Ob0 * h**2, omnuh2=np.sum(m_nu) / 93.14,
         TCMB=cosmology.Tcmb0.to(u.K).value,
         num_nu_massless=cosmology.Neff - np.sum(m_nu > 0),
         num_nu_massive=np.sum(m_nu > 0),
@@ -261,10 +263,10 @@ def lens_magnification_shear_bias(
         unit, assume the value is given in radians.
     alpha_l : float
         Local slope of the flux distribution of lenses near the flux limit.
-    z_l : float
-        Redshift of lens.
-    z_s : float
-        Redshift of source.
+    z_l : float or numpy.ndarray
+        Redshift of lens. Can also be a array if ``theta`` is an array.
+    z_s : float or numpy.ndarray
+        Redshift of source. Can also be a array if ``theta`` is an array.
     cosmology : astropy.cosmology or None, optional
         Cosmology to assume for calculations. If ``None``, use
         ``dsigma.default_cosmology``. Default is ``None``.
@@ -303,19 +305,19 @@ def lens_magnification_shear_bias(
         theta *= u.rad
     theta = theta.to(u.rad).value
 
-    r = _to_camb(cosmology, sigma_8, n_s, np.linspace(z_l, 0, 10))
+    r = _to_camb(cosmology, sigma_8, n_s, np.linspace(np.amax(z_l), 0, 10))
     p = r.get_matter_power_interpolator(hubble_units=False, k_hunit=False).P
-    d_l = cosmology.angular_diameter_distance(z_l)
-    d_s = cosmology.angular_diameter_distance(z_s)
 
-    def f(theta, z, ell):
+    def f(theta, z_l, z_s, z, ell):
         z_u, idx = np.unique(z, return_inverse=True)
         k = (ell + 0.5) / ((1 + z) * cosmology.angular_diameter_distance(
             z_u).to(u.Mpc).value[idx])
         return ((1 + z)**2 * ell * jv(2, ell * theta) *
                 (cosmology.H0 / cosmology.H(z_u)[idx]) *
-                cosmology.angular_diameter_distance_z1z2(z_u, z_l)[idx] / d_l *
-                cosmology.angular_diameter_distance_z1z2(z_u, z_s)[idx] / d_s *
+                cosmology.angular_diameter_distance_z1z2(z_u, z_l)[idx] /
+                cosmology.angular_diameter_distance(z_l) *
+                cosmology.angular_diameter_distance_z1z2(z_u, z_s)[idx] /
+                cosmology.angular_diameter_distance(z_s) *
                 np.where(k > k_max, 0, np.array(
                     [p(z_i, k_i) for z_i, k_i in zip(z, k)])))
 
@@ -323,11 +325,15 @@ def lens_magnification_shear_bias(
 
     if not hasattr(theta, '__len__'):
         integral = _gaussian_quadrature_2d(
-            partial(f, theta), n_z, 0, z_l, n_ell, 0, ell_max)
+            partial(f, theta, z_l, z_s), n_z, 0, z_l, n_ell, 0, ell_max)
     else:
+        if not hasattr(z_l, '__len__'):
+            z_l = np.repeat(z_l, len(theta))
+        if not hasattr(z_s, '__len__'):
+            z_s = np.repeat(z_s, len(theta))
         integral = np.array([_gaussian_quadrature_2d(
-            partial(f, theta[i]), n_z, 0, z_l, n_ell, 0, ell_max[i]) for i in
-            range(len(theta))])
+            partial(f, theta[i], z_l[i], z_s[i]), n_z, 0, z_l[i], n_ell, 0,
+            ell_max[i]) for i in range(len(theta))])
 
     integral = integral * u.Mpc**3  # units for the P(k) used earlier
 

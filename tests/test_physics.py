@@ -46,22 +46,21 @@ def test_to_camb():
 
     assert np.allclose(
         cosmology_astropy.angular_diameter_distance(z).to(u.Mpc).value,
-        cosmology_camb.angular_diameter_distance(z), rtol=3e-5, atol=1e-6)
+        cosmology_camb.angular_diameter_distance(z), rtol=3e-5, atol=0)
 
     assert np.allclose(
         cosmology_camb.get_Omega('photon', z),
-        cosmology_astropy.Ogamma(z), rtol=1e-4, atol=0)
+        cosmology_astropy.Ogamma(z), rtol=5e-5, atol=0)
 
     assert np.allclose(
         cosmology_camb.get_Omega('baryon', z) +
         cosmology_camb.get_Omega('cdm', z),
-        cosmology_astropy.Om(z), rtol=0, atol=1e-4)
+        cosmology_astropy.Om(z), rtol=0, atol=5e-5)
 
-    # TODO: The disagreement is likely too large. Needs to be investigated.
     assert np.allclose(
         cosmology_camb.get_Omega('neutrino', z) +
         cosmology_camb.get_Omega('nu', z),
-        cosmology_astropy.Onu(z), rtol=5e-2, atol=0)
+        cosmology_astropy.Onu(z), rtol=1e-2, atol=0)
 
 
 def test_gaussian_quadrature_2d():

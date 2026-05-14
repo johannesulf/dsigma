@@ -58,3 +58,15 @@ def test_boost_factor(test_catalogs):
     for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
         assert np.allclose(stat(table_l), stat(table_l, **kwargs), rtol=0,
                            atol=1e-9)
+
+
+def test_lens_magnification(test_catalogs):
+    # Check that lens magnification doesn't crash and passes sanity check.
+
+    table_l, table_s = test_catalogs
+    rp_bins = np.logspace(0, 1, 11)
+
+    table_l = precompute.precompute(table_l, table_s, rp_bins)
+    ds_lm = stacking.lens_magnification_bias(table_l, 2.0)
+
+    assert np.all(ds_lm > 0)
