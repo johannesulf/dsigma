@@ -9,7 +9,7 @@ from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
 
-from .helpers import spherical_to_cartesian
+from .helpers import in_degrees, spherical_to_cartesian
 
 __all__ = ['compress_jackknife_fields', 'compute_jackknife_fields',
            'jackknife_resampling', 'smooth_correlation_matrix']
@@ -19,11 +19,11 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
                              weights=None, seed=None):
     """Compute the centers for jackknife regions using DBSCAN and KMeans.
 
-    The function first runs DBSCAN to identify continous fields of points.
+    The function first runs DBSCAN to identify continuous fields of points.
     Afterwards, KMeans clustering is run. The initial cluster centers are
-    random points from each continous field. The number of initial cluster
+    random points from each continuous field. The number of initial cluster
     centers per field is determined according to the total weight of each
-    continous field. The centers are defined in cartesian coordinates on a unit
+    continuous field. The centers are defined in cartesian coordinates on a unit
     sphere.
 
     Parameters
@@ -33,17 +33,18 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
         field IDs. The jackknife field for each galaxy will be added in the
         `field_jk` column.
     centers : int or numpy.ndarray
-        If int, total number of jackknife fields. Otherwise, the centers
+        If a number, total number of jackknife fields. Otherwise, the centers
         returned from a previous call to that function. This allows for
         different samples to have the same jackknife fields.
     distance_threshold : float, optional
         The angular separation in degrees used to link points and calculate
-        continous fields before running KMeans. Default is 1.
-    weights : None or numpy.ndarray, optional
-        Per-lens weights for clustering. If None, assume the same weight for
-        all points. Default is None.
+        continuous fields before running KMeans. Default is 1.
+    weights : numpy.ndarray or None, optional
+        Per-lens weights for clustering. If ``None``, assume the same weight
+        for all points. Default is ``None``.
     seed : int or None, optional
-        Random seed to iniatialize the random number generator.
+        Random seed to initialize the random number generator. Default is
+        ``None``.
 
     Returns
     -------
@@ -52,7 +53,7 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
 
     """
     xyz = np.column_stack(spherical_to_cartesian(
-        table['ra'].data, table['dec'].data))
+        in_degrees(table['ra'].quantity), in_degrees(table['dec'].quantity)))
 
     if isinstance(centers, np.ndarray):
         kdtree = cKDTree(centers)
@@ -74,7 +75,7 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
     w_c = np.bincount(c[c != -1], weights=weights[c != -1])
     if n_jk < len(w_c):
         msg = ("The number of jackknife regions cannot be smaller than the "
-               "number of continous fields. Try increasing "
+               "number of continuous fields. Try increasing "
                "`distance_threshold` or decreasing `centers`.")
         raise RuntimeError(msg)
 
@@ -149,9 +150,9 @@ def compress_jackknife_fields(table):
             k_min = 0 if i == 0 else np.cumsum(counts)[i - 1]
             k_max = np.cumsum(counts)[i]
             if key == 'w_sys':
-                table_jk[i][key] = np.sum(table[key][k_min:k_max])
+                table_jk[key][i] = np.sum(table[key][k_min:k_max])
             elif key == 'sum 1':
-                table_jk[i][key] = np.sum(table[key][k_min:k_max], axis=0)
+                table_jk[key][i] = np.sum(table[key][k_min:k_max], axis=0)
             elif np.sum(table['w_sys'][k_min:k_max]) > 0:
                 table_jk[key][i] = np.average(
                     table[key][k_min:k_max],
@@ -172,7 +173,7 @@ def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
     exclude_diagonal : bool, optional
         Whether to exclude the diagonal from the smoothing. That is what should
         be done generally because the diagonal is 1 by definition. Default is
-        True.
+        ``True``.
 
     Returns
     -------
@@ -207,31 +208,31 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
 
     Parameters
     ----------
-    f : function
+    f : callable
         Function that returns a result for which we want to have uncertainties.
         The function must take exactly one positional argument, the lens table.
         Additionally, it can have several additional keyword arguments.
     table_l : astropy.table.Table
         Precompute results for the lenses. The catalog must have jackknife
         regions assigned to it.
-    table_r :astropy.table.Table, optional
+    table_r : astropy.table.Table or None, optional
         Precompute results for random lenses. The input function must accept
-        the random lens table via the `table_r` keyword argument. Default
-        is None.
-    table_l_2 : astropy.table.Table, optional
+        the random lens table via the ``table_r`` keyword argument. Default
+        is ``None``.
+    table_l_2 : astropy.table.Table or None, optional
         Precompute results for a second set of lenses.The input function must
-        accept the second lens table via the `table_l_2` keyword argument.
-        Default is None.
-    table_r_2 : astropy.table.Table, optional
+        accept the second lens table via the ``table_l_2`` keyword argument.
+        Default is ``None``.
+    table_r_2 : astropy.table.Table or None, optional
         Precompute results for a second set of random lenses. The input
-        function must accept the second random lens table via the `table_r_2`
-        keyword argument. Default is None.
-    compress : bool
+        function must accept the second random lens table via the ``table_r_2``
+        keyword argument. Default is ``None``.
+    compress : bool, optional
         If ``True``, compress jackknife fields via
         ``dsigma.jackknife.compress_jackknife_fields`` before performing the
         jackknife calculation. This can substantially improve performance.
         Default is ``True``.
-    kwargs : dict, optional
+    **kwargs
         Additional keyword arguments to be passed to the function.
 
     Returns

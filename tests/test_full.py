@@ -40,10 +40,10 @@ def test_treecorr(test_catalogs, n_jobs):
 
     assert np.all(
         np.array(ng.npairs, dtype=int) == stacking.number_of_pairs(table_l))
-    assert np.all(np.isclose(ng.xi, stacking.raw_tangential_shear(
-        table_l), atol=1e-9, rtol=0))
-    assert np.all(np.isclose(nk.xi, stacking.scalar_shear_response_factor(
-        table_l), atol=1e-8, rtol=0))
+    assert np.allclose(ng.xi, stacking.raw_tangential_shear(
+        table_l), atol=1e-9, rtol=0)
+    assert np.allclose(nk.xi, stacking.scalar_shear_response_factor(
+        table_l), atol=1e-8, rtol=0)
 
 
 def test_brute_force(test_catalogs):
@@ -126,9 +126,9 @@ def test_comoving(test_catalogs):
 
     assert np.all(stacking.number_of_pairs(table_l_phy) ==
                   stacking.number_of_pairs(table_l_com))
-    assert np.all(np.isclose(
+    assert np.allclose(
         stacking.raw_excess_surface_density(table_l_phy) / (1 + z_l)**2,
-        stacking.raw_excess_surface_density(table_l_com), atol=1e-9, rtol=0))
+        stacking.raw_excess_surface_density(table_l_com), atol=1e-9, rtol=0)
 
 
 def test_little_h(test_catalogs):
@@ -166,18 +166,20 @@ def test_f_bias_1(test_catalogs):
     table_l = precompute.precompute(table_l, table_s, rp_bins, table_c=table_c)
     f_bias = stacking.photo_z_dilution_factor(table_l)
 
-    assert np.all(np.isclose(f_bias, 1.0, rtol=0, atol=1e-12))
+    assert np.allclose(f_bias, 1.0, rtol=0, atol=1e-12)
 
 
 def test_f_bias_2(test_catalogs):
     # Check that f_bias corrects redshift offsets.
+
+    z_true = 0.7
 
     table_l, table_s = test_catalogs
     table_s['z'] = 0.5
     table_l['z'] = 0.2
     table_c = Table()
     table_c['z'] = np.repeat(0.5, 1)
-    table_c['z_true'] = 0.7
+    table_c['z_true'] = z_true
     table_c['w'] = 1.0
     table_c['w_sys'] = 1.0
 
@@ -186,11 +188,13 @@ def test_f_bias_2(test_catalogs):
     ds_1 = stacking.excess_surface_density(
         table_l, photo_z_dilution_correction=True)
 
+    assert np.allclose(z_true, stacking.mean_source_redshift(table_l))
+
     table_s['z'] = 0.7
     table_l = precompute.precompute(table_l, table_s, rp_bins)
     ds_2 = stacking.excess_surface_density(table_l)
 
-    assert np.all(np.isclose(ds_1, ds_2, rtol=0, atol=1e-6))
+    assert np.allclose(ds_1, ds_2, rtol=0, atol=1e-6)
 
 
 def test_nz(test_catalogs):

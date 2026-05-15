@@ -26,7 +26,7 @@ def mpc_per_degree(z, cosmology=None, comoving=False):
         Cosmology to use for calculation. If ``None``, use
         ``dsigma.default_cosmology``. Default is ``None``.
     comoving : bool, optional
-        Use comoving distance instead of physical distance when True.
+        Use comoving distance instead of physical distance when ``True``.
         Default is ``False``.
 
     Returns
@@ -62,13 +62,13 @@ def critical_surface_density(
         are not passed. If ``None``, use ``dsigma.default_cosmology``. Default
         is ``None``.
     comoving : bool, optional
-        Flag for using comoving instead of physical units.
-    d_l : astropy.units.quantity.Quantity
+        Flag for using comoving instead of physical units. Default is ``True``.
+    d_l : astropy.units.quantity.Quantity, optional
         Comoving transverse distance to the lens. If not given, it is
-        calculated from the redshift provided.
-    d_s : astropy.units.quantity.Quantity
+        calculated from the redshift provided. Default is ``None``.
+    d_s : astropy.units.quantity.Quantity, optional
         Comoving transverse distance to the source. If not given, it is
-        calculated from the redshift provided.
+        calculated from the redshift provided. Default is ``None``.
 
     Returns
     -------
@@ -111,8 +111,8 @@ def effective_critical_surface_density(
     cosmology : astropy.cosmology or None, optional
         Cosmology to assume for calculations. If ``None``, use
         ``dsigma.default_cosmology``. Default is ``None``.
-    comoving : boolean, optional
-        Flag for using comoving instead of physical unit.
+    comoving : bool, optional
+        Flag for using comoving instead of physical units. Default is ``True``.
 
     Returns
     -------
@@ -148,11 +148,17 @@ def _to_camb(cosmology, sigma_8, n_s, z):
     cosmology : astropy.cosmology.FlatLambdaCDM
         Astropy cosmology.
     sigma_8 : float
-        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`.
+        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`.
     n_s : float
         Primordial power spectrum index. Default is 0.96.
     z : numpy.ndarray
         Redshifts for which to compute the power spectrum.
+
+    Returns
+    -------
+    results : camb.results.CAMBdata
+        CAMB results object that contains information about the matter power
+        spectrum.
 
     Raises
     ------
@@ -160,12 +166,6 @@ def _to_camb(cosmology, sigma_8, n_s, z):
         If cosmology is not an instance of ``astropy.cosmology.FlatLambdaCDM``.
     ImportError
         If ``camb`` is not installed.
-
-    Returns
-    -------
-    results : camb.results.CAMBdata
-        CAMB results object that contains information about the matter power
-        spectrum.
 
     """
     if not isinstance(cosmology, FlatLambdaCDM):
@@ -271,7 +271,7 @@ def lens_magnification_shear_bias(
         Cosmology to assume for calculations. If ``None``, use
         ``dsigma.default_cosmology``. Default is ``None``.
     sigma_8 : float, optional
-        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
+        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
         0.82.
     n_s : float, optional
         Primordial power spectrum index. Default is 0.96.
@@ -280,7 +280,7 @@ def lens_magnification_shear_bias(
         more accurate. Default is 10.
     n_ell : int, optional
         Number of :math:`\ell` bins used in the integral. Larger numbers will
-        be more accurate. Default is 200.
+        be more accurate. Default is 1000.
     bessel_function_zeros : int, optional
         The calculation involves an integral over the second order Bessel
         function :math:`J_2 (\ell \theta)` from :math:`\ell = 0` to
@@ -288,10 +288,10 @@ def lens_magnification_shear_bias(
         bound with the bessel_function_zeros-th zero point of the Bessel
         function. Larger number should lead to more accurate results. However,
         in practice, this also requires larger `n_ell`. Particularly, `n_ell`
-        should never fall below `bessel_function_zeros`.
+        should never fall below `bessel_function_zeros`. Default is 100.
     k_max : float, optional
-        The maximum wavenumber beyond which the power spectrum is assumed to be
-        0.
+        The maximum wavenumber (in :math:`\mathrm{Mpc}^{-1}`) beyond which the
+        power spectrum is assumed to be 0. Default is 100.
 
     Returns
     -------
