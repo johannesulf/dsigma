@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 from astropy import units as u
+from astropy.cosmology import units as cu
 
 from dsigma import jackknife, precompute, stacking
 from fixtures import test_catalogs
@@ -73,3 +74,8 @@ def test_jackknife(test_catalogs, n_jk):
             diff, table_l, table_r=table_l, table_l_2=table_l,
             table_r_2=table_l, random_subtraction=random_subtraction)
         assert np.allclose(cov, 0)
+
+    # Covariance should have quantities in some cases.
+    cov = jackknife.jackknife_resampling(
+        stacking.excess_surface_density, table_l)
+    assert cov.unit == (cu.littleh**2 * u.Msun**2 / u.pc**4)

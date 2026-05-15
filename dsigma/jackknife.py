@@ -143,8 +143,11 @@ def compress_jackknife_fields(table):
         if not (key in ['w_sys', 'ra', 'dec', 'z'] or key[:3] == 'sum'):
             continue
 
-        table_jk[key] = np.zeros((len(table_jk), ) + table[key].shape[1:],
-                                 dtype=table[key].dtype)
+        table_jk[key] = np.zeros(
+            (len(table_jk), ) + table[key].shape[1:], dtype=table[key].dtype)
+
+        if table[key].unit is not None:
+            table_jk[key] = table_jk[key] * table[key].unit
 
         for i in range(len(table_jk)):
             k_min = 0 if i == 0 else np.cumsum(counts)[i - 1]
@@ -171,14 +174,14 @@ def smooth_covariance_matrix(cov, sigma):
 
     Parameters
     ----------
-    cov : numpy.ndarray
+    cov : numpy.ndarray or astropy.units.quantity.Quantity
         Covariance matrix.
     sigma : float
-        Scale of the gaussian filter.
+        Scale of the Gaussian filter.
 
     Returns
     -------
-    cov_smooth : numpy.ndarray
+    cov_smooth : numpy.ndarray or astropy.units.quantity.Quantity
         Smoothed covariance matrix.
 
     """
@@ -235,7 +238,7 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
 
     Returns
     -------
-    cov : numpy.ndarray
+    cov : numpy.ndarray or astropy.units.quantity.Quantity
         Covariance matrix of the result derived from jackknife re-sampling.
 
     """
@@ -258,5 +261,11 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
 
         samples.append(f(table_l[table_l['field_jk'] != field_jk], **kwargs))
 
-    return ((len(np.unique(table_l['field_jk'])) - 1) *
+    cov = ((len(np.unique(table_l['field_jk'])) - 1) *
             np.cov(np.array(samples), rowvar=False, ddof=0))
+
+    if isinstance(samples[0], u.Quantity):
+        cov = cov * samples[0].unit**2
+
+
+    return cov
