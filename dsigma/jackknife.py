@@ -5,6 +5,7 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 from astropy.table import Table
+from astropy.convolution import Gaussian2DKernel
 from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
@@ -12,7 +13,7 @@ from sklearn.cluster import DBSCAN, MiniBatchKMeans
 from .helpers import in_degrees, spherical_to_cartesian
 
 __all__ = ['compress_jackknife_fields', 'compute_jackknife_fields',
-           'jackknife_resampling', 'smooth_correlation_matrix']
+           'jackknife_resampling', 'smooth_covariance_matrix']
 
 
 def compute_jackknife_fields(table, centers, distance_threshold=1,
@@ -161,45 +162,43 @@ def compress_jackknife_fields(table):
     return table_jk
 
 
-def smooth_correlation_matrix(cor, sigma, exclude_diagonal=True):
-    """Apply a simple gaussian filter on a correlation matrix.
+def smooth_covariance_matrix(cov, sigma):
+    """Smooth a covariance matrix.
+
+    This function first calculates the correlation matrix, then applies a
+    Gaussian filter on the correlation matrix, and finally reconstructs the
+    covariance matrix using the original diagonal and smoothed correlation
+    matrix.
 
     Parameters
     ----------
-    cor : numpy.ndarray
-        Correlation matrix.
-    sigma : int
+    cov : numpy.ndarray
+        Covariance matrix.
+    sigma : float
         Scale of the gaussian filter.
-    exclude_diagonal : bool, optional
-        Whether to exclude the diagonal from the smoothing. That is what should
-        be done generally because the diagonal is 1 by definition. Default is
-        ``True``.
 
     Returns
     -------
-    cor_new : numpy.ndarray
-        Smoothed correlation matrix.
+    cov_smooth : numpy.ndarray
+        Smoothed covariance matrix.
 
     """
-    n_dim = len(np.diag(cor))
-    cor_new = np.copy(cor)
+    n_dim = len(np.diag(cov))
+    diag_cov = np.diag(cov)
+    cor = cov / np.outer(np.sqrt(diag_cov), np.sqrt(diag_cov))
 
-    if exclude_diagonal:
-        cor_new[0, 0] = 0.5 * (cor[0, 1] + cor[1, 0])
-        cor_new[n_dim - 1, n_dim - 1] = 0.5 * (cor[n_dim - 1, n_dim - 2] +
-                                               cor[n_dim - 2, n_dim - 1])
+    # Set diagonal elements to 0 before filtering.
+    cor = gaussian_filter(cor - np.eye(n_dim), sigma)
+    # Diagonal elements were 0 but may not be 0 now. Undo that by return the
+    # values to the off-diagonal elements.
+    while not np.allclose(np.diag(cor), 0, rtol=0, atol=1e-12):
+        cor += (gaussian_filter(np.diag(np.diag(cor)), sigma) -
+                                np.diag(np.diag(cor)))
 
-        for i in range(1, n_dim - 1):
-            cor_new[i, i] = 0.25 * (cor[i, i - 1] + cor[i, i + 1] +
-                                    cor[i - 1, i] + cor[i + 1, i])
+    for i in range(n_dim):
+        cor[i, i] = 1
 
-    cor_new = gaussian_filter(cor_new, sigma, mode='nearest')
-
-    if exclude_diagonal:
-        for i in range(n_dim):
-            cor_new[i, i] = cor[i, i]
-
-    return cor_new
+    return cor * np.outer(np.sqrt(diag_cov), np.sqrt(diag_cov))
 
 
 def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
