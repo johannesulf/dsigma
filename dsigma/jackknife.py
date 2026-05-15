@@ -5,7 +5,6 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 from astropy.table import Table
-from astropy.convolution import Gaussian2DKernel
 from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
