@@ -31,23 +31,23 @@ In this quick example, we will calculate the lensing amplitude around galaxies i
     # Calculate the signal.
     kwargs = dict(scalar_shear_response_correction=True,
                   matrix_shear_response_correction=True)
-    results = excess_surface_density(table_l, return_table=True, **kwargs)
-    
+    results = excess_surface_density(table_l, return_table=True, n_jobs=8, **kwargs)
+
     # Calculate errors using jackknife resampling.
     compute_jackknife_fields(table_l, 100)
     results['ds_err'] = np.sqrt(np.diag(jackknife_resampling(
         excess_surface_density, table_l, **kwargs)))
 
     # Plot the results.
-    plt.errorbar(results['rp'], results['rp'] * results['ds'],
-                 yerr=results['rp'] * results['ds_err'], fmt='o', ms=5)
+    rp = np.sqrt(results['rp_min'] * results['rp_max'])
+    plt.errorbar(rp, rp * results['ds'], yerr=rp * results['ds_err'], fmt='o',
+                 ms=5)
     plt.xscale('log')
-    plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc}]$')
+    plt.xlabel(r'Projected Radius $r_p \, [\mathrm{Mpc} / h]$')
     plt.ylabel(r'ESD $r_p \times \Delta \Sigma \, [10^6 M_\odot / \mathrm{pc}]$')
 
 .. image:: plot.png
    :width: 80 %
    :align: center
-
 
 For more details, refer to the workflow and application pages.

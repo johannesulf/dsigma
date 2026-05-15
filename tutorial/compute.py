@@ -2,6 +2,8 @@ import argparse
 import os
 
 import numpy as np
+from astropy import units as u
+from astropy.cosmology import units as cu
 from astropy.cosmology import Planck15
 from astropy.table import Table, vstack
 
@@ -17,7 +19,7 @@ parser.add_argument('survey', help='the lensing survey')
 args = parser.parse_args()
 
 cosmology = Planck15
-rp_bins = np.logspace(-1, 1.6, 14)
+rp_bins = np.logspace(-1, 1.6, 14) * u.Mpc
 z_bins = np.array([0.15, 0.31, 0.43, 0.54, 0.70])
 
 table_l = vstack([Table.read('galaxy_DR12v5_CMASSLOWZTOT_South.fits.gz'),
@@ -113,4 +115,12 @@ for lens_bin, (z_min, z_max) in enumerate(zip(z_bins[:-1], z_bins[1:])):
         excess_surface_density, table_l_bin, table_r=table_r_bin,
         **stacking_kwargs)))
 
-    result.write(f'{args.survey.lower()}_{lens_bin}.csv', overwrite=True)
+    for key in result.colnames:
+        # Drop little h from units.
+        if key[:2] == 'rp':
+            result[key] = result[key].to(u.Mpc, cu.with_H0(Planck15.H0))
+        if key[:2] == 'ds':
+            result[key] = result[key].to(
+                u.Msun / u.pc**2, cu.with_H0(Planck15.H0))
+
+    result.write(f'{args.survey.lower()}_{lens_bin}.ecsv', overwrite=True)

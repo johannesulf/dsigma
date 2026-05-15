@@ -7,9 +7,9 @@ color_list = ['orange', 'red', 'royalblue', 'purple']
 offset_list = [0, 0.05, 0.1, 0.15]
 
 for survey, color, offset in zip(survey_list, color_list, offset_list):
-    table = Table.read('{}_0.csv'.format(survey.lower()))
+    table = Table.read('{}_0.ecsv'.format(survey.lower()))
 
-    rp = table['rp']
+    rp = np.sqrt(table['rp_min'] * table['rp_max'])
 
     plt.errorbar(
         rp * np.exp(offset), rp * table['ds'], yerr=table['ds_err'] * rp,

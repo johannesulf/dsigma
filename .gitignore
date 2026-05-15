@@ -9,5 +9,5 @@ dsigma.egg-info/
 dsigma/precompute_engine.c
 tutorial/*
 !tutorial/*.py
-!tutorial/*.csv
+!tutorial/*.ecsv
 
