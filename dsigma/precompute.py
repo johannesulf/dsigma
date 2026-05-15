@@ -11,7 +11,7 @@ from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
 
 from . import default_cosmology
-from .helpers import interpolate_over_redshift
+from .helpers import interpolate_over_redshift, in_degrees
 from .physics import critical_surface_density
 from .physics import effective_critical_surface_density
 from .precompute_engine import precompute_engine
@@ -68,9 +68,9 @@ def photo_z_dilution_factor(z_l, table_c, cosmology=None, weighting=-2):
         z_l, z_s_true, d_l=d_l, d_s=d_s_true)
     w_ls = np.where(z_l < z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide='ignore', invalid='ignore'):
         f_bias = (np.sum(w_ls, axis=-1) / np.sum(w_ls * np.where(
-            w_ls > 0, sigma_crit_phot / sigma_crit_true, 0), axis=-1)).value
+            w_ls > 0, sigma_crit_phot / sigma_crit_true, 1), axis=-1)).value
 
     # If no lens-source pair is found, default to 1.
     f_bias = np.where(np.sum(w_ls, axis=-1) == 0, 1, f_bias)
@@ -85,7 +85,7 @@ def mean_photo_z_offset(z_l, table_c, cosmology=None, weighting=-2):
     ----------
     z_l : float or numpy.ndarray
         Redshift(s) of the lens.
-    table_c : astropy.table.Table, optional
+    table_c : astropy.table.Table
         Photometric redshift calibration catalog.
     cosmology : astropy.cosmology or None, optional
         Cosmology to assume for calculations. If ``None``, use
@@ -120,11 +120,11 @@ def mean_photo_z_offset(z_l, table_c, cosmology=None, weighting=-2):
         w_s = np.tile(w_s, len(z_l)).reshape(z_l.shape)
 
     sigma_crit_phot = critical_surface_density(z_l, z_s, d_l=d_l, d_s=d_s)
-    w_ls = np.where(z_l > z_l_max, w_s * sigma_crit_phot**weighting, 0)
+    w_ls = np.where(z_l < z_l_max, w_s * sigma_crit_phot**weighting, 0)
 
     with np.errstate(divide='ignore'):
-        dz = (np.sum(w_ls, axis=-1) / np.sum(
-            w_ls * (z_s - z_s_true), axis=-1)).value
+        dz = (np.sum(w_ls * (z_s - z_s_true), axis=-1) / np.sum(
+            w_ls, axis=-1)).value
 
     # If no lens-source pair is found, default to 0.
     dz = np.where(np.sum(w_ls, axis=-1) == 0, 0, dz)
@@ -187,7 +187,7 @@ def precompute(
     comoving : bool, optional
         Whether to use comoving or physical quantities for radial bins (if
         given in physical units) and the excess surface density. Default is
-        True.
+        ``True``.
     weighting : float, optional
         The exponent of weighting of each lens-source pair by the critical
         surface density. A natural choice is -2 which minimizes shape noise.
@@ -198,9 +198,9 @@ def precompute(
         It has to be a power of 2. May impact performance. Default is 256.
     n_jobs : int, optional
         Number of jobs to run at the same time. Default is 1.
-    progress_bar : bool, option
+    progress_bar : bool, optional
         Whether to show a progress bar for the main loop over lens pixels.
-        Default is False.
+        Default is ``False``.
 
     Returns
     -------
@@ -250,7 +250,7 @@ def precompute(
                    "non-negative integers.")
             raise ValueError(msg)
         if np.amax(table_s['z_bin']) >= table_n['n'].data.shape[1]:
-            msg = ("The source table contains more redshift bins than where "
+            msg = ("The source table contains more redshift bins than were "
                    "passed via the `table_n` argument.")
             raise ValueError(msg)
     elif 'z_l_max' in table_s.colnames and np.any(
@@ -260,11 +260,6 @@ def precompute(
         raise ValueError(msg)
 
     hp = HEALPix(nside, order='ring')
-
-    def in_degrees(data):
-        if data.unit == u.Unit(''):
-            data = u.Quantity(data.value, u.deg, copy=False)
-        return data.to(u.deg)
 
     pix_l = hp.lonlat_to_healpix(in_degrees(table_l['ra'].quantity),
                                  in_degrees(table_l['dec'].quantity))

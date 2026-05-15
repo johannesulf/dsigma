@@ -100,7 +100,7 @@ def boost_factor(table_l, table_r):
     ----------
     table_l : astropy.table.Table
         Precompute results for the lenses.
-    table_r : astropy.table.Table, optional
+    table_r : astropy.table.Table
         Precompute results for random lenses.
 
     Returns
@@ -126,8 +126,8 @@ def scalar_shear_response_factor(table_l, selection_bias=False):
     table_l : astropy.table.Table
         Precompute results for the lenses.
     selection_bias : bool
-        If True, calculate the selection bias :math:`m_\mathrm{sel}`, instead.
-        Default is False.
+        If ``True``, calculate the selection bias :math:`m_\mathrm{sel}`,
+        instead. Default is ``False``.
 
     Returns
     -------
@@ -144,7 +144,7 @@ def scalar_shear_response_factor(table_l, selection_bias=False):
 def matrix_shear_response_factor(table_l):
     r"""Compute the mean tangential response.
 
-    The tangential shear response factor:math:`R_t` is defined such that
+    The tangential shear response factor :math:`R_t` is defined such that
     :math:`\gamma_{\mathrm obs} = R_t \gamma_{\mathrm intrinsic}`.
 
     Parameters
@@ -163,7 +163,7 @@ def matrix_shear_response_factor(table_l):
 
 
 def shear_responsivity_factor(table_l):
-    """Compute the shear responsitivity factor.
+    """Compute the shear responsivity factor.
 
     Parameters
     ----------
@@ -173,7 +173,7 @@ def shear_responsivity_factor(table_l):
     Returns
     -------
     r : numpy.ndarray
-        Shear responsitivity factor in each radial bin.
+        Shear responsivity factor in each radial bin.
 
     """
     return (
@@ -225,9 +225,9 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
     table_l : astropy.table.Table
         Precompute results for the lenses.
     photo_z_dilution_correction : bool, optional
-        If True, correct for photo-z biases. This can only be done if a
+        If ``True``, correct for photo-z biases. This can only be done if a
         calibration catalog has been provided in the precomputation phase.
-        Default is False.
+        Default is ``False``.
 
     Returns
     -------
@@ -258,19 +258,19 @@ def lens_magnification_bias(table_l, alpha_l, sigma_8=0.82, n_s=0.96,
     alpha_l : float
         The response of the lenses to magnification.
     sigma_8 : float, optional
-        Scale of fluctations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
+        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
         0.82.
     n_s : float, optional
         Primordial power spectrum index. Default is 0.96.
     photo_z_dilution_correction : bool, optional
-        If True, correct the mean critical surface density for photo-z biases.
-        Not used if `shear` is True. This should be consistent with what is
-        used for calculating the total excess surface density. Default is
-        False.
+        If ``True``, correct the mean critical surface density for photo-z
+        biases. Not used if `shear` is ``True``. This should be consistent with
+        what is used for calculating the total excess surface density. Default
+        is ``False``.
     shear : bool, optional
-        If True, return bias of the mean tangential shear. Otherwise, return
-        an estimate for the bias of the excess surface density. Default is
-        False.
+        If ``True``, return bias of the mean tangential shear. Otherwise,
+        return an estimate for the bias of the excess surface density. Default
+        is ``False``.
 
     Returns
     -------
@@ -317,34 +317,34 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
     table_l : astropy.table.Table
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
-        Precompute results for random lenses. Default is None.
+        Precompute results for random lenses. Default is ``None``.
     boost_correction : bool, optional
-        If True, calculate and apply a boost factor correction. This can only
-        be done if a random catalog is provided. Default is False.
-    scalar_shear_response_correction : bool or string, optional
+        If ``True``, calculate and apply a boost factor correction. This can
+        only be done if a random catalog is provided. Default is ``False``.
+    scalar_shear_response_correction : bool, optional
         Whether to correct for the multiplicative shear bias (scalar form).
-        Default is False.
-    matrix_shear_response_correction : bool or string, optional
+        Default is ``False``.
+    matrix_shear_response_correction : bool, optional
         Whether to correct for the multiplicative shear bias (tensor form).
-        Default is False.
+        Default is ``False``.
     shear_responsivity_correction : bool, optional
-        If True, correct for the shear responsivity. Default is False.
+        If ``True``, correct for the shear responsivity. Default is ``False``.
     selection_bias_correction : bool, optional
-        If True, correct for the multiplicative selection bias in, e.g., HSC.
-        Default is False.
+        If ``True``, correct for the multiplicative selection bias in, e.g.,
+        HSC. Default is ``False``.
     random_subtraction : bool, optional
-        If True, subtract the signal around randoms. This can only be done if
-        a random catalog is provided. Default is False.
+        If ``True``, subtract the signal around randoms. This can only be done
+        if a random catalog is provided. Default is ``False``.
     return_table : bool, optional
-        If True, return a table with many intermediate steps of the
+        If ``True``, return a table with many intermediate steps of the
         computation. Otherwise, a simple array with just the final tangential
-        shearis returned. Default is False.
+        shear is returned. Default is ``False``.
 
     Returns
     -------
     gt : numpy.ndarray or astropy.table.Table
         The tangential shear in each radial bin specified in the precomputation
-        phase. If `return_table` is True, will return a table with detailed
+        phase. If `return_table` is ``True``, will return a table with detailed
         information for each radial bin. The final result is in the column
         `gt`.
 
@@ -426,40 +426,40 @@ def excess_surface_density(table_l, table_r=None,
     table_l : astropy.table.Table
         Precompute results for the lenses.
     table_r : astropy.table.Table, optional
-        Precompute results for random lenses. Default is None.
+        Precompute results for random lenses. Default is ``None``.
     photo_z_dilution_correction : bool, optional
-        If True, correct for photo-z biases. This can only be done if a
+        If ``True``, correct for photo-z biases. This can only be done if a
         calibration catalog has been provided in the precomputation phase.
-        Default is False.
+        Default is ``False``.
     boost_correction : bool, optional
-        If true, calculate and apply a boost factor correction. This can only
-        be done if a random catalog is provided. Default is False.
+        If ``True``, calculate and apply a boost factor correction. This can
+        only be done if a random catalog is provided. Default is ``False``.
     scalar_shear_response_correction : bool or string, optional
         Whether to correct for the multiplicative shear bias (scalar form).
-        Default is False.
+        Default is ``False``.
     matrix_shear_response_correction : bool or string, optional
         Whether to correct for the multiplicative shear bias (tensor form).
-        Default is False.
+        Default is ``False``.
     shear_responsivity_correction : bool, optional
-        If True, correct for the shear responsivity. Default is False.
+        If ``True``, correct for the shear responsivity. Default is ``False``.
     selection_bias_correction : bool, optional
-        If True, correct for the multiplicative selection bias in, e.g., HSC.
-        Default is False.
+        If ``True``, correct for the multiplicative selection bias in, e.g.,
+        HSC. Default is ``False``.
     random_subtraction : bool, optional
-        If True, subtract the signal around randoms. This can only be done if
-        a random catalog is provided. Default is False.
+        If ``True``, subtract the signal around randoms. This can only be done
+        if a random catalog is provided. Default is ``False``.
     return_table : bool, optional
-        If True, return a table with many intermediate steps of the
+        If ``True``, return a table with many intermediate steps of the
         computation. Otherwise, a simple array with just the final excess
-        surface density is returned. Default is False.
+        surface density is returned. Default is ``False``.
 
     Returns
     -------
     ds : numpy.ndarray or astropy.table.Table
         The excess surface density in each radial bin specified in the
-        precomputation phase. If `return_table` is True, will return a table
-        with detailed information for each radial bin. The final result is in
-        the column `ds`.
+        precomputation phase. If `return_table` is ``True``, will return a
+        table with detailed information for each radial bin. The final result
+        is in the column `ds`.
 
     Raises
     ------

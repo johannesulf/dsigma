@@ -3,9 +3,9 @@
 import numpy as np
 from scipy.interpolate import make_interp_spline
 
-from astropy.units.quantity import Quantity
+from astropy import units as u
 
-__all__ = ['interpolate_over_redshift', 'spherical_to_cartesian']
+__all__ = ['interpolate_over_redshift', 'in_degrees', 'spherical_to_cartesian']
 
 
 def interpolate_over_redshift(f, z, *args, **kwargs):
@@ -33,11 +33,6 @@ def interpolate_over_redshift(f, z, *args, **kwargs):
     f_of_z : numpy.ndarray or astropy.units.quantity.Quantity
         Interpolated values.
 
-    Raises
-    ------
-    ValueError
-        If redshifts are negative.
-
     """
     z_min, z_max = np.amin(z), np.amax(z)
 
@@ -52,20 +47,39 @@ def interpolate_over_redshift(f, z, *args, **kwargs):
     y = make_interp_spline(a_support, y_support)(1.0 / (1 + z[idx]))
     y[idx] = y
 
-    if isinstance(y_support, Quantity):
+    if isinstance(y_support, u.Quantity):
         y = y * y_support.unit
 
     return y
 
 
-def spherical_to_cartesian(ra, dec):
-    """Convert spherical coordinates to cartesian coordinates on a unit sphere.
+def in_degrees(angle):
+    """Add a degree unit to an angle if it doesn't have a unit, yet.
 
     Parameters
     ----------
-    ra : float or numpy.ndarray
+    angle : astropy.units.quantity.Quantity
+        Angle with or without units.
+
+    Returns
+    -------
+    angle : astropy.units.quantity.Quantity
+        Angle with units.
+
+    """
+    if angle.unit == u.Unit(''):
+        data = u.Quantity(angle.value, u.deg, copy=False)
+    return data.to(u.deg)
+
+
+def spherical_to_cartesian(ra, dec):
+    """Convert spherical coordinates to Cartesian coordinates on a unit sphere.
+
+    Parameters
+    ----------
+    ra : astropy.units.quantity.Quantity
         Right ascension.
-    dec : float or numpy.ndarray
+    dec : astropy.units.quantity.Quantity
         Declination.
 
     Returns
@@ -74,7 +88,7 @@ def spherical_to_cartesian(ra, dec):
         Cartesian coordinates.
 
     """
-    x = np.cos(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
-    y = np.sin(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
-    z = np.sin(np.deg2rad(dec))
+    x = np.cos(ra) * np.cos(dec)
+    y = np.sin(ra) * np.cos(dec)
+    z = np.sin(dec)
     return x, y, z
