@@ -15,4 +15,5 @@ body:
     attributes:
       label: Description
       description: Please tell us what you would like to know.
+    validations:
       required: true
