@@ -9,7 +9,7 @@
 [![ASCL](https://img.shields.io/badge/ascl-2204.006-orange.svg?style=flat)](https://ascl.net/2204.006)
 ![Downloads](https://img.shields.io/pypi/dm/dsigma)
 
-`dsigma` is an easy-to-use python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a broadly applicable API and can utilize data from the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper Suprime-Cam (HSC) lensing surveys, among others. With core computations written in C, `dsigma` is very fast. Additionally, `dsigma` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics. Below is a plot showing the excess surface density around galaxies in the CMASS sample calculated with `dsigma`.
+``dsigma`` is an easy-to-use Python package for measuring gravitational galaxy-galaxy lensing. Using a lensing catalog, it estimates excess surface density around a population of lenses, such as galaxies in the Sloan Digital Sky Survey or the Baryon Oscillation Spectroscopic Survey. It has a flexible API and can utilize data from, DECADE, the Dark Energy Survey (DES), the Kilo-Degree Survey (KiDS), and the Hyper Suprime-Cam (HSC) lensing surveys, among others. With core computations written in C, ``dsigma`` is very fast. Additionally, ``dsigma`` provides out-of-the-box support for estimating covariances with jackknife resampling and calculating various summary statistics.
 
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
 
@@ -20,12 +20,16 @@
 
 ## Documentation
 
-Documentation for `dsigma` with concept introductions, examples, and API documentation is available on [readthedocs](https://dsigma.readthedocs.io/).
+Documentation for ``dsigma`` with concept introductions, examples, and API documentation is available on [readthedocs](https://dsigma.readthedocs.io/).
 
 ## Attribution
 
-`dsigma` is listed in the [Astronomy Source Code Library](https://ascl.net/2204.006). If you find the code useful in your research, please cite [Lange & Huang (2022)](https://ui.adsabs.harvard.edu/abs/2022ascl.soft04006L/abstract).
+``dsigma`` is listed in the [Astronomy Source Code Library](https://ascl.net/2204.006). If you find the code useful in your research, please cite [Lange & Huang (2022)](https://ui.adsabs.harvard.edu/abs/2022ascl.soft04006L/abstract).
 
 ## License
 
-`dsigma` is licensed under the MIT License.
+``dsigma`` is licensed under the MIT License.
+
+## Generative AI
+
+Generative AI was used to search for potential bugs in the code and to improve the documentation by finding typos and suggesting minor rewrites. No part of the actual ``dsigma`` code was written entirely or in parts by AI.
