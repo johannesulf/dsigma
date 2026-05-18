@@ -1,0 +1,18 @@
+name: Question
+description: Ask a question about dsigma.
+labels: ["question"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: What type of question do you have?
+      multiple: true
+      options:
+        - scientific
+        - technical
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Please tell us what you would like to know.
+      required: true
