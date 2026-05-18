@@ -1,34 +1,34 @@
 # Contributing to ``dsigma``
 
-We welcome contributions to ``dsigma`` from community members. Please find the necessary steps and requirements for code contributions below.
+We are excited about contributions to ``dsigma`` from community members. Below, we outline the general workflow and coding guidelines.
 
 ## Workflow
 
-All code contributions should be submitted via pull requests on GitHub. To do this, you will **fork** ``dsigma`` and create a feature branch that contains your code contributions. Once you are satisfied, create a pull request against the ``main`` branch of <https://github.com/johannesulf/dsigma>. A package maintainer will then work with you on your proposed changes.
+Code contributions are submitted via pull requests on GitHub. To do this, you will **fork** ``dsigma`` and create a feature branch that contains your code contributions. Once you are satisfied, create a pull request against the ``main`` branch of <https://github.com/johannesulf/dsigma>. A package maintainer will then work with you on your proposed changes.
 
-## Requirements
+## Guidelines
 
-Below, we list requirements that successful code contributions must fulfill. All commands assume that you are in the main ``dsigma`` directory.
+As an open science package, we want to ensure that ``dsigma`` remains well-tested, documented, reliable, and easy to modify. Thus, we ask that code contributions meet the following basic guidelines. All commands assume that you are in the main ``dsigma`` directory.
 
 ### Installation
 
-Make sure your modified version of ``dsigma`` installs correctly via:
+Please check that your modified version of ``dsigma`` installs correctly via:
 
 ```
 pip install -e .
 ```
 
-In case your modifications require updated dependencies, make sure to list those in the ``pyproject.toml`` file.
+In case your modifications require updated dependencies, please list those in the ``pyproject.toml`` file.
 
 ### Unit Tests
 
-We use ``pytest`` and GitHub Actions for continuous integration. Once you create a pull request, GitHub Actions will automatically trigger unit tests. Those must pass before your contribution can be accepted. To run the unit tests locally, from the main ``dsigma`` directory, run:
+We use ``pytest`` and GitHub Actions for continuous integration. Once you create a pull request, GitHub Actions will automatically trigger unit tests. Those are required to pass before your contributions can be accepted. To perform the unit tests locally, run:
 
 ```
 pytest tests
 ```
 
-If your code contributions add new features, we also encourage you to add unit tests for those new features under ``tests`` that test those new features.
+If your code contributions add new features, we also encourage you to add unit tests under ``tests`` that verify they work as expected.
 
 ### Docstrings
 
@@ -46,4 +46,4 @@ ruff check dsigma
 
 If you used generative AI to help you draft your code contributions, you must disclose that in the pull request. Additionally, if new code was substantially written by AI, you must outline what steps you have taken to ensure that the code works correctly.
 
-Generally, we discourage community members from contributing code that they could not have written without AI since, in this case, they may not be able to verify its accuracy. On the other hand, using AI to check existing code or to copyedit documentation may be a good idea.
+Generally, we discourage community members from contributing code that they could not have written without AI since, in this case, they may not be able to verify its accuracy. On the other hand, using AI to check existing code or to copyedit documentation can be a good idea.
