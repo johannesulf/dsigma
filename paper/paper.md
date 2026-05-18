@@ -27,6 +27,21 @@ bibliography: paper.bib
 
 # Summary
 
-[@Lange2026_ApJ_998_263]
+# Statement of need
+
+# State of the field
+
+https://github.com/jcoupon/swot
+https://github.com/rmjarvis/treecorr
+
+# Software design
+
+# Research impact statement
+
+[@2026OJAp....961342P] [@2025arXiv251214636A] [@2025arXiv251020896S] [@2025OJAp....8E.149R] [@2025MNRAS.543.1393M] [@2025ApJ...992..171C] [@2025arXiv250920458T] [@2025arXiv250920434T] [@2025arXiv250910455S] [@2025arXiv250621677H] [@2024A&A...690A.221P] [@2024OJAp....7E..57L] [@2024A&A...686A.196S] [@2023MNRAS.520.5373L] [@2022MNRAS.510.6150L]
+
+# AI usage disclosure
+
+# Acknowledgements
 
 # References
