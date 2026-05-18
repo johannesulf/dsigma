@@ -32,4 +32,4 @@ Documentation for ``dsigma`` with concept introductions, examples, and API docum
 
 ## Generative AI
 
-Generative AI was used to search for potential bugs in the code and to improve the documentation by finding typos and suggesting minor rewrites. No part of the actual ``dsigma`` code was written entirely or in parts by AI.
+Generative AI was used to search for potential bugs in the code and to improve the documentation by finding typos and suggesting minor rewrites. No part of the ``dsigma`` code itself was written entirely or in parts by AI.
