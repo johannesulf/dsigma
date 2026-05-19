@@ -50,7 +50,7 @@ The following core design principles drive the development of `dsigma`:
 
 # Research impact statement
 
-[@2026OJAp.961342P] [@2025arXiv251214636A] [@2025arXiv251020896S] [@2025OJAp.8E.149R] [@2025MNRAS.543.1393M] [@2025ApJ.992.171C] [@2025arXiv250920458T] [@2025arXiv250920434T] [@2025arXiv250910455S] [@2025arXiv250621677H] [@2024A&A.690A.221P] [@2024OJAp.7E.57L] [@2024A&A.686A.196S] [@2023MNRAS.520.5373L] [@2022MNRAS.510.6150L]
+Originally designed to support the core developer's research [@2022MNRAS.510.6150L; @2023MNRAS.520.5373L; @2025PhRvD.111l3524K], `dsigma` has now been used by multiple other research groups [@2024A&A.686A.196S; @2024A&A.690A.221P; @2025arXiv250910455S; @2025arXiv250920434T; 2025arXiv250920458T; @2025ApJ.992.171C; @2025MNRAS.543.1393M; @2025arXiv251020896S; @2025arXiv251214636A]. Additionally, it is the default GGL pipeline used in the Dark Energy Spectroscopic Instrument (DESI) collaboration [@2024OJAp.7E.57L; @2025arXiv250621677H; @2025OJAp.8E.149R; @2026OJAp.961342P].
 
 # AI usage disclosure
 
