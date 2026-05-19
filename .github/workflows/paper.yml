@@ -2,7 +2,9 @@ name: paper
 
 on:
   push:
-    paths: ['paper/**']
+    paths: ['.github/workflows/paper.yml', 'paper/**']
+  pull_request:
+    paths: ['.github/workflows/paper.yml', 'paper/**']
   workflow_dispatch:
 
 jobs:
