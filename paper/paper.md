@@ -46,11 +46,11 @@ TBD
 
 # Research impact statement
 
-[@2026OJAp....961342P] [@2025arXiv251214636A] [@2025arXiv251020896S] [@2025OJAp....8E.149R] [@2025MNRAS.543.1393M] [@2025ApJ...992..171C] [@2025arXiv250920458T] [@2025arXiv250920434T] [@2025arXiv250910455S] [@2025arXiv250621677H] [@2024A&A...690A.221P] [@2024OJAp....7E..57L] [@2024A&A...686A.196S] [@2023MNRAS.520.5373L] [@2022MNRAS.510.6150L]
+[@2026OJAp.961342P] [@2025arXiv251214636A] [@2025arXiv251020896S] [@2025OJAp.8E.149R] [@2025MNRAS.543.1393M] [@2025ApJ.992.171C] [@2025arXiv250920458T] [@2025arXiv250920434T] [@2025arXiv250910455S] [@2025arXiv250621677H] [@2024A&A.690A.221P] [@2024OJAp.7E..57L] [@2024A&A..686A.196S] [@2023MNRAS.520.5373L] [@2022MNRAS.510.6150L]
 
 # AI usage disclosure
 
-TBD
+Claud Sonnet 4.6 was used to search for potential bugs in the code. Despite flagging multiple issues, only one genuine minor bug was found. Generative AI was also used to improve the documentation by finding typos and suggesting minor rewrites. No part of the ``dsigma`` code itself was written entirely or in parts by AI.
 
 # Acknowledgements
 
