@@ -35,10 +35,9 @@ TBD
 
 # State of the field
 
-TBD
+A number of packages exist for calculating weak-lensing correlation functions, including GGL. One of the most widely-used among them is `TreeCorr`^[<https://github.com/rmjarvis/treecorr>] [@2004MNRAS.352.338J]. There are a number of critical differences between `TreeCorr` (and similar packages) and `dsigma`. Most importantly, `TreeCorr` calculates angular correlation functions and does not explicitly include cosmological calculations. As such, `TreeCorr` natively calculates $\gamma_\mathrm{t}(\theta)$ whereas `dsigma` is meant to compute $\Delta\Sigma(r_\mathrm{p})$. Additionally, `TreeCorr` is a more general framework for calculating angular correlation functions. For example, unlike `dsigma`, `TreeCorr` does not directly compute relevant correction factors for the GGL amplitude out-of-the-box and, instead, leaves those to the user. Ultimately, while one could use `TreeCorr` to construct estimators for $\Delta\Sigma(r_\mathrm{p})$ with all the necessary correction factors, this would be a significant effort requiring deep expertise in weak lensing calculations, something `dsigma` is designed to alleviate.  Finally, on a technical side, `TreeCorr` uses a tree algorithm to approximate the GGL amplitude whereas `dsigma` is an exact pair counter.
 
-https://github.com/jcoupon/swot
-https://github.com/rmjarvis/treecorr
+Besides codes calculating angular correlation functions, there are only a few open-source packages to explicitly compute $\Delta\Sigma(r_\mathrm{p})$, including `swot`^[<https://github.com/jcoupon/swot>] and `xshear`^[<https://github.com/esheldon/xshear>]. However, neither is actively developed nor designed to compute all relevant correction factors for leading weak lensing surveys. To our knowledge, `dsigma` is the only one-stop solution to compute $\Delta\Sigma(r_\mathrm{p})$ with all state-of-the-art lensing catalog currently publicly available.
 
 # Software design
 
@@ -50,7 +49,7 @@ The following core design principles drive the development of `dsigma`:
 
 # Research impact statement
 
-Originally designed to support the core developer's research [@2022MNRAS.510.6150L; @2023MNRAS.520.5373L; @2025PhRvD.111l3524K], `dsigma` has now been used by multiple other research groups [@2024A&A.686A.196S; @2024A&A.690A.221P; @2025arXiv250910455S; @2025arXiv250920434T; 2025arXiv250920458T; @2025ApJ.992.171C; @2025MNRAS.543.1393M; @2025arXiv251020896S; @2025arXiv251214636A]. Additionally, it is the default GGL pipeline used in the Dark Energy Spectroscopic Instrument (DESI) collaboration [@2024OJAp.7E.57L; @2025arXiv250621677H; @2025OJAp.8E.149R; @2026OJAp.961342P].
+Originally designed to support the core developer's research [@2022MNRAS.510.6150L; @2023MNRAS.520.5373L; @2025PhRvD.111l3524K], `dsigma` has now been used by multiple other research groups [@2024A&A.686A.196S; @2024A&A.690A.221P; @2025arXiv250910455S; @2025arXiv250920434T; @2025arXiv250920458T; @2025ApJ.992.171C; @2025MNRAS.543.1393M; @2025arXiv251020896S; @2025arXiv251214636A]. Additionally, it is the default GGL pipeline used in the Dark Energy Spectroscopic Instrument (DESI) collaboration [@2024OJAp.7E.57L; @2025arXiv250621677H; @2025OJAp.8E.149R; @2026OJAp.961342P]. Finally, the `dsigma` code has also around one dozen forks, many of which with additional commits. We expect `dsigma` to continue being used by multiple research groups, including in combination with new data from the Euclid satellite, the Nancy Grace Roman Space Telescope, and the Rubin Observatory.
 
 # AI usage disclosure
 
