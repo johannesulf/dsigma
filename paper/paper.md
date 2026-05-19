@@ -56,6 +56,8 @@ The following core design principles drive the development of `dsigma`:
 
 Claud Sonnet 4.6 was used to search for potential bugs in the code. Despite flagging multiple issues, only one genuine minor bug was found. Claud Sonnet was also used to improve the documentation by finding typos and suggesting minor rewrites. No part of the code itself was written entirely or in parts by AI.
 
-# Acknowledgments
+# Acknowledgements
+
+We thank Alexie Leauthaud, Rachel Mandelbaum, and Jean Coupon for helping with some of the early design choices. Additionally, we thank Chris Blake for comparing the results of `dsigma` against his own independent pipeline. Finally, we are grateful to the DES, KiDS, HSC, and DECADE collaborations for making their data publicly available and providing excellent documentation.
 
 # References
