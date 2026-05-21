@@ -167,8 +167,11 @@ def precompute_engine(
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
     cdef double sin_2phi, cos_2phi, tan_phi, tan_phi_num, tan_phi_den, e_t
     cdef double w_ls, sigma_crit
-    cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.rad).value
     cdef double inf = float('inf'), summand
+
+    # Approximate healpy.pixelfunc.max_pixrad. The following is a
+    # reverse-engineered, empirical upper bound.
+    cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.rad).value
 
     if progress_bar:
         pbar = tqdm(total=len(pix_l))
