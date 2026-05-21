@@ -1,5 +1,6 @@
 # cython: language_level=3, boundscheck=False, wraparound=False
 # cython: nonecheck=False, cdivision=True, initializedcheck=False
+"""Main computational loop for dsigma."""
 
 import queue as Queue
 from libc.math cimport sin, cos, sqrt, fmax, pow
@@ -14,13 +15,12 @@ from tqdm import tqdm
 
 cdef double sigma_crit_factor = (
     1e-6 * c.c**2 / (4 * np.pi * c.G)).to(u.Msun / u.pc).value
-cdef double deg2rad = np.pi / 180.0
-
 cdef double dx, dy, dz
 
-cdef double dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
-                       double cos_dec_1, double sin_ra_2, double cos_ra_2,
-                       double sin_dec_2, double cos_dec_2):
+cdef double _chord_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
+                      double cos_dec_1, double sin_ra_2, double cos_ra_2,
+                      double sin_dec_2, double cos_dec_2) noexcept:
+    """Calculate the chord distance between two points on a unit sphere."""
 
     dx = cos_ra_1 * cos_dec_1 - cos_ra_2 * cos_dec_2
     dy = sin_ra_1 * cos_dec_1 - sin_ra_2 * cos_dec_2
@@ -30,12 +30,46 @@ cdef double dist_3d_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 
 
 def precompute_engine(
-        u_pix_l, n_pix_l_in, u_pix_s, n_pix_s_in, dist_3d_sq_bins_in,
-        table_l, table_s, table_r, bins, bint comoving, float weighting,
-        int nside, queue, progress_bar):
+        pix_l, n_pix_l, pix_s, n_pix_s, chord_sq_bins, table_l, table_s,
+        table_r, bint comoving, float weighting, int nside, queue,
+        progress_bar=False):
+    """Sum over all lens-source pairs.
 
-    cdef long[::1] n_pix_l = n_pix_l_in
-    cdef long[::1] n_pix_s = n_pix_s_in
+    Parameters
+    ----------
+    pix_l : numpy.ndarray
+        HEALPix pixels containing lenses.
+    n_pix_l : numpy.ndarray
+        Number of lenses in each HEALPix pixel.
+    pix_l : numpy.ndarray
+        HEALPix pixels containing sources.
+    n_pix_l : numpy.ndarray
+        Number of sources in each HEALPix pixel.
+    chord_sq_bins : numpy.ndarray
+        Angular bins for all lenses defined via chord distances. Has length
+        n_l times n_bins, where n_l and n_bins are the number of lenses and
+        angular bins edges, respectively.
+    table_l : dict
+        Table containing information about lenses.
+    table_s : dict
+        Table containing information about sources.
+    table_r : dict
+        Table storing results for lenses.
+    comoving : bool
+        Whether the critical surface density assumes comoving coordinates.
+    weighting : float
+        The exponent of weighting of each lens-source pair by the critical
+        surface density. A natural choice is -2 which minimizes shape noise.
+    nside : int
+        nside parameter used by HEALPix.
+    queue : queue.Queue or multiprocessing.Queue
+        Queue tracking which lens pixels remain to be processed.
+    progress_bar : bool, optional
+        Whether to show a progress bar tracking the processed lens pixels.
+
+    """
+    cdef long[::1] n_pix_l_c = n_pix_l
+    cdef long[::1] n_pix_s_c = n_pix_s
 
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
@@ -88,7 +122,7 @@ def precompute_engine(
         R_21 = table_s['R_21']
         R_22 = table_s['R_22']
 
-    cdef double[::1] dist_3d_sq_bins = dist_3d_sq_bins_in
+    cdef double[::1] chord_sq_bins_c = chord_sq_bins
 
     cdef long[::1] sum_1 = table_r['sum 1']
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
@@ -110,68 +144,75 @@ def precompute_engine(
         sum_w_ls_R_T = table_r['sum w_ls R_T']
 
     hp = HEALPix(nside, order='ring')
-    lon, lat = hp.healpix_to_lonlat(np.arange(hp.npix))
-    x = np.cos(lon) * np.cos(lat)
-    y = np.sin(lon) * np.cos(lat)
-    z = np.sin(lat)
-    xyz = np.array([x, y, z]).T
-    xyz_l = xyz[u_pix_l]
-    xyz_s = xyz[u_pix_s]
-    kdtree = cKDTree(xyz_s)
+    lon_pix, lat_pix = hp.healpix_to_lonlat(np.arange(hp.npix))
+    x_pix = np.cos(lon_pix) * np.cos(lat_pix)
+    y_pix = np.sin(lon_pix) * np.cos(lat_pix)
+    z_pix = np.sin(lat_pix)
+    xyz_pix = np.array([x_pix, y_pix, z_pix]).T
+    xyz_pix_l = xyz_pix[pix_l]
+    xyz_pix_s = xyz_pix[pix_s]
+    kdtree = cKDTree(xyz_pix_s)
+    cdef double[::1] x_pix_l = np.ascontiguousarray(xyz_pix_l[:, 0])
+    cdef double[::1] y_pix_l = np.ascontiguousarray(xyz_pix_l[:, 1])
+    cdef double[::1] z_pix_l = np.ascontiguousarray(xyz_pix_l[:, 2])
+    cdef double[::1] x_pix_s = np.ascontiguousarray(xyz_pix_s[:, 0])
+    cdef double[::1] y_pix_s = np.ascontiguousarray(xyz_pix_s[:, 1])
+    cdef double[::1] z_pix_s = np.ascontiguousarray(xyz_pix_s[:, 2])
 
-    cdef long pix_l, i_l, i_l_min, i_l_max
-    cdef long pix_s, i_pix_s, l_pix_s, i_s, i_s_min, i_s_max
-    cdef long[::1] pix_s_list
-    cdef long i_bin, n_bins = len(bins) - 1
+    cdef long i_pix_l, i_l, i_l_min, i_l_max
+    cdef long i_pix_s, i_s, i_s_min, i_s_max
+    cdef long i_bin, n_bins = len(chord_sq_bins) // len(table_l['z'])  - 1
     cdef long offset_bin, offset_result
-    cdef double dist_3d_sq_max, dist_3d_sq_ls
+    cdef double chord_sq_pix_max, chord_sq_pix_min, chord_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
     cdef double sin_2phi, cos_2phi, tan_phi, tan_phi_num, tan_phi_den, e_t
     cdef double w_ls, sigma_crit
-    cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.deg).value
+    cdef double max_pixrad = 1.05 * hp.pixel_resolution.to(u.rad).value
     cdef double inf = float('inf'), summand
 
     if progress_bar:
-        pbar = tqdm(total=len(u_pix_l))
+        pbar = tqdm(total=len(pix_l))
 
     while True:
 
         # Check whether there is still a lens pixel in the queue.
         try:
-            pix_l = queue.get(timeout=0.5)
+            i_pix_l = queue.get(timeout=0.5)
         except Queue.Empty:
             break
 
-        if pix_l == 0:
+        if i_pix_l == 0:
             i_l_min = 0
         else:
-            i_l_min = n_pix_l[pix_l - 1]
-        i_l_max = n_pix_l[pix_l]
+            i_l_min = n_pix_l_c[i_pix_l - 1]
+        i_l_max = n_pix_l_c[i_pix_l]
 
-        # Find the maximum angular search radius.
-        dist_3d_sq_max = 0.0
+        # Find the maximum angular search radius for other pixels.
+        chord_sq_pix_max = 0.0
         for i_l in range(i_l_min, i_l_max):
-            dist_3d_sq_max = fmax(dist_3d_sq_bins[i_l * (n_bins + 1) + n_bins],
-                                  dist_3d_sq_max)
-        # Note that pixels can be up to max_pixrad away from the pixel center.
-        dist_3d_sq_max += (4 * deg2rad * deg2rad * max_pixrad * max_pixrad +
-                           4 * sqrt(dist_3d_sq_max) * deg2rad * max_pixrad)
+            chord_sq_pix_max = fmax(
+                chord_sq_bins_c[i_l * (n_bins + 1) + n_bins], chord_sq_pix_max)
 
-        # Get list of all source pixels that could contain suitable sources.
-        pix_s_list = np.fromiter(
-            kdtree.query_ball_point(xyz_l[pix_l], sqrt(dist_3d_sq_max)),
-            dtype=int)
-        l_pix_s = len(pix_s_list)
+        # Note that galaxies can be up to max_pixrad away from the pixel center.
+        chord_sq_pix_max = pow(sqrt(chord_sq_pix_max) + 2 * max_pixrad, 2)
 
         # Loop over all suitable source pixels.
-        for i_pix_s in range(l_pix_s):
+        for i_pix_s in kdtree.query_ball_point(
+                xyz_pix_l[i_pix_l], sqrt(chord_sq_pix_max)):
 
-            pix_s = pix_s_list[i_pix_s]
-            if pix_s == 0:
+            if i_pix_s == 0:
                 i_s_min = 0
             else:
-                i_s_min = n_pix_s[pix_s - 1]
-            i_s_max = n_pix_s[pix_s]
+                i_s_min = n_pix_s_c[i_pix_s - 1]
+            i_s_max = n_pix_s_c[i_pix_s]
+
+            # Determine the minimum chord distance of a lens-source pair for
+            # this pair of pixels.
+            dx = x_pix_l[i_pix_l] - x_pix_s[i_pix_s]
+            dy = y_pix_l[i_pix_l] - y_pix_s[i_pix_s]
+            dz = z_pix_l[i_pix_l] - z_pix_s[i_pix_s]
+            chord_sq_pix_min = dx * dx + dy * dy + dz * dz
+            chord_sq_pix_min = pow(sqrt(chord_sq_pix_min) - 2 * max_pixrad, 2)
 
             # Loop over all lenses in the pixel.
             for i_l in range(i_l_min, i_l_max):
@@ -179,20 +220,25 @@ def precompute_engine(
                 offset_result = i_l * n_bins
                 offset_bin = i_l * (n_bins + 1)
 
+                # Skip this lens if the search radius cannot yield sources
+                # in that pixel.
+                if chord_sq_bins_c[offset_bin + n_bins] < chord_sq_pix_min:
+                    continue
+
                 # Loop over all sources in the pixel.
                 for i_s in range(i_s_min, i_s_max):
 
                     if z_l[i_l] > z_l_max[i_s]:
                         continue
 
-                    dist_3d_sq_ls = dist_3d_sq(
+                    chord_sq_ls = _chord_sq(
                         sin_ra_l[i_l], cos_ra_l[i_l], sin_dec_l[i_l],
                         cos_dec_l[i_l], sin_ra_s[i_s], cos_ra_s[i_s],
                         sin_dec_s[i_s], cos_dec_s[i_s])
 
                     i_bin = n_bins
                     while i_bin >= 0:
-                        if dist_3d_sq_ls > dist_3d_sq_bins[offset_bin + i_bin]:
+                        if chord_sq_ls > chord_sq_bins_c[offset_bin + i_bin]:
                             break
                         i_bin -= 1
 
@@ -267,10 +313,8 @@ def precompute_engine(
                             (R_12[i_s] + R_21[i_s]) * sin_2phi * cos_2phi)
 
         if progress_bar:
-            pbar.update(pix_l + 1 - pbar.n)
+            pbar.update(i_pix_l + 1 - pbar.n)
 
     if progress_bar:
-        pbar.update(len(u_pix_l) - pbar.n)
+        pbar.update(len(pix_l) - pbar.n)
         pbar.close()
-
-    return 0

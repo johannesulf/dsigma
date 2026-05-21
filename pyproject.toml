@@ -44,3 +44,4 @@ version = {attr = "dsigma.__version__"}
 [[tool.setuptools.ext-modules]]
 name = "dsigma.precompute_engine"
 sources = ["dsigma/precompute_engine.pyx"]
+extra_compile_args = ["-O3"]

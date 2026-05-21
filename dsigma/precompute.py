@@ -268,11 +268,11 @@ def precompute(
                                  in_degrees(table_s['dec'].quantity))
     argsort_pix_l = np.argsort(pix_l)
     argsort_pix_s = np.argsort(pix_s)
-    u_pix_l, n_pix_l = np.unique(pix_l, return_counts=True)
-    u_pix_l = np.ascontiguousarray(u_pix_l)
+    pix_l, n_pix_l = np.unique(pix_l, return_counts=True)
+    pix_l = np.ascontiguousarray(pix_l)
     n_pix_l = np.ascontiguousarray(np.cumsum(n_pix_l))
-    u_pix_s, n_pix_s = np.unique(pix_s, return_counts=True)
-    u_pix_s = np.ascontiguousarray(u_pix_s)
+    pix_s, n_pix_s = np.unique(pix_s, return_counts=True)
+    pix_s = np.ascontiguousarray(pix_s)
     n_pix_s = np.ascontiguousarray(np.cumsum(n_pix_s))
 
     table_engine_l = {}
@@ -379,12 +379,14 @@ def precompute(
             theta_bins *= (
                 1 + np.repeat(table_engine_l['z'], len(bins))).flatten()
 
-    dist_3d_sq_bins = np.minimum(4 * np.sin(theta_bins / 2.0)**2, 2.0)
+    # Angular bins are bins in great-circle distance. However, (squared) chord
+    # distance is easier to compute. Use those, instead.
+    chord_sq_bins = np.minimum(4 * np.sin(theta_bins / 2.0)**2, 4.0)
 
     # When running in parrallel, replace numpy arrays with shared-memory
     # multiprocessing arrays.
     if n_jobs > 1:
-        dist_3d_sq_bins = get_raw_multiprocessing_array(dist_3d_sq_bins)
+        chord_sq_bins = get_raw_multiprocessing_array(chord_sq_bins)
         for table_engine in [table_engine_l, table_engine_s, table_engine_r]:
             for key in table_engine:
                 table_engine[key] = get_raw_multiprocessing_array(
@@ -392,23 +394,20 @@ def precompute(
 
     # Create a queue that holds all the pixels containing lenses.
     q = queue.Queue() if n_jobs == 1 else mp.Queue()
-    for i in range(len(u_pix_l)):
+    for i in range(len(pix_l)):
         q.put(i)
 
-    args = (u_pix_l, n_pix_l, u_pix_s, n_pix_s, dist_3d_sq_bins,
-            table_engine_l, table_engine_s, table_engine_r, bins, comoving,
-            weighting, nside, q, progress_bar)
+    args = (pix_l, n_pix_l, pix_s, n_pix_s, chord_sq_bins, table_engine_l,
+            table_engine_s, table_engine_r, comoving, weighting, nside, q)
 
     if n_jobs == 1:
-        precompute_engine(*args)
+        precompute_engine(*args, progress_bar=progress_bar)
     else:
         processes = []
         for i in range(n_jobs):
-            process = mp.Process(target=precompute_engine, args=(*args, ))
-            if i == 0:
-                args = list(args)
-                args[-1] = False
-                args = tuple(args)
+            process = mp.Process(
+                target=precompute_engine, args=args,
+                kwargs=dict(progress_bar=progress_bar if i == 0 else False))
             process.start()
             processes.append(process)
         for i in range(n_jobs):
