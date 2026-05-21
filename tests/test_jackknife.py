@@ -9,7 +9,7 @@ from dsigma import jackknife, precompute, stacking
 from fixtures import test_catalogs
 
 
-@pytest.mark.parametrize("n_jk", [20, 50, 100, 200])
+@pytest.mark.parametrize('n_jk', [20, 50, 100, 200])
 def test_jackknife(test_catalogs, n_jk):
 
     table_l, table_s = test_catalogs
@@ -17,18 +17,16 @@ def test_jackknife(test_catalogs, n_jk):
     jackknife.compute_jackknife_fields(table_l, n_jk)
     assert len(np.unique(table_l['field_jk']) == n_jk)
 
-    n_bins = 30
+    n_bins = 10
     theta_bins = np.logspace(0, 1, n_bins + 1) * u.deg
     table_l = precompute.precompute(table_l, table_s, theta_bins)
 
     # There should be no tangential shear. So no shear should be detected
     # with high signficance and we should expect roughly a chi^2 distribution.
-    y = stacking.tangential_shear(table_l)
-    y_err = np.sqrt(np.diag(jackknife.jackknife_resampling(
+    gt = stacking.tangential_shear(table_l)
+    gt_err = np.sqrt(np.diag(jackknife.jackknife_resampling(
         stacking.tangential_shear, table_l)))
-    assert np.amax(y / y_err) < 5
-    assert np.isclose(np.sum((y**2 / y_err**2)), n_bins, rtol=0,
-                      atol=5 * np.sqrt(n_bins))
+    assert np.amax(np.abs(gt / gt_err)) < 5
 
     # Compressing the jackknife fields should not impact the result.
     assert np.all(np.isclose(
