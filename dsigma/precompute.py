@@ -168,8 +168,9 @@ def precompute(
         Catalog of sources.
     bins : numpy.ndarray or astropy.units.quantity.Quantity
         Bins in radius to use for the stacking. If a numpy array, bins are
-        assumed to be in Mpc. If an astropy quantity, one can pass both length
-        units, e.g. kpc and Mpc, as well as angular units, i.e. deg and rad.
+        assumed to be in Mpc/h. If an astropy quantity, one can pass both
+        length units, e.g. Mpc and Mpc/h, as well as angular units, i.e. deg
+        and rad.
     table_c : astropy.table.Table, optional
         Additional photometric redshift calibration catalog. If provided, this
         will be used to statistically correct the photometric source redshifts
