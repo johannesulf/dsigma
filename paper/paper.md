@@ -16,12 +16,17 @@ authors:
   - name: Song Huang
     orcid: 0000-0003-1385-7591
     affiliation: 2
+  - name: Alexie Leauthaud
+    orcid: 0000-0002-3677-3617
+    affiliation: 3
 affiliations:
- - name: Department of Physics, American University, Washington, DC 20016, USA
-   index: 1
- - name: Department of Astronomy, Tsinghua University, Beijing 100084, China
-   index: 2
-date: 18 May 2025
+  - name: Department of Physics, American University, Washington, DC 20016, USA
+    index: 1
+  - name: Department of Astronomy, Tsinghua University, Beijing 100084, China
+    index: 2
+  - name: Department of Astronomy and Astrophysics, University of California, Santa Cruz, Santa Cruz, CA 95065, USA
+    index: 3
+date: 22 May 2026
 bibliography: paper.bib
 ---
 
@@ -37,7 +42,7 @@ Large spectroscopic galaxy surveys such as the Sloan Digital Sky Survey (SDSS) a
 \end{equation}
 where $\Sigma_\mathrm{crit}$ is the critical surface density that depends on cosmological parameters as well as the redshifts of lenses and sources. In addition to spectroscopic galaxy surveys which provide "lenses", there are a number of publicly available "shape catalogs" that can be used as source galaxies, including from the the Dark Energy Survey (DES), the Hyper Suprime-Cam (HSC) Subaru Strategic Program, the Kilo-Degree Survey (KiDS), and the Dark Energy Camera All Data Everywhere (DECADE) project.
 
-In principle, calculating the GGL amplitude $\Delta\Sigma$ primarily involves taking a simple weighted average of $\gamma_\mathrm{t} \Sigma_\mathrm{crit}$ over all suitable lens-source galaxy pairs. In practice, care needs to be taken to correctly calculate the relevant angular and cosmological quantities from the original catalogs. Additionally, one needs to take into account a variety of survey-specific correction factors to arrive at an unbiased estimate of the GGL amplitude. Finally, given that modern galaxy surveys can contain hundreds of millions of galaxies, even a simple average can quickly become computationally challenging. Thus, writing an accurate and efficient GGL pipeline from scratch is a significant effort and may prevent some researchers from making use of lensing data in their studies. `dsigma` solves this problem by providing an easy-to-use pipeline that can be interfaced with publicly available data sets to estimate $\Delta\Sigma$.
+In principle, calculating the GGL amplitude $\Delta\Sigma$ primarily involves taking a simple weighted average of $e_\mathrm{t} \Sigma_\mathrm{crit}$, where $e_\mathrm{t}$ is the measured tangential ellipticity, over all suitable lens-source galaxy pairs. In practice, care needs to be taken to correctly calculate the relevant angular and cosmological quantities from the original catalogs. Additionally, one needs to take into account a variety of survey-specific correction factors to arrive at an unbiased estimate of the GGL amplitude. Finally, given that modern galaxy surveys can contain hundreds of millions of galaxies, even a simple average can quickly become computationally challenging. Thus, writing an accurate and efficient GGL pipeline from scratch is a significant effort and may prevent some researchers from making use of lensing data in their studies. `dsigma` solves this problem by providing an easy-to-use pipeline that can be interfaced with publicly available data sets to estimate $\Delta\Sigma$.
 
 # State of the field
 
