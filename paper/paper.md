@@ -68,6 +68,6 @@ Claud Sonnet 4.6 was used to search for potential bugs in the code. Despite flag
 
 # Acknowledgements
 
-We thank Alexie Leauthaud, Rachel Mandelbaum, and Jean Coupon for helping with some of the early design choices. Additionally, we thank Chris Blake for comparing the results of `dsigma` against his own independent pipeline. Finally, we are grateful to the DES, KiDS, HSC, and DECADE collaborations for making their data publicly available and providing excellent documentation.
+We thank Rachel Mandelbaum and Jean Coupon for helping with some of the early design choices. Additionally, we thank Chris Blake for comparing the results of `dsigma` against his own independent pipeline. Finally, we are grateful to the DES, KiDS, HSC, and DECADE collaborations for making their data publicly available and providing excellent documentation.
 
 # References
