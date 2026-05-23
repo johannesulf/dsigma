@@ -74,11 +74,11 @@ def test_brute_force(test_catalogs):
 
     for i in range(len(table_l)):
         theta = np.arccos(
-            np.sin(np.deg2rad(table_l['dec'][i].value)) *
+            np.sin(np.deg2rad(table_l['dec'].value[i])) *
             np.sin(np.deg2rad(table_s['dec'].value)) +
-            np.cos(np.deg2rad(table_l['dec'][i].value)) *
+            np.cos(np.deg2rad(table_l['dec'].value[i])) *
             np.cos(np.deg2rad(table_s['dec'].value)) *
-            np.cos(np.deg2rad(table_l['ra'][i].value - table_s['ra'].value)))
+            np.cos(np.deg2rad(table_l['ra'].value[i] - table_s['ra'].value)))
         rp = WMAP7.comoving_distance(table_l['z'][i]).to(
             u.Mpc / cu.littleh, cu.with_H0(cosmology.H0)) * theta
         use = (table_s['z'] > table_l['z'][i]) & (rp <= np.amax(rp_bins))
@@ -93,7 +93,7 @@ def test_brute_force(test_catalogs):
         sum_w_ls += table_l['w_sys'][i] * np.histogram(
             rp, bins=rp_bins, weights=w_ls)[0]
         cos_2phi, sin_2phi = projection_angle(
-            table_l['ra'][i].value, table_l['dec'][i].value,
+            table_l['ra'].value[i], table_l['dec'].value[i],
             table_s['ra'][use].value, table_s['dec'][use].value)
         e_t = - cos_2phi * table_s['e_1'][use] + sin_2phi * table_s['e_2'][use]
         sum_w_ls_e_t += table_l['w_sys'][i] * np.histogram(
