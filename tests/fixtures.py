@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from astropy import units as u
 from astropy.table import Table
 
 
@@ -20,9 +21,9 @@ def test_catalogs():
     table_l['w_sys'] = np.random.uniform(low=0.8, high=1.2, size=n_l)
 
     table_s = Table()
-    table_s['ra'] = np.random.uniform(low=0, high=30, size=n_s)
+    table_s['ra'] = np.random.uniform(low=0, high=30, size=n_s) * u.deg
     table_s['dec'] = np.rad2deg(np.arcsin(np.random.uniform(
-        low=0, high=np.sin(np.deg2rad(30)), size=n_s)))
+        low=0, high=np.sin(np.deg2rad(30)), size=n_s))) * u.deg
     table_s['z'] = np.random.uniform(low=0.2, high=0.7, size=n_s)
     table_s['w'] = np.random.uniform(low=0.8, high=1.2, size=n_s)
     table_s['e_1'] = np.random.normal(loc=0, scale=0.2, size=n_s)
