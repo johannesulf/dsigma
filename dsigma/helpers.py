@@ -68,8 +68,8 @@ def in_degrees(angle):
 
     """
     if angle.unit == u.Unit(''):
-        data = u.Quantity(angle.value, u.deg, copy=False)
-    return data.to(u.deg)
+        angle = u.Quantity(angle.value, u.deg, copy=False)
+    return angle.to(u.deg)
 
 
 def spherical_to_cartesian(ra, dec):
