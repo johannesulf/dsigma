@@ -9,26 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for DECADE and KiDS-Legacy.
-- Added the helper function `dsigma.helpers.interpolate_over_redshift` as part of a code refactoring.
+- DES Y3, HSC Y3, KiDS-Legacy, and DECADE data reduction scripts under `dsigma.scripts`. These scripts now encode all survey-specific functionality.
+- Helper function `dsigma.helpers.interpolate_over_redshift` as part of a code refactoring.
 
 ### Changed
 
-- All survey-specific functionality is now in scripts such as `dsigma-process-des-y3`.
+- `dsigma` now consistently supports `astropy` units. Input parameters and output results, including $\Delta\Sigma$, now have units. For inputs, default units are $\mathrm{Mpc}/h$ (if no unit is specified) and $\Delta\Sigma$ is given in $h M_\odot / \mathrm{pc}^2$. Note that previously, $\Delta\Sigma$ was returned in units of $M_\odot / \mathrm{pc}^2$, i.e., without little $h$.
+- The default cosmology was changed from `astropy.cosmology.FlatLambdaCDM(H0=100, Om0=0.3)` to `astropy.cosmology.Planck15`. While this changes $h=1$ to $h = 0.6774$, this only leads to small differences in the numerical results since `dsigma` now consistently uses little $h$ units. Also, the default cosmology can be set by changing `dsigma.default_cosmology`.
 - In the results table of `dsigma.stacking.tangential_shear`, the `et` and `et_raw` columns were renamed to `gt` and `gt_raw`.
 - Instead of taking an instance of `camb.results.CAMBdata` as input, `dsigma.physics.lens_magnification_shear_bias` and `dsigma.physics.lens_magnification_bias` now convert between `astropy` and `camb`, internally. The user only needs to provide `sigma_8` and `n_s`.
 - Replaced `dsigma.jackknife.smooth_correlation_matrix` with `dsigma.jackknife.smooth_covariance_matrix`.
-- The C engine has received a slight performance tweak.
+- The C engine has been refactored and received a slight performance tweak.
 
 ### Removed
 
-- `dsigma.surveys` was removed.
-- The `lens_source_cut` keyword argument has been removed. Please specify the maximum lens redshift via the `z_l_max` column.
+- `dsigma.surveys` in favor of `dsigma.scripts`.
+- The `lens_source_cut` keyword argument. Please specify the maximum lens redshift via the `z_l_max` column.
 
 ## [1.1.0] - 2025-06-25
 
 ### Added
 
-- The function `survey.hsc.multiplicative_selection_bias` to compute `m_sel` for HSC was added.
+- The function `survey.hsc.multiplicative_selection_bias` to compute `m_sel` for HSC.
 - `Y3` was added as a supported version to the `survey.hsc` functions.
 
 ### Changed
@@ -53,11 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-05-26
 
 ### Added
-- Added `dsigma.stacking.mean_critical_surface_density`.
+- `dsigma.stacking.mean_critical_surface_density`.
 
 ### Changed
 - The photometric redshift correction now always applied when computing the mean source redshift.
-- `dsigma.stacking.lens_magnification_bias` now uses `dsigma.stacking.mean_critical_surface_density` to estimate the critical surface density. It does not calculate it based on the mean lens and source redshift, anymore.
+- `dsigma.stacking.lens_magnification_bias` now uses `dsigma.stacking.mean_critical_surface_density` to estimate the critical surface density instead of estimating it from the mean lens and source redshift.
 - `dsigma.physics.lens_magnification_shear_bias` can now use angles expressed with `astropy` units.
 
 ## [0.7.2] - 2023-06-02
@@ -68,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The mean source redshift now takes into account n(z)'s passed to `dsigma.precompute.precompute`.
+- The mean source redshift now takes into account $n(z)$'s passed to `dsigma.precompute.precompute`.
 
 ### Fixed
 
@@ -84,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed a bug in the calculation of the photo-z dilution correction factor. This led to percent-level biases in the total galaxy-galaxy lensing amplitude. It did not, however, affect DES and KiDS calculations since those are based on n(z)'s. The bug was introduced in version 0.6.
+- Fixed a bug in the calculation of the photo-z dilution correction factor. This led to percent-level biases in the total galaxy-galaxy lensing amplitude. It did not, however, affect DES and KiDS calculations since those are based on $n(z)$'s. The bug was introduced in version 0.6.
 
 ## [0.7.0] - 2023-01-06
 
@@ -97,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Removed `dsigma.stacking.shape_noise_error`. Please use jackknife resampling to estimate errors.
+- `dsigma.stacking.shape_noise_error`. Please use jackknife resampling to estimate errors.
 
 ## [0.6.1] - 2023-01-01
 
@@ -107,4 +109,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed crashes in `dsigma.stacking.shape_noise_error`.
+- Crashes in `dsigma.stacking.shape_noise_error`.

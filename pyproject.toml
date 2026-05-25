@@ -6,18 +6,33 @@ build-backend = "setuptools.build_meta"
 name = "dsigma"
 description = "A Galaxy-Galaxy Lensing Python Package"
 requires-python = ">=3.9"
-authors = [{name = "Johannes U. Lange", email = "jlange@american.edu"},
-           {name = "Song Huang", email = "shuang@tsinghua.edu.cn"}]
+authors = [
+  {name = "Johannes U. Lange", email = "jlange@american.edu"},
+  {name = "Song Huang", email = "shuang@tsinghua.edu.cn"}
+]
 readme = "README.md"
 keywords = ["astronomy", "weak-lensing"]
 license = "MIT"
-dependencies = ["numpy", "astropy", "scipy", "scikit-learn", "astropy-healpix",
-                "tqdm"]
+dependencies = [
+  "astropy",
+  "astropy-healpix",
+  "numpy",
+  "scikit-learn",
+  "scipy",
+  "tqdm"
+]
 dynamic = ["version"]
-classifiers = ["Programming Language :: Python :: 3",
-               "Operating System :: OS Independent",
-               "Topic :: Scientific/Engineering :: Astronomy",
-               "Intended Audience :: Science/Research"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Intended Audience :: Science/Research"]
 
 [project.optional-dependencies]
 process = ["h5py>=3.0.0"]
@@ -35,9 +50,6 @@ dsigma-process-des-y3 = "dsigma.scripts.process_des_y3:process_des_y3"
 dsigma-process-hsc-y3 = "dsigma.scripts.process_hsc_y3:process_hsc_y3"
 dsigma-process-kids-legacy = "dsigma.scripts.process_kids_legacy:process_kids_legacy"
 
-[tool.setuptools]
-packages = ["dsigma", "dsigma.scripts"]
-
 [tool.setuptools.dynamic]
 version = {attr = "dsigma.__version__"}
 
@@ -45,3 +57,6 @@ version = {attr = "dsigma.__version__"}
 name = "dsigma.precompute_engine"
 sources = ["dsigma/precompute_engine.pyx"]
 extra-compile-args = ["-O2"]
+
+[tool.setuptools.packages.find]
+include = ["dsigma*"]
