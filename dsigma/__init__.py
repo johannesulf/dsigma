@@ -8,4 +8,4 @@ from . import helpers, jackknife, physics, precompute, stacking   # noqa: E402
 
 __all__ = ['default_cosmology', 'helpers', 'jackknife', 'physics',
            'precompute', 'stacking']
-__version__ = '1.1.0'
+__version__ = '1.2.0'

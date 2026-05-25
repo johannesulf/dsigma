@@ -50,6 +50,9 @@ dsigma-process-des-y3 = "dsigma.scripts.process_des_y3:process_des_y3"
 dsigma-process-hsc-y3 = "dsigma.scripts.process_hsc_y3:process_hsc_y3"
 dsigma-process-kids-legacy = "dsigma.scripts.process_kids_legacy:process_kids_legacy"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.dynamic]
 version = {attr = "dsigma.__version__"}
 

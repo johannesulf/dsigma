@@ -25,7 +25,7 @@ The easiest way to install ``dsigma`` is to use ``pip`` to install the latest st
 
 Alternatively, you can install the latest development version from GitHub.
 
-	pip install git+https://github.com/johannesulf/dsigma
+    pip install git+https://github.com/johannesulf/dsigma
 
 ## Documentation
 
