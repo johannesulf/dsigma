@@ -11,7 +11,6 @@ The BOSS target catalogs are publicly available from the `SDSS data server <http
 
 .. code-block:: python
 
-    import numpy as np
     from astropy.table import Table, vstack
 
     table_l = vstack([Table.read('galaxy_DR12v5_CMASSLOWZTOT_South.fits.gz'),
