@@ -2,6 +2,8 @@
 
 <p align="center">
 [![Unit Testing Status](https://img.shields.io/github/actions/workflow/status/johannesulf/dsigma/tests.yml?branch=main&label=tests)](https://github.com/johannesulf/dsigma/actions)
+</p>
+<p align="center">
 [![Documentation Status](https://img.shields.io/readthedocs/dsigma)](https://dsigma.readthedocs.io/en/latest/)
 [![Code Coverage](https://img.shields.io/coverallsCoverage/github/johannesulf/dsigma)](https://coveralls.io/github/johannesulf/dsigma?branch=main)
 ![Downloads](https://img.shields.io/pypi/dm/dsigma)
