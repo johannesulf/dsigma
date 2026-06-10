@@ -1,4 +1,5 @@
 <div align="center">
+
 ![logo](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/dsigma.png)
 
 [![Unit Testing Status](https://img.shields.io/github/actions/workflow/status/johannesulf/dsigma/tests.yml?branch=main&label=tests)](https://github.com/johannesulf/dsigma/actions)
