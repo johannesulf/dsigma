@@ -215,7 +215,7 @@ def precompute_engine(
             dy = y_pix_l[i_pix_l] - y_pix_s[i_pix_s]
             dz = z_pix_l[i_pix_l] - z_pix_s[i_pix_s]
             chord_sq_pix_min = dx * dx + dy * dy + dz * dz
-            chord_sq_pix_min = pow(sqrt(chord_sq_pix_min) - 2 * max_pixrad, 2)
+            chord_sq_pix_min = pow(fmax(sqrt(chord_sq_pix_min) - 2 * max_pixrad, 0.0), 2)
 
             # Loop over all lenses in the pixel.
             for i_l in range(i_l_min, i_l_max):

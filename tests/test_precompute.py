@@ -1,10 +1,42 @@
 import numpy as np
 import pytest
-from astropy.cosmology import LambdaCDM
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astropy.cosmology import LambdaCDM, FlatLambdaCDM
 from astropy.table import Table
-
 from dsigma.precompute import precompute
 from fixtures import test_catalogs
+
+
+def test_pairs_below_pixel_size():
+    # Each lens gets one source 30" away, far below the nside=256 pixel
+    # (~13.7'). The sub-pixel search radius must not cause the pixel
+    # pre-filter to drop same-pixel pairs, so #pairs == #lenses.
+    ra, dec = np.meshgrid(np.linspace(10.0, 18.0, 25),
+                          np.linspace(-8.0, 8.0, 20))
+    ra, dec = ra.ravel(), dec.ravel()
+    n = ra.size
+
+    table_l = Table()
+    table_l['ra'] = ra * u.deg
+    table_l['dec'] = dec * u.deg
+    table_l['z'] = np.full(n, 0.2)
+    table_l['w_sys'] = np.ones(n)
+
+    c_s = SkyCoord(table_l['ra'], table_l['dec']).directional_offset_by(
+        0 * u.deg, 30 * u.arcsec)
+    table_s = Table()
+    table_s['ra'] = c_s.ra
+    table_s['dec'] = c_s.dec
+    table_s['z'] = np.full(n, 0.8)
+    table_s['w'] = np.ones(n)
+    table_s['e_1'] = np.zeros(n)
+    table_s['e_2'] = np.zeros(n)
+
+    rp_bins = [15, 60] * u.arcsec
+    table_l = precompute(table_l, table_s, rp_bins,
+                         cosmology=FlatLambdaCDM(70, 0.2, 0.7))
+    assert table_l['sum 1'].sum() == n
 
 
 def test_warnings_errors(test_catalogs):
