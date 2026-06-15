@@ -9,7 +9,8 @@
 ![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fjohannesulf%2Fdsigma%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
 ![PyPI - Version](https://img.shields.io/pypi/v/dsigma)
 [![License: MIT](https://img.shields.io/github/license/johannesulf/dsigma?color=blue)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20378643.svg)](https://doi.org/10.5281/zenodo.20378643)
+[![DOI](https://img.shields.io/badge/doi-10.5281%2Fzenodo.20378642-blue
+)](https://doi.org/10.5281/zenodo.20378642)
 
 </div>
 
