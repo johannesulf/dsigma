@@ -4,6 +4,12 @@ Notable changes to dsigma will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-15
+
+### Fixed
+
+- A logical bug in the precompute engine could lead to many lens-source pairs not being found if the maximum search radius was very small. Thanks to Nicolo Massari (@massarin) for finding and fixing this bug.
+
 ## [1.2.0] - 2026-05-25
 
 ### Added
