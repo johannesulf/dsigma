@@ -24,7 +24,7 @@
 
 ## Installation
 
-The easiest way to install ``dsigma`` is to use ``pip`` to install the latest stable version from the Python Package Index (PyPI).
+The easiest way to install ``dsigma`` is to use ``pip`` for the latest stable version from the Python Package Index (PyPI).
 
     pip install dsigma
 
@@ -46,4 +46,4 @@ Documentation for ``dsigma`` with concept introductions, examples, and API docum
 
 ## Generative AI
 
-Generative AI was used to search for potential bugs in the code and to improve the documentation by finding typos and suggesting minor rewrites. No part of the ``dsigma`` code itself was written entirely or in parts by AI.
+Generative AI was used to search for potential bugs in the code and to improve the documentation by finding typos and suggesting minor rewrites. The core developers did not use AI to write any part of the ``dsigma`` code itself. Code contributions from other developers may use AI, as described in the respective pull requests, and are carefully vetted by the core developers.
