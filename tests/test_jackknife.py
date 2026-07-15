@@ -36,6 +36,11 @@ def test_jackknife(test_catalogs, n_jk):
             stacking.tangential_shear, table_l, compress=True),
         rtol=0, atol=1e-12))
 
+    # Check the return_samples keyword
+    cov, samples = jackknife.jackknife_resampling(
+            stacking.tangential_shear, table_l, return_samples=True)
+    assert cov.shape == (len(samples), len(samples))
+
     # Test the smoothing.
     cov = jackknife.jackknife_resampling(stacking.tangential_shear, table_l)
     for sigma in [1.0, 2.0, 5.0]:
