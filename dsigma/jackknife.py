@@ -204,7 +204,8 @@ def smooth_covariance_matrix(cov, sigma):
 
 
 def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
-                         table_r_2=None, compress=True, **kwargs):
+                         table_r_2=None, compress=True, return_samples=False,
+                         **kwargs):
     """Compute the covariance of a function from jackknife re-sampling.
 
     Parameters
@@ -233,6 +234,9 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
         ``dsigma.jackknife.compress_jackknife_fields`` before performing the
         jackknife calculation. This can substantially improve performance.
         Default is ``True``.
+    return_samples : bool, optional
+        If ``True``, return the list of samples used to compute the covariance
+        as a second return value.
     **kwargs
         Additional keyword arguments to be passed to the function.
 
@@ -240,7 +244,9 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
     -------
     cov : numpy.ndarray or astropy.units.quantity.Quantity
         Covariance matrix of the result derived from jackknife re-sampling.
-
+    samples : list[array]
+        Only returned if return_samples=True. The samples used to compute the
+        covariance.
     """
     samples = []
 
@@ -267,5 +273,7 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
     if isinstance(samples[0], u.Quantity):
         cov = cov * samples[0].unit**2
 
+    if return_samples:
+        return cov, samples
 
     return cov
