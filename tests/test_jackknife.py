@@ -38,8 +38,8 @@ def test_jackknife(test_catalogs, n_jk):
 
     # Check the return_samples keyword
     cov, samples = jackknife.jackknife_resampling(
-            stacking.tangential_shear, table_l, return_samples=True)
-    assert cov.shape == (len(samples), len(samples))
+        stacking.tangential_shear, table_l, return_samples=True)
+    assert len(samples) == n_jk
 
     # Test the smoothing.
     cov = jackknife.jackknife_resampling(stacking.tangential_shear, table_l)
