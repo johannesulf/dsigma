@@ -319,7 +319,7 @@ def lens_magnification_shear_bias(
                 cosmology.angular_diameter_distance_z1z2(z_u, z_s)[idx] /
                 cosmology.angular_diameter_distance(z_s) *
                 np.where(k > k_max, 0, np.array(
-                    [p(z_i, k_i) for z_i, k_i in zip(z, k)])))
+                    [np.squeeze(p(z_i, k_i)) for z_i, k_i in zip(z, k)])))
 
     ell_max = np.amax(jn_zeros(2, bessel_function_zeros)) / theta
 
