@@ -150,7 +150,7 @@ def _to_camb(cosmology, sigma_8, n_s, z):
     sigma_8 : float
         Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`.
     n_s : float
-        Primordial power spectrum index. Default is 0.96.
+        Primordial power spectrum index.
     z : numpy.ndarray
         Redshifts for which to compute the power spectrum.
 
@@ -194,7 +194,8 @@ def _to_camb(cosmology, sigma_8, n_s, z):
         num_nu_massive=np.sum(m_nu > 0),
         nu_mass_eigenstates=len(np.unique(m_nu[m_nu > 0])),
         nu_mass_numbers=np.unique(m_nu[m_nu > 0], return_counts=True)[1],
-        nu_mass_degeneracies=np.unique(m_nu[m_nu > 0]),
+        nu_mass_fractions=[np.average(m_nu == m_nu_i, weights=m_nu) for
+                           m_nu_i in np.unique(m_nu[m_nu > 0])],
         ns=n_s, As=a_s, NonLinear='NonLinear_pk', kmax=1000.0, redshifts=z)
 
     results = camb.get_results(pars)

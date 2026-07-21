@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - For newer version of `scipy`, the lens magnification estimate was incorrect.
+- For the lens magnification calculation, the neutrino properties should now be incorporated correctly. This error should have had very little overall impact on the lens magnification estimate since $\sigma_8$ was always matched.
 
 ## [1.2.1] - 2026-06-15
 
