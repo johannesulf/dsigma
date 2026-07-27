@@ -101,7 +101,7 @@ def process_decade():
     # Adjust redshift bin definition.
     table_s['MCAL_SEL_NOSHEAR'] -= 1
 
-    keys = dict(ra='RA', dec='DEC', z_bin='MCAL_SEL_NOSHEAR',  # noqa C408
+    keys = dict(ra='RA', dec='DEC', z_bin='MCAL_SEL_NOSHEAR',  # noqa: C408
                 e_1='MCAL_G_1_NOSHEAR', e_2='MCAL_G_2_NOSHEAR',
                 w='MCAL_W_NOSHEAR', m='m')
     for new_key, old_key in keys.items():
