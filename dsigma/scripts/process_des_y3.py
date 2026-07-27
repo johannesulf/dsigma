@@ -76,7 +76,7 @@ def process_des_y3():
     m = np.array([-0.63, -1.98, -2.41, -3.69]) * 1e-2
     table_s['m'] = m[table_s['z_bin']]
 
-    keys = dict(w='weight', R_11='R11', R_22='R22', R_12='R12', R_21='R21')
+    keys = dict(w='weight', R_11='R11', R_22='R22', R_12='R12', R_21='R21')   # noqa: C408
     for new_key, old_key in keys.items():
         table_s.rename_column(old_key, new_key)
 
@@ -86,7 +86,7 @@ def process_des_y3():
     table_n = Table.read(
         '2pt_NG_final_2ptunblind_02_26_21_wnz_maglim_covupdate.fits', hdu=6)
     table_n.rename_column('Z_MID', 'z')
-    table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
+    table_n['n'] = np.column_stack([table_n[f'BIN{i + 1}'] for i in range(4)])
     table_n.keep_columns(['z', 'n'])
     table_n.write('des_y3.hdf5', path='calibration', overwrite=True,
                   append=True)

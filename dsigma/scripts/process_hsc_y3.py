@@ -29,7 +29,7 @@ def process_hsc_y3():
     # Remove regions with large B-modes.
     table_s = table_s[table_s['b_mode_mask'] == 1]
 
-    keys = dict(
+    keys = dict(  # noqa: C408
         ra='i_ra', dec='i_dec', z_bin='hsc_y3_zbin',
         e_1='i_hsmshaperegauss_e1', e_2='i_hsmshaperegauss_e2',
         w='i_hsmshaperegauss_derived_weight',
@@ -63,7 +63,7 @@ def process_hsc_y3():
     table_n = Table.read('nz.fits')
     # Create the columns expected by dsigma.
     table_n.rename_column('Z_MID', 'z')
-    table_n['n'] = np.column_stack([table_n[f'BIN{i+1}'] for i in range(4)])
+    table_n['n'] = np.column_stack([table_n[f'BIN{i + 1}'] for i in range(4)])
     table_n.keep_columns(['z', 'n'])
     table_n.write('hsc_y3.hdf5', path='calibration', overwrite=True,
                   append=True)

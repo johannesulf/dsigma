@@ -165,7 +165,7 @@ def _to_camb(cosmology, sigma_8, n_s, z, k_max=1e3):
 
     Raises
     ------
-    ValueError
+    TypeError
         If cosmology is not an instance of ``astropy.cosmology.FlatLambdaCDM``.
     ImportError
         If ``camb`` is not installed.
@@ -173,7 +173,7 @@ def _to_camb(cosmology, sigma_8, n_s, z, k_max=1e3):
     """
     if not isinstance(cosmology, FlatLambdaCDM):
         msg = "Cosmology must be instance of astropy.cosmology.FlatLambdaCDM."
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     try:
         import camb

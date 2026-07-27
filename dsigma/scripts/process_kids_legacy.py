@@ -21,8 +21,8 @@ def process_kids_legacy():
 
     table_s = Table.read('KiDS_Legacy_NS_unblind_final.fits.gz')
 
-    keys = dict(ra='RAJ2000', dec='DECJ2000', z_bin='TOMOBIN', e_1='e1',
-                e_2='e2', w='weight')
+    keys = dict(ra='RAJ2000', dec='DECJ2000', z_bin='TOMOBIN',  # noqa: C408
+                e_1='e1', e_2='e2', w='weight')
     for new_key, old_key in keys.items():
         table_s.rename_column(old_key, new_key)
     table_s.keep_columns(keys.keys())

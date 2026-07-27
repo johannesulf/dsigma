@@ -11,9 +11,8 @@ from astropy.units import UnitConversionError
 from astropy_healpix import HEALPix
 
 from . import default_cosmology
-from .helpers import interpolate_over_redshift, in_degrees
-from .physics import critical_surface_density
-from .physics import effective_critical_surface_density
+from .helpers import in_degrees, interpolate_over_redshift
+from .physics import critical_surface_density, effective_critical_surface_density
 from .precompute_engine import precompute_engine
 
 __all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
@@ -407,15 +406,15 @@ def precompute(
         for i in range(n_jobs):
             process = mp.Process(
                 target=precompute_engine, args=args,
-                kwargs=dict(progress_bar=progress_bar if i == 0 else False))
+                kwargs={'progress_bar': progress_bar if i == 0 else False})
             process.start()
             processes.append(process)
         for i in range(n_jobs):
             processes[i].join()
 
     if n_jobs > 1:
-        for key in table_engine_r:
-            table_engine_r[key] = np.array(table_engine_r[key])
+        for key, value in table_engine_r.items():
+            table_engine_r[key] = np.array(value)
 
     inv_argsort_pix_l = np.argsort(argsort_pix_l)
     for key in table_engine_r:

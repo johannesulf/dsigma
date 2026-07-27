@@ -1,11 +1,10 @@
 """Convenience functions for the dsigma pipeline."""
 
 import numpy as np
+from astropy import units as u
 from scipy.interpolate import make_interp_spline
 
-from astropy import units as u
-
-__all__ = ['interpolate_over_redshift', 'in_degrees', 'spherical_to_cartesian']
+__all__ = ['in_degrees', 'interpolate_over_redshift', 'spherical_to_cartesian']
 
 
 def interpolate_over_redshift(f, z, *args, **kwargs):
