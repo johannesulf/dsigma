@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 from astropy.cosmology import units as cu
@@ -32,35 +33,38 @@ def test_critical_surface_density():
     assert sigma_crit == np.inf
 
 
-def test_to_camb():
+@pytest.mark.parametrize('m_nu', [[0, 0, 0], [0, 0, 0.001], [0, 0, 0.6],
+                                  [0, 0.6, 1.2]])
+def test_to_camb(m_nu):
     # Test that we can convert to CAMB correctly.
 
     sigma_8 = 0.7
-    cosmology_astropy = default_cosmology
+    cosmology_astropy = default_cosmology.clone(m_nu=m_nu, Tcmb0=3.0)
     cosmology_camb = physics._to_camb(cosmology_astropy, sigma_8, 0.96,
                                       [1, 0.5, 0])
 
-    assert np.isclose(cosmology_camb.get_sigma8_0(), sigma_8)
+    assert np.isclose(cosmology_camb.get_sigma8_0(), sigma_8, rtol=1e-6,
+                      atol=0)
 
     z = np.linspace(0, 5, 20)
 
     assert np.allclose(
         cosmology_astropy.angular_diameter_distance(z).to(u.Mpc).value,
-        cosmology_camb.angular_diameter_distance(z), rtol=3e-5, atol=0)
+        cosmology_camb.angular_diameter_distance(z), rtol=1e-6, atol=0)
 
     assert np.allclose(
         cosmology_camb.get_Omega('photon', z),
-        cosmology_astropy.Ogamma(z), rtol=5e-5, atol=0)
+        cosmology_astropy.Ogamma(z), rtol=1e-5, atol=0)
 
     assert np.allclose(
         cosmology_camb.get_Omega('baryon', z) +
         cosmology_camb.get_Omega('cdm', z),
-        cosmology_astropy.Om(z), rtol=0, atol=5e-5)
+        cosmology_astropy.Om(z), rtol=1e-5, atol=0)
 
     assert np.allclose(
         cosmology_camb.get_Omega('neutrino', z) +
         cosmology_camb.get_Omega('nu', z),
-        cosmology_astropy.Onu(z), rtol=1e-2, atol=0)
+        cosmology_astropy.Onu(z), rtol=2e-3, atol=0)
 
 
 def test_gaussian_quadrature_2d():
