@@ -133,7 +133,8 @@ def effective_critical_surface_density(
         n_s = np.tile(n_s, len(z_l)).reshape(z_l.shape)
 
     sigma_crit_eff_inv = 1.0 / critical_surface_density(
-        z_l=z_l, d_l=d_l, z_s=z_s, d_s=d_s, comoving=comoving)
+        z_l=z_l, d_l=d_l, z_s=z_s, d_s=d_s, cosmology=cosmology,
+        comoving=comoving)
     sigma_crit_eff_inv = np.average(sigma_crit_eff_inv, weights=n_s, axis=-1)
 
     with np.errstate(divide='ignore'):

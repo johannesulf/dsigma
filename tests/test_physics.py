@@ -108,3 +108,27 @@ def test_lens_magnification():
         [4.49, 4.80, 4.99, 5.00, 4.74, 4.19, 3.41, 2.56, 1.78, 1.52])(theta)
 
     assert np.allclose(gt, gt_unruh, rtol=0.1, atol=0)
+
+
+def test_sigma_crit_little_h():
+
+    cosmo70 = FlatLambdaCDM(Om0=0.3, H0=70)
+    cosmo100 = FlatLambdaCDM(Om0=0.3, H0=100)
+    z_l = 0.3
+    z_s = 0.5
+
+    sigma_crit_1 = physics.critical_surface_density(
+        z_l, z_s, cosmology=cosmo70)
+    sigma_crit_2 = physics.critical_surface_density(
+        z_l, z_s, cosmology=cosmo100)
+    z_s = np.linspace(z_s, z_s, 10)
+    n_s = np.ones(len(z_s))
+    sigma_crit_3 = physics.effective_critical_surface_density(
+        z_l, z_s, n_s, cosmology=cosmo70)
+    sigma_crit_4 = physics.effective_critical_surface_density(
+        z_l, z_s, n_s, cosmology=cosmo70)
+    print(sigma_crit_1)
+
+    assert np.isclose(sigma_crit_1.value, sigma_crit_2.value)
+    assert np.isclose(sigma_crit_1.value, sigma_crit_3.value)
+    assert np.isclose(sigma_crit_1.value, sigma_crit_4.value)
