@@ -141,17 +141,14 @@ def effective_critical_surface_density(
         return 1.0 / sigma_crit_eff_inv
 
 
-def _to_camb(cosmology, sigma_8, n_s, z, k_max=1e3):
+def _to_camb(cosmology, z, k_max=1e3):
     r"""Convert an astropy cosmology object into a CAMB result object.
 
     Parameters
     ----------
     cosmology : astropy.cosmology.FlatLambdaCDM
-        Astropy cosmology.
-    sigma_8 : float
-        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`.
-    n_s : float
-        Primordial power spectrum index.
+        Astropy cosmology. Note that :math:`\sigma_8` and :math:`n_s` need to
+        be defined in the cosmology's metadata.
     z : numpy.ndarray
         Redshifts for which to compute the power spectrum.
     k_max : float, optional
@@ -166,8 +163,11 @@ def _to_camb(cosmology, sigma_8, n_s, z, k_max=1e3):
 
     Raises
     ------
+    ValueError:
+        If the power spectrum parameters are not defined in ``cosmology.meta``.
     TypeError
-        If cosmology is not an instance of ``astropy.cosmology.FlatLambdaCDM``.
+        If ``cosmology`` is not an instance of
+        ``astropy.cosmology.FlatLambdaCDM``.
     ImportError
         If ``camb`` is not installed.
 
@@ -175,6 +175,17 @@ def _to_camb(cosmology, sigma_8, n_s, z, k_max=1e3):
     if not isinstance(cosmology, FlatLambdaCDM):
         msg = "Cosmology must be instance of astropy.cosmology.FlatLambdaCDM."
         raise TypeError(msg)
+
+    for key, desc in zip(
+            ['n', 'sigma8'],
+            ["power spectrum index", "amplitude of matter fluctations"]):
+        if key not in cosmology.meta:
+            msg = (f"The cosmology object metadata needs a value for `{key}`, "
+                   f"the {desc}.")
+            raise ValueError(msg)
+
+    sigma_8 = cosmology.meta['sigma8']
+    n_s = cosmology.meta['n']
 
     try:
         import camb
@@ -256,8 +267,8 @@ def _gaussian_quadrature_2d(f, n_x, x_min, x_max, n_y, y_min, y_max):
 
 
 def lens_magnification_shear_bias(
-        theta, alpha_l, z_l, z_s, cosmology=None, sigma_8=0.82, n_s=0.96,
-        n_z=10, n_ell=1000, bessel_function_zeros=100, k_max=1e3):
+        theta, alpha_l, z_l, z_s, cosmology=None, n_z=10, n_ell=1000,
+        bessel_function_zeros=100, k_max=1e3):
     r"""Compute the lens magnification bias to the mean tangential shear.
 
     This function is based on equations (13) and (14) in Unruh et al. (2020).
@@ -275,12 +286,9 @@ def lens_magnification_shear_bias(
         Redshift of source. Can also be a array if ``theta`` is an array.
     cosmology : astropy.cosmology or None, optional
         Cosmology to assume for calculations. If ``None``, use
-        ``dsigma.default_cosmology``. Default is ``None``.
-    sigma_8 : float, optional
-        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
-        0.82.
-    n_s : float, optional
-        Primordial power spectrum index. Default is 0.96.
+        ``dsigma.default_cosmology``. Note that :math:`\sigma_8` and
+        :math:`n_s` need to be defined in the cosmology's metadata. Default is
+        ``None``.
     n_z : int, optional
         Number of redshift bins used in the integral. Larger numbers will be
         more accurate. Default is 10.
@@ -311,7 +319,7 @@ def lens_magnification_shear_bias(
         theta *= u.rad
     theta = theta.to(u.rad).value
 
-    r = _to_camb(cosmology, sigma_8, n_s, np.linspace(np.amax(z_l), 0, 10))
+    r = _to_camb(cosmology, np.linspace(np.amax(z_l), 0, 10))
     p = r.get_matter_power_interpolator(hubble_units=False, k_hunit=False).P
 
     def f(theta, z_l, z_s, z, ell):

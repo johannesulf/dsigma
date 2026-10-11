@@ -244,12 +244,13 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
         np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
 
-def lens_magnification_bias(table_l, alpha_l, sigma_8=0.82, n_s=0.96,
+def lens_magnification_bias(table_l, alpha_l,
                             photo_z_dilution_correction=False, shear=False):
     r"""Estimate the additive lens magnification bias.
 
     Note that the assumed cosmology is taken from ``table_l.meta['cosmology']``
-    which is added by ``precompute``.
+    which is added by ``precompute``. Note that :math:`\sigma_8` and
+    :math:`n_s` need to be defined in the cosmology's metadata.
 
     Parameters
     ----------
@@ -257,11 +258,6 @@ def lens_magnification_bias(table_l, alpha_l, sigma_8=0.82, n_s=0.96,
         Precompute results for the lenses.
     alpha_l : float
         The response of the lenses to magnification.
-    sigma_8 : float, optional
-        Scale of fluctuations at :math:`8 h^{-1} \, \mathrm{Mpc}`. Default is
-        0.82.
-    n_s : float, optional
-        Primordial power spectrum index. Default is 0.96.
     photo_z_dilution_correction : bool, optional
         If ``True``, correct the mean critical surface density for photo-z
         biases. Not used if `shear` is ``True``. This should be consistent with
@@ -294,8 +290,7 @@ def lens_magnification_bias(table_l, alpha_l, sigma_8=0.82, n_s=0.96,
             z_l, cosmology=cosmology, comoving=comoving)).to(
                 u.rad, cu.with_H0(cosmology.H0))
 
-    gt = lens_magnification_shear_bias(
-        theta, alpha_l, z_l, z_s, cosmology, sigma_8=sigma_8, n_s=n_s)
+    gt = lens_magnification_shear_bias(theta, alpha_l, z_l, z_s, cosmology)
 
     if shear:
         return gt

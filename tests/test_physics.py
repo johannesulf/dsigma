@@ -38,13 +38,11 @@ def test_critical_surface_density():
 def test_to_camb(m_nu):
     # Test that we can convert to CAMB correctly.
 
-    sigma_8 = 0.7
     cosmology_astropy = default_cosmology.clone(m_nu=m_nu, Tcmb0=3.0)
-    cosmology_camb = physics._to_camb(cosmology_astropy, sigma_8, 0.96,
-                                      [1, 0.5, 0])
+    cosmology_camb = physics._to_camb(cosmology_astropy, [1, 0.5, 0])
 
-    assert np.isclose(cosmology_camb.get_sigma8_0(), sigma_8, rtol=1e-6,
-                      atol=0)
+    assert np.isclose(cosmology_camb.get_sigma8_0(),
+                      cosmology_astropy.meta['sigma8'], rtol=1e-6, atol=0)
 
     z = np.linspace(0, 5, 20)
 
@@ -91,16 +89,14 @@ def test_lens_magnification():
     z_s = 0.99
 
     # Millennium simulation cosmology
-    cosmology = FlatLambdaCDM(Ob0=0.045, Om0=0.25, H0=73, Tcmb0=2.7255)
-    sigma_8 = 0.9
-    n_s = 1.0
+    cosmology = FlatLambdaCDM(
+        Ob0=0.045, Om0=0.25, H0=73, Tcmb0=2.7255, meta=dict(sigma8=0.9, n=1.0))
 
     theta = np.geomspace(0.5, 20, 30) * u.arcmin
 
     alpha_l = 2.71
     gt = physics.lens_magnification_shear_bias(
-        theta, alpha_l, z_l, z_s, cosmology=cosmology, sigma_8=sigma_8,
-        n_s=n_s)
+        theta, alpha_l, z_l, z_s, cosmology=cosmology)
 
     # digitized from Unruh et al. (2020)
     gt_unruh = 1e-5 * make_interp_spline(
