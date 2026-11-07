@@ -1,5 +1,7 @@
 """Module for stacking lensing results after pre-computation."""
 
+from warnings import warn
+
 import numpy as np
 from astropy import units as u
 from astropy.cosmology import units as cu
@@ -350,6 +352,10 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
         catalog is provided.
 
     """
+    if table_r is not None and not (boost_correction or random_subtraction):
+        msg = "A random catalog has been provided but will not be used."
+        warn(msg, stacklevel=2)
+
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]
@@ -463,6 +469,10 @@ def excess_surface_density(table_l, table_r=None,
         catalog is provided.
 
     """
+    if table_r is not None and not (boost_correction or random_subtraction):
+        msg = "A random catalog has been provided but will not be used."
+        warn(msg, stacklevel=2)
+
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]

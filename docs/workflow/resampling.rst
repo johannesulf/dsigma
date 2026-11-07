@@ -37,7 +37,7 @@ We are now ready to derive uncertainties for any summary statistic derived from 
     from dsigma.jackknife import jackknife_resampling
 
     delta_sigma_cov = jackknife_resampling(excess_surface_density, table_l,
-                                           table_r)
+                                           table_r, random_subtraction=True)
 
 Choosing the Number of Fields
 -----------------------------
