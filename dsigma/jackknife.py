@@ -236,7 +236,7 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
         Default is ``True``.
     return_samples : bool, optional
         If ``True``, return the list of samples used to compute the covariance
-        as a second return value.
+        as a second return value. Default is ``False``.
     **kwargs
         Additional keyword arguments to be passed to the function.
 

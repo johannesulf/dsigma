@@ -9,7 +9,7 @@ Excess Surface Density
 The ultimate goal of :code:`dsigma` is to provide estimates of the mean so-called excess surface density (ESD), also written as :math:`\Delta\Sigma`, around a set of "lens" galaxies. The ESD is defined as the following quantity:
 
 .. math::
-    
+
     \Delta\Sigma (r_p) = \langle \Sigma (<r_p) \rangle - \Sigma (r_p), .
 
 The first term is the (area-weighted) average surface density inside a circle of (projected) radius :math:`r_p` around the lens galaxy, and the second term is the mean surface density at the edge of that circle.
@@ -64,7 +64,7 @@ Lens Selection Bias
 Often, our lens sample is not complete. For example, we might only have redshifts for a subset of all lens galaxies. Since redshifts are required to estimate :math:`\Delta\Sigma`, lens galaxies without redshifts must be excluded from the analysis. However, depending on the properties of the lens incompleteness, the intrinsic :math:`\Delta\Sigma` is often correlated with whether a lens galaxy makes it into our sample. Thus, the naive :math:`\Delta\Sigma` estimate using the incomplete lens sample could be biased relative to the :math:`\Delta\Sigma` of the complete sample. Assigning suitable systematic weights :math:`w_{\mathrm{sys}, l}` to the lens galaxies can counteract this effect. In this case, we replace the above estimator with
 
 .. math::
-    
+
     \Delta\Sigma =
         \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls} \Sigma_{\mathrm{crit}}
               (z_l, z_s) e_t}{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}} \, .
@@ -119,6 +119,7 @@ The photometric redshift correction above only accounts for the average effect o
 .. math::
 
     b =
+        \frac{\sum_r w_{\mathrm{sys}, r}}{\sum_l w_{\mathrm{sys}, l}}
         \frac{\sum_{ls} w_{\mathrm{sys}, l} w_{ls}}{\sum_{rs}
               w_{\mathrm{sys}, r} w_{rs}} \, .
 
