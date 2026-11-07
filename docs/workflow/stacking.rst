@@ -9,11 +9,11 @@ The function :func:`~dsigma.stacking.excess_surface_density` allows us to calcul
     from astropy.cosmology import units as cu
 
     from dsigma.stacking import excess_surface_density
-    
+
     result = excess_surface_density(
         table_l, return_table=True, scalar_shear_response_correction=True,
         shear_responsivity_correction=True, selection_bias_correction=True)
-    
+
     for key in result.colnames:
         # Drop little h from units.
         if key[:2] == 'rp':
@@ -22,7 +22,7 @@ The function :func:`~dsigma.stacking.excess_surface_density` allows us to calcul
             result[key] = result[key].to(u.Msun / u.pc**2, cu.with_H0(Planck15.H0))
         if key != 'n_pairs':
             result[key].format='.3f'
-    
+
     result.pprint_all()
 
 The output looks something like this. ``ds_raw`` is the original, uncorrected lensing amplitude whereas ``ds`` denotes the corrected one. ``1 + m``, ``2R``, and ``1 + m_sel`` denote the shear bias, shear responsivity, and selection bias correction terms, respectively.
@@ -30,7 +30,7 @@ The output looks something like this. ``ds_raw`` is the original, uncorrected le
 .. code-block:: console
 
     rp_min rp_max  n_pairs       ds_raw          ds       z_l   z_s   1+m    2R  1+m_sel
-     Mpc    Mpc              solMass / pc2 solMass / pc2                                
+     Mpc    Mpc              solMass / pc2 solMass / pc2
     ------ ------ ---------- ------------- ------------- ----- ----- ----- ----- -------
      0.100  0.158     113251        71.999        48.512 0.414 1.092 0.875 1.682   1.008
      0.158  0.251     289741        50.827        34.175 0.413 1.094 0.876 1.682   1.010
@@ -45,3 +45,13 @@ The output looks something like this. ``ds_raw`` is the original, uncorrected le
     10.000 15.849 1150384474         0.865         0.582 0.413 1.095 0.875 1.682   1.009
     15.849 25.119 2878215211         0.592         0.398 0.414 1.095 0.875 1.682   1.009
     25.119 39.811 7184234609         0.442         0.298 0.414 1.095 0.875 1.682   1.009
+
+Finally, we note that :code:`dsigma` can also compute the mean tangential shear via the function :func:`~dsigma.stacking.tangential_shear`. This function takes the same arguments as :func:`~dsigma.stacking.excess_surface_density` but omits the :math:`\Sigma_\mathrm{crit}` pre-factor to convert :math:`\gamma_t` to :math:`\Delta\Sigma` estimates. However, by default, the weighting still takes into account the usual :math:`\Sigma_\mathrm{crit}^{-\alpha}` scaling with :math:`\alpha=2`. To compute the usual estimate for the tangential shear, one needs to set ``weighting=0``, corresponding to :math:`\alpha=0`, i.e, no weighting by :math:`\Sigma_\mathrm{crit}`, in :func:`~dsigma.precompute.precompute`. Furthermore, one needs to select the appropriate ``z_l_max`` such that all lens-source pairs are counted.
+
+.. code-block:: python
+
+    from dsigma.stacking import tangential_shear
+
+    gt = tangential_shear(
+        table_l, return_table=False, scalar_shear_response_correction=True,
+        shear_responsivity_correction=True, selection_bias_correction=True)
