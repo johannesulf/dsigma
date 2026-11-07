@@ -1,7 +1,7 @@
 Background
 ==========
 
-Here, we will give a brief overview of the various equations and estimators provided by :code:`dsigma`. However, this document is not a full theoretical discussion of the theory of gravitational lensing and galaxy-galaxy lensing. For this, we refer the reader to suitable standard literature like `Bartelmann (2001) <https://ui.adsabs.harvard.edu/abs/2001PhR...340..291B/abstract>`_.
+Here, we will give a brief overview of the various equations and estimators provided by :code:`dsigma`. However, this document is not a full theoretical discussion of the theory of gravitational lensing and galaxy-galaxy lensing. For this, we refer the reader to suitable standard literature like `Bartelmann (2001) <https://doi.org/10.1016/S0370-1573(00)00082-X>`_.
 
 Excess Surface Density
 ----------------------
