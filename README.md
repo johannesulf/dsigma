@@ -9,8 +9,7 @@
 ![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fjohannesulf%2Fdsigma%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
 ![PyPI - Version](https://img.shields.io/pypi/v/dsigma)
 [![License: MIT](https://img.shields.io/github/license/johannesulf/dsigma?color=blue)](https://raw.githubusercontent.com/johannesulf/dsigma/main/LICENSE)
-[![DOI](https://img.shields.io/badge/doi-10.5281%2Fzenodo.20378642-blue
-)](https://doi.org/10.5281/zenodo.20378642)
+[![DOI](https://img.shields.io/badge/doi-10.5281%2Fzenodo.20378642-blue)](https://doi.org/10.5281/zenodo.20378642)
 
 </div>
 
@@ -18,9 +17,11 @@
 
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
 
+``dsigma`` focuses specifically on computing the excess surface density $\Delta\Sigma$ around a set of lens galaxies as a function of projected physical separation. In principle, the more general ``TreeCorr`` package can also be used to compute various two-point correlation functions, including galaxy-galaxy lensing. However, for galaxy-galaxy lensing, it only computes the tangential shear $\gamma_t$ as a function of angular distance. Furthermore, ``TreeCorr`` has a steeper learning curve and requires more care in implementing survey-specific corrections.
+
 ## Authors
 
-* Johannes Lange
+* Johannes U. Lange
 * Song Huang
 
 ## Installation
