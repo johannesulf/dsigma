@@ -5,8 +5,9 @@ from dsigma import precompute, stacking
 from fixtures import test_catalogs
 
 
-@pytest.mark.parametrize('statistic', ['ds', 'gt'])
-def test_correction_factors(test_catalogs, statistic):
+@pytest.mark.parametrize('stacking_function', [
+    stacking.excess_surface_density, stacking.tangential_shear])
+def test_correction_factors(test_catalogs, stacking_function):
     # Check that all correction factors are correctly included.
 
     table_l, table_s = test_catalogs
@@ -18,18 +19,20 @@ def test_correction_factors(test_catalogs, statistic):
                   shear_responsivity_correction=True,
                   selection_bias_correction=True, return_table=True)
 
-    if statistic == 'ds':
-        result = stacking.excess_surface_density(table_l, **kwargs)
+    result = stacking_function(table_l, **kwargs)
+    if stacking_function == stacking.excess_surface_density:
+        key = 'ds'
     else:
-        result = stacking.tangential_shear(table_l, **kwargs)
+        key = 'gt'
 
     assert np.allclose(
-        result[statistic], result[f'{statistic}_raw'] /
-        result['1+m'] / result['R_t'] / result['2R'] / result['1+m_sel'],
-        rtol=0, atol=1e-9)
+        result[key], result[f'{key}_raw'] / result['1+m'] / result['R_t'] /
+        result['2R'] / result['1+m_sel'], rtol=0, atol=1e-9)
 
 
-def test_random_subtraction(test_catalogs):
+@pytest.mark.parametrize('stacking_function', [
+    stacking.excess_surface_density, stacking.tangential_shear])
+def test_random_subtraction(test_catalogs, stacking_function):
     # Check that random subtraction works.
 
     table_l, table_s = test_catalogs
@@ -42,11 +45,16 @@ def test_random_subtraction(test_catalogs):
                   selection_bias_correction=True,
                   table_r=table_l, random_subtraction=True)
 
-    for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
-        assert np.all(0 == stat(table_l, **kwargs))
+    assert np.all(0 == stacking_function(table_l, **kwargs))
+
+    kwargs['random_subtraction'] = False
+    with pytest.warns():
+        stacking_function(table_l, **kwargs)
 
 
-def test_boost_factor(test_catalogs):
+@pytest.mark.parametrize('stacking_function', [
+    stacking.excess_surface_density, stacking.tangential_shear])
+def test_boost_factor(test_catalogs, stacking_function):
     # Check that the boost factor works.
 
     table_l, table_s = test_catalogs
@@ -55,9 +63,13 @@ def test_boost_factor(test_catalogs):
     table_l = precompute.precompute(table_l, table_s, rp_bins)
     kwargs = dict(boost_correction=True, table_r=table_l)
 
-    for stat in [stacking.excess_surface_density, stacking.tangential_shear]:
-        assert np.allclose(stat(table_l), stat(table_l, **kwargs), rtol=0,
-                           atol=1e-9)
+    assert np.allclose(
+        stacking_function(table_l), stacking_function(table_l, **kwargs),
+        rtol=0, atol=1e-9)
+
+    kwargs['boost_correction'] = False
+    with pytest.warns():
+        stacking_function(table_l, **kwargs)
 
 
 def test_lens_magnification(test_catalogs):

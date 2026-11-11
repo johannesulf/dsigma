@@ -13,8 +13,8 @@ def process_decade():
 
     * ``shear_catalog_sparse.hdf5``
     * ``z_grid.npy``
-    * ``ngc_n_of_z.npy``
-    * ``sgc_n_of_z.npy``
+    * ``NGC_n_of_z.npy``
+    * ``SGC_n_of_z.npy``
 
     It will produce two files, ``decade_ngc.hdf5`` and ``decade_sgc.hdf5``
     containing the processed source catalog and calibration :math:`n(z)` for

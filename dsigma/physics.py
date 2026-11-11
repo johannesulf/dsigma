@@ -328,9 +328,9 @@ def lens_magnification_shear_bias(
             z_u).to(u.Mpc).value[idx])
         return ((1 + z)**2 * ell * jv(2, ell * theta) *
                 (cosmology.H0 / cosmology.H(z_u)[idx]) *
-                cosmology.angular_diameter_distance_z1z2(z_u, z_l)[idx] /
+                cosmology.angular_diameter_distance(z_u, z_l)[idx] /
                 cosmology.angular_diameter_distance(z_l) *
-                cosmology.angular_diameter_distance_z1z2(z_u, z_s)[idx] /
+                cosmology.angular_diameter_distance(z_u, z_s)[idx] /
                 cosmology.angular_diameter_distance(z_s) *
                 np.where(k > k_max, 0, np.array(
                     [np.squeeze(p(z_i, k_i)) for z_i, k_i in zip(z, k)])))

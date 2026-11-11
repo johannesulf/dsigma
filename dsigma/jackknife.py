@@ -23,8 +23,8 @@ def compute_jackknife_fields(table, centers, distance_threshold=1,
     Afterwards, KMeans clustering is run. The initial cluster centers are
     random points from each continuous field. The number of initial cluster
     centers per field is determined according to the total weight of each
-    continuous field. The centers are defined in cartesian coordinates on a unit
-    sphere.
+    continuous field. The centers are defined in cartesian coordinates on a
+    unit sphere.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def smooth_covariance_matrix(cov, sigma):
     # values to the off-diagonal elements.
     while not np.allclose(np.diag(cor), 0, rtol=0, atol=1e-12):
         cor += (gaussian_filter(np.diag(np.diag(cor)), sigma) -
-                                np.diag(np.diag(cor)))
+                np.diag(np.diag(cor)))
 
     for i in range(n_dim):
         cor[i, i] = 1
@@ -236,7 +236,7 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
         Default is ``True``.
     return_samples : bool, optional
         If ``True``, return the list of samples used to compute the covariance
-        as a second return value.
+        as a second return value. Default is ``False``.
     **kwargs
         Additional keyword arguments to be passed to the function.
 

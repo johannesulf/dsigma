@@ -1,5 +1,7 @@
 """Module for stacking lensing results after pre-computation."""
 
+from warnings import warn
+
 import numpy as np
 from astropy import units as u
 from astropy.cosmology import units as cu
@@ -16,6 +18,31 @@ __all__ = ['boost_factor', 'excess_surface_density', 'lens_magnification_bias',
            'shear_responsivity_factor', 'tangential_shear']
 
 
+def check_required_columns(table, keys):
+    """Convenience function to check that a table has the required columns.
+
+    Parameters
+    ----------
+    table : astropy.table.Table
+        Table to be checked.
+    keys : list of str
+        Column names which are checked.
+
+    Raises
+    ------
+    ValueError
+        If any of the required columns is not present in the table.
+
+    """
+    for key in keys:
+        if key not in table.colnames:
+            msg = (f"The table is missing the required column `{key}`. "
+                   "This column is added by `dsigma.precompute.precompute`. "
+                   "Make sure you ran it on this table and, if applicable, "
+                   "inputs needed for the required correction were provided.")
+            raise ValueError(msg)
+
+
 def number_of_pairs(table_l):
     """Compute the number of lens-source pairs per bin.
 
@@ -30,6 +57,7 @@ def number_of_pairs(table_l):
         The number of lens-source pairs in each radial bin.
 
     """
+    check_required_columns(table_l, ['sum 1'])
     return np.sum(table_l['sum 1'].data, axis=0)
 
 
@@ -47,6 +75,7 @@ def raw_tangential_shear(table_l):
         The raw, uncorrected tangential shear in each radial bin.
 
     """
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', 'sum w_ls e_t'])
     return (np.dot(table_l['w_sys'].data, table_l['sum w_ls e_t'].data) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
@@ -65,6 +94,8 @@ def raw_excess_surface_density(table_l):
         The raw, uncorrected excess surface density in each radial bin.
 
     """
+    check_required_columns(table_l, [
+        'w_sys', 'sum w_ls', 'sum w_ls e_t sigma_crit'])
     return (np.dot(table_l['w_sys'].data,
                    table_l['sum w_ls e_t sigma_crit'].quantity) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
@@ -84,6 +115,8 @@ def photo_z_dilution_factor(table_l):
         Photometric redshift bias :math:`f_{\mathrm{bias}}`.
 
     """
+    check_required_columns(table_l, [
+        'w_sys', 'sum w_ls e_t sigma_crit', 'sum w_ls e_t sigma_crit f_bias'])
     return (np.dot(table_l['w_sys'].data,
                    table_l['sum w_ls e_t sigma_crit f_bias'].data) /
             np.dot(table_l['w_sys'].data,
@@ -109,6 +142,8 @@ def boost_factor(table_l, table_r):
         Boost factor in each radial bin.
 
     """
+    check_required_columns(table_l, ['w_sys', 'sum w_ls'])
+    check_required_columns(table_r, ['w_sys', 'sum w_ls'])
     return (
         np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data) /
         np.dot(table_r['w_sys'].data, table_r['sum w_ls'].data) *
@@ -136,6 +171,7 @@ def scalar_shear_response_factor(table_l, selection_bias=False):
 
     """
     m = 'm_sel' if selection_bias else 'm'
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', f'sum w_ls {m}'])
 
     return (np.dot(table_l['w_sys'].data, table_l[f'sum w_ls {m}'].data) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
@@ -158,6 +194,7 @@ def matrix_shear_response_factor(table_l):
         Tangential shear response factor in each radial bin.
 
     """
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', 'sum w_ls R_T'])
     return (np.dot(table_l['w_sys'].data, table_l['sum w_ls R_T'].data) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
@@ -176,6 +213,8 @@ def shear_responsivity_factor(table_l):
         Shear responsivity factor in each radial bin.
 
     """
+    check_required_columns(table_l, [
+        'w_sys', 'sum w_ls', 'sum w_ls (1 - e_rms^2)'])
     return (
         np.dot(table_l['w_sys'].data, table_l['sum w_ls (1 - e_rms^2)'].data) /
         np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
@@ -195,6 +234,7 @@ def mean_lens_redshift(table_l):
         Mean lens redshift in each bin.
 
     """
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', 'sum w_ls z_l'])
     return (np.dot(table_l['w_sys'].data, table_l['sum w_ls z_l'].data) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
@@ -213,6 +253,7 @@ def mean_source_redshift(table_l):
         Mean source redshift in each bin.
 
     """
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', 'sum w_ls z_s'])
     return (np.dot(table_l['w_sys'].data, table_l['sum w_ls z_s'].data) /
             np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
 
@@ -239,6 +280,7 @@ def mean_critical_surface_density(table_l, photo_z_dilution_correction=False):
         key = 'sigma_crit f_bias'
     else:
         key = 'sigma_crit'
+    check_required_columns(table_l, ['w_sys', 'sum w_ls', f'sum w_ls {key}'])
     return (
         np.dot(table_l['w_sys'].data, table_l[f'sum w_ls {key}'].quantity) /
         np.dot(table_l['w_sys'].data, table_l['sum w_ls'].data))
@@ -350,6 +392,10 @@ def tangential_shear(table_l, table_r=None, boost_correction=False,
         catalog is provided.
 
     """
+    if table_r is not None and not (boost_correction or random_subtraction):
+        msg = "A random catalog has been provided but will not be used."
+        warn(msg, stacklevel=2)
+
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]
@@ -463,6 +509,10 @@ def excess_surface_density(table_l, table_r=None,
         catalog is provided.
 
     """
+    if table_r is not None and not (boost_correction or random_subtraction):
+        msg = "A random catalog has been provided but will not be used."
+        warn(msg, stacklevel=2)
+
     result = Table()
 
     result['rp_min'] = table_l.meta['bins'][:-1]

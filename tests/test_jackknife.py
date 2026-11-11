@@ -57,7 +57,8 @@ def test_jackknife(test_catalogs, n_jk):
         assert np.std(cor) > np.std(cor_smooth)
 
         # The mean value of the correlation matrix should be the same.
-        assert np.isclose(np.mean(cor), np.mean(cor_smooth), rtol=0, atol=1e-12)
+        assert np.isclose(np.mean(cor), np.mean(cor_smooth), rtol=0,
+                          atol=1e-12)
 
     # With random subtraction, result should always be 0.
     cov = jackknife.jackknife_resampling(
@@ -74,8 +75,9 @@ def test_jackknife(test_catalogs, n_jk):
 
     for random_subtraction in [True, False]:
         cov = jackknife.jackknife_resampling(
-            diff, table_l, table_r=table_l, table_l_2=table_l,
-            table_r_2=table_l, random_subtraction=random_subtraction)
+            diff, table_l, table_r=table_l if random_subtraction else None,
+            table_l_2=table_l, table_r_2=table_l,
+            random_subtraction=random_subtraction)
         assert np.allclose(cov, 0)
 
     # Covariance should have quantities in some cases.
