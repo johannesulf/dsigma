@@ -17,7 +17,7 @@
 
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
 
-``dsigma`` focuses specifically on computing the excess surface density $\Delta\Sigma$ around a set of lens galaxies as a function of projected physical separation. In principle, the more general ``TreeCorr`` package can also be used to compute various two-point correlation functions, including galaxy-galaxy lensing. However, for galaxy-galaxy lensing, it only computes the tangential shear $\gamma_t$ as a function of angular distance. Furthermore, ``TreeCorr`` has a steeper learning curve and requires more care in implementing survey-specific corrections.
+``dsigma`` focuses specifically on computing the excess surface density $\Delta\Sigma$ around a set of lens galaxies as a function of projected physical separation. In principle, the more general ``TreeCorr`` package can also be used to compute various two-point correlation functions, including galaxy-galaxy lensing. However, for galaxy-galaxy lensing, ``TreeCorr`` computes the tangential shear $\gamma_t$, not $\Delta\Sigma$. Furthermore, ``TreeCorr`` has a steeper learning curve and requires more care in implementing survey-specific correction terms.
 
 ## Authors
 
