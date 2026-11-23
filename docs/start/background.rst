@@ -151,7 +151,7 @@ This formalism allows us to quantify, for example, how the sensitivity to shape 
 
 .. math::
 
-    R_t = R_{11} \cos^2 (2 \phi) + R_{22} \sin^2 (2 \phi)+ (R_{12} + R_{21})
+    R_t = R_{11} \cos^2 (2 \phi) + R_{22} \sin^2 (2 \phi) - (R_{12} + R_{21})
           \sin (2 \phi) \cos (2 \phi)
 
 where :math:`\phi` is the polar angle of the source in the lens coordinate system. We then calculate the mean tangential shear response and divide :math:`\Delta\Sigma` by :math:`\overline{R_t}`, similar to the scalar case.

@@ -43,8 +43,9 @@ def interpolate_over_redshift(f, z, *args, **kwargs):
 
     # Interpolating the sorted array is faster.
     idx = np.argsort(z)
-    y = make_interp_spline(a_support, y_support)(1.0 / (1 + z[idx]))
-    y[idx] = y
+    y_sorted = make_interp_spline(a_support, y_support)(1.0 / (1 + z[idx]))
+    y = np.empty_like(y_sorted)
+    y[idx] = y_sorted
 
     if isinstance(y_support, u.Quantity):
         y = y * y_support.unit

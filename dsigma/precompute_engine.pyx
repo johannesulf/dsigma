@@ -312,7 +312,7 @@ def precompute_engine(
                     if has_R_matrix:
                         sum_w_ls_R_T[offset_result + i_bin] += w_ls * (
                             R_11[i_s] * cos_2phi * cos_2phi +
-                            R_22[i_s] * sin_2phi * sin_2phi +
+                            R_22[i_s] * sin_2phi * sin_2phi -
                             (R_12[i_s] + R_21[i_s]) * sin_2phi * cos_2phi)
 
         if progress_bar:

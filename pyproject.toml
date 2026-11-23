@@ -8,15 +8,16 @@ description = "A Galaxy-Galaxy Lensing Python Package"
 requires-python = ">=3.11"
 authors = [
   {name = "Johannes U. Lange", email = "jlange@american.edu"},
-  {name = "Song Huang", email = "shuang@tsinghua.edu.cn"}
+  {name = "Song Huang", email = "shuang@tsinghua.edu.cn"},
+  {name = "Alexie Leauthaud", email = "alexie@ucsc.edu"}
 ]
 readme = "README.md"
 keywords = ["astronomy", "weak-lensing"]
 license = "MIT"
 dependencies = [
-  "astropy",
+  "astropy>=8.0.0",
   "astropy-healpix",
-  "numpy",
+  "numpy>=2.0.1",
   "scikit-learn",
   "scipy",
   "tqdm"

@@ -15,7 +15,7 @@ def test_jackknife(test_catalogs, n_jk):
     table_l, table_s = test_catalogs
 
     jackknife.compute_jackknife_fields(table_l, n_jk)
-    assert len(np.unique(table_l['field_jk']) == n_jk)
+    assert len(np.unique(table_l['field_jk'])) == n_jk
 
     n_bins = 10
     theta_bins = np.logspace(0, 1, n_bins + 1) * u.deg
@@ -44,7 +44,7 @@ def test_jackknife(test_catalogs, n_jk):
     # Test the smoothing.
     cov = jackknife.jackknife_resampling(stacking.tangential_shear, table_l)
     for sigma in [1.0, 2.0, 5.0]:
-        cov_smooth = jackknife.smooth_covariance_matrix(cov, 1.0)
+        cov_smooth = jackknife.smooth_covariance_matrix(cov, sigma)
 
         # Diagonal should be unchanged.
         assert np.allclose(np.diag(cov), np.diag(cov_smooth))
@@ -76,7 +76,8 @@ def test_jackknife(test_catalogs, n_jk):
     for random_subtraction in [True, False]:
         cov = jackknife.jackknife_resampling(
             diff, table_l, table_r=table_l if random_subtraction else None,
-            table_l_2=table_l, table_r_2=table_l,
+            table_l_2=table_l,
+            table_r_2=table_l if random_subtraction else None,
             random_subtraction=random_subtraction)
         assert np.allclose(cov, 0)
 
