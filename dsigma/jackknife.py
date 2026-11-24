@@ -204,13 +204,14 @@ def smooth_covariance_matrix(cov, sigma):
 
     # Diagonal elements were 0 but may not be 0 now. Undo that by return the
     # values to the off-diagonal elements.
-    m = np.zeros((n_dim, n_dim))
-    for i in range(n_dim):
-        x = np.zeros((n_dim, n_dim))
-        x[i, i] = 1.0
-        m[:, i] = np.diag(gaussian_filter(x, sigma) - x)
-    x = np.linalg.solve(m, np.diag(cor))
-    cor -= gaussian_filter(np.diag(x), sigma) - np.diag(x)
+    if not np.allclose(np.diag(cor), 0, rtol=0, atol=1e-9):
+        m = np.zeros((n_dim, n_dim))
+        for i in range(n_dim):
+            x = np.zeros((n_dim, n_dim))
+            x[i, i] = 1.0
+            m[:, i] = np.diag(gaussian_filter(x, sigma) - x)
+        x = np.linalg.solve(m, np.diag(cor))
+        cor -= gaussian_filter(np.diag(x), sigma) - np.diag(x)
 
     # Set the diagonal back to 1.
     np.fill_diagonal(cor, 1)

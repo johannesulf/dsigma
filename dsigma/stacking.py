@@ -19,7 +19,7 @@ __all__ = ['boost_factor', 'excess_surface_density', 'lens_magnification_bias',
 
 
 def check_required_columns(table, keys):
-    """Convenience function to check that a table has the required columns.
+    """Check that a table has the required columns.
 
     Parameters
     ----------
