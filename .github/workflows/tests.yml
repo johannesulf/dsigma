@@ -28,14 +28,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install ruff pytest pytest-cov treecorr camb
+        python -m pip install -e .[test]
+        python -m pip install ruff pytest-cov
     - name: Lint with ruff
       run: |
         ruff check dsigma
         ruff check --exit-zero --select ALL  --ignore Q,ANN,FBT002 dsigma
     - name: Test with pytest
       run: |
-        python -m pip install -e .
         python -m pytest --cov=dsigma --durations=0 --cov-report lcov
     - name: Coveralls
       if: ${{ success() && ( matrix.python-version == '3.14' ) && ( matrix.os == 'ubuntu-latest' ) }}

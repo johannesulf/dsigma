@@ -5,7 +5,8 @@ from astropy.coordinates import SkyCoord
 from astropy.cosmology import LambdaCDM, FlatLambdaCDM
 from astropy.table import Table
 from dsigma.precompute import precompute
-from fixtures import test_catalogs
+
+from test_fixtures import test_catalogs
 
 
 def test_pairs_below_pixel_size():

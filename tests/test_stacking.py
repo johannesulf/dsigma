@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from dsigma import precompute, stacking
-from fixtures import test_catalogs
+from test_fixtures import test_catalogs
 
 
 @pytest.mark.parametrize('stacking_function', [

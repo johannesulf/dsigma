@@ -6,7 +6,7 @@ from astropy import units as u
 from astropy.cosmology import units as cu
 
 from dsigma import jackknife, precompute, stacking
-from fixtures import test_catalogs
+from test_fixtures import test_catalogs
 
 
 @pytest.mark.parametrize('n_jk', [20, 50, 100, 200])

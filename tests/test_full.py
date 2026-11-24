@@ -8,7 +8,7 @@ from astropy.cosmology import units as cu
 from astropy.table import Table
 
 from dsigma import physics, precompute, stacking
-from fixtures import test_catalogs
+from test_fixtures import test_catalogs
 
 
 @pytest.mark.parametrize('n_jobs', [1, 2])
