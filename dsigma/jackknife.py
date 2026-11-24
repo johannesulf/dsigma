@@ -184,21 +184,36 @@ def smooth_covariance_matrix(cov, sigma):
     cov_smooth : numpy.ndarray or astropy.units.quantity.Quantity
         Smoothed covariance matrix.
 
+    Raises
+    ------
+    ValueError
+        If the covariance matrix contains 0s on the diagonal or NaNs.
+
     """
+    if np.any(np.diag(cov) == 0) or np.any(np.isnan(cov)):
+        msg = ("Correlation matrix is undefined. Covariance matrix cannot "
+               "contain 0s on the diagonal or NaNs.")
+        raise ValueError(msg)
+
     n_dim = len(np.diag(cov))
     diag_cov = np.diag(cov)
     cor = cov / np.outer(np.sqrt(diag_cov), np.sqrt(diag_cov))
 
     # Set diagonal elements to 0 before filtering.
     cor = gaussian_filter(cor - np.eye(n_dim), sigma)
+
     # Diagonal elements were 0 but may not be 0 now. Undo that by return the
     # values to the off-diagonal elements.
-    while not np.allclose(np.diag(cor), 0, rtol=0, atol=1e-12):
-        cor += (gaussian_filter(np.diag(np.diag(cor)), sigma) -
-                np.diag(np.diag(cor)))
-
+    m = np.zeros((n_dim, n_dim))
     for i in range(n_dim):
-        cor[i, i] = 1
+        x = np.zeros((n_dim, n_dim))
+        x[i, i] = 1.0
+        m[:, i] = np.diag(gaussian_filter(x, sigma) - x)
+    x = np.linalg.solve(m, np.diag(cor))
+    cor -= gaussian_filter(np.diag(x), sigma) - np.diag(x)
+
+    # Set the diagonal back to 1.
+    np.fill_diagonal(cor, 1)
 
     return cor * np.outer(np.sqrt(diag_cov), np.sqrt(diag_cov))
 
@@ -247,6 +262,7 @@ def jackknife_resampling(f, table_l, table_r=None, table_l_2=None,
     samples : list[array]
         Only returned if return_samples=True. The samples used to compute the
         covariance.
+
     """
     samples = []
 
