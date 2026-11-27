@@ -68,8 +68,8 @@ def precompute_engine(
         Whether to show a progress bar tracking the processed lens pixels.
 
     """
-    cdef long[::1] n_pix_l_c = n_pix_l
-    cdef long[::1] n_pix_s_c = n_pix_s
+    cdef long long[::1] n_pix_l_c = n_pix_l
+    cdef long long[::1] n_pix_s_c = n_pix_s
 
     cdef double[::1] z_l = table_l['z']
     cdef double[::1] z_s = table_s['z']
@@ -93,7 +93,7 @@ def precompute_engine(
     cdef bint has_sigma_crit_eff = 'sigma_crit_eff' in table_l
     cdef int n_z_bins = 0
     cdef double[::1] sigma_crit_eff
-    cdef long[::1] z_bin
+    cdef long long[::1] z_bin
     if has_sigma_crit_eff:
         n_z_bins = len(table_l['sigma_crit_eff']) // len(table_l['z'])
         sigma_crit_eff = table_l['sigma_crit_eff']
@@ -124,7 +124,7 @@ def precompute_engine(
 
     cdef double[::1] chord_sq_bins_c = chord_sq_bins
 
-    cdef long[::1] sum_1 = table_r['sum 1']
+    cdef long long[::1] sum_1 = table_r['sum 1']
     cdef double[::1] sum_w_ls = table_r['sum w_ls']
     cdef double[::1] sum_w_ls_e_t = table_r['sum w_ls e_t']
     cdef double[::1] sum_w_ls_e_t_sigma_crit = table_r['sum w_ls e_t sigma_crit']
@@ -159,10 +159,10 @@ def precompute_engine(
     cdef double[::1] y_pix_s = np.ascontiguousarray(xyz_pix_s[:, 1])
     cdef double[::1] z_pix_s = np.ascontiguousarray(xyz_pix_s[:, 2])
 
-    cdef long i_pix_l, i_l, i_l_min, i_l_max
-    cdef long i_pix_s, i_s, i_s_min, i_s_max
-    cdef long i_bin, n_bins = len(chord_sq_bins) // len(table_l['z'])  - 1
-    cdef long offset_bin, offset_result
+    cdef long long i_pix_l, i_l, i_l_min, i_l_max
+    cdef long long i_pix_s, i_s, i_s_min, i_s_max
+    cdef int i_bin, n_bins = len(chord_sq_bins) // len(table_l['z'])  - 1
+    cdef long long offset_bin, offset_result
     cdef double chord_sq_pix_max, chord_sq_pix_min, chord_sq_ls
     cdef double sin_ra_l_minus_ra_s, cos_ra_l_minus_ra_s
     cdef double sin_2phi, cos_2phi, tan_phi, tan_phi_num, tan_phi_den, e_t

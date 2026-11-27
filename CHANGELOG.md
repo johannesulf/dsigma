@@ -4,11 +4,19 @@ Notable changes to dsigma will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `dsigma` is finally fully tested on and compatible with Windows.
+- `dsigma.jackknife.smooth_covariance` now fails gracefully when receiving a covariance matrix with NaNs or zero variances. Additionally, it should now be fast even for small smoothing scales.
+- The `tests` directory shipped on PyPI was missing an important fixture file, preventing users from running the tests. This has been fixed.
+
 ## [1.2.4] - 2026-11-23
 
 ### Changed
 
-- The power spectrum parameters $\sigma_8$ and $n_s$ are now passed to `dsigma.physics.lens_magnification_bias` and `dsigma.stacking.lens_magnification_bias` via the cosmology's metadata instead of explicit keyword arguments. That aligns with how astropy's pre-defined cosmologies store them and allows users to perform lens magnification calculations for pre-defined cosmologies such as ``Planck18`` without having to look up the values for $\sigma_8$ and $n_s$.
+- The power spectrum parameters $\sigma_8$ and $n_s$ are now passed to `dsigma.physics.lens_magnification_bias` and `dsigma.stacking.lens_magnification_bias` via the cosmology's metadata instead of explicit keyword arguments. That aligns with how astropy's pre-defined cosmologies store them and allows users to perform lens magnification calculations for pre-defined cosmologies such as `Planck18` without having to look up the values for $\sigma_8$ and $n_s$.
 
 ### Fixed
 

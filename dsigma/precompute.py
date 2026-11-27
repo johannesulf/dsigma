@@ -146,7 +146,7 @@ def get_raw_multiprocessing_array(array):
 
     """
     array_mp = mp.RawArray(
-        'l' if np.issubdtype(array.dtype, np.integer) else 'd', len(array))
+        'q' if np.issubdtype(array.dtype, np.integer) else 'd', len(array))
     array_np = np.ctypeslib.as_array(array_mp)
     array_np[:] = array
 
