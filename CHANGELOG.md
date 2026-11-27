@@ -8,10 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `dsigma` is finally fully tested on and compatible with Windows.
-- `dsigma.jackknife.smooth_covariance` now fails gracefully when receiving a covariance matrix with NaNs or zero variances. Additionally, it should now be fast even for small smoothing scales.
-- The `tests` directory shipped on PyPI was missing an important fixture file, preventing users from running the tests. This has been fixed.
-- If a worker process fails for some reason, `dsigma.precompute.precompute` now throws an error instead of silently dropping lens-source pairs from a small number of lenses.
+- `dsigma` is finally fully tested on and compatible with Windows. (#34)
+- `dsigma.jackknife.smooth_covariance` now fails gracefully when receiving a covariance matrix with NaNs or zero variances. Additionally, it should now be fast even for small smoothing scales. (#31)
+- The `tests` directory shipped on PyPI was missing an important fixture file, preventing users from running the tests. This has been fixed. (#35)
+- If a worker process fails for some reason, `dsigma.precompute.precompute` now throws an error instead of silently dropping lens-source pairs from a small number of lenses. (#29)
+- Fixed crash on macOS when lenses occupy too many HELPix pixels. (#30)
 
 ## [1.2.4] - 2026-11-23
 
@@ -21,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed a sign error in the $R_{12} + R_{21}$ term of the tangential shear response $R_T$. Fortunately, the $R_{12} + R_{21}$ term contributes very little to the overall $R_T$. It is unlikely to have any significant effect on investigations with DES or DECADE. Thanks to @Saibernard for spotting this error.
+- Fixed a sign error in the $R_{12} + R_{21}$ term of the tangential shear response $R_T$. Fortunately, the $R_{12} + R_{21}$ term contributes very little to the overall $R_T$. It is unlikely to have any significant effect on investigations with DES or DECADE. Thanks to @Saibernard for spotting this error. (#33)
 
 ## [1.2.3] - 2026-10-09
 

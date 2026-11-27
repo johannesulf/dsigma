@@ -2,7 +2,6 @@
 # cython: nonecheck=False, cdivision=True, initializedcheck=False
 """Main computational loop for dsigma."""
 
-import queue as Queue
 from libc.math cimport sin, cos, sqrt, fmax, pow
 
 import numpy as np
@@ -31,7 +30,7 @@ cdef double _chord_sq(double sin_ra_1, double cos_ra_1, double sin_dec_1,
 
 def precompute_engine(
         pix_l, n_pix_l, pix_s, n_pix_s, chord_sq_bins, table_l, table_s,
-        table_r, bint comoving, float weighting, int nside, queue,
+        table_r, bint comoving, float weighting, int nside, counter,
         progress_bar=False):
     """Sum over all lens-source pairs.
 
@@ -41,9 +40,9 @@ def precompute_engine(
         HEALPix pixels containing lenses.
     n_pix_l : numpy.ndarray
         Number of lenses in each HEALPix pixel.
-    pix_l : numpy.ndarray
+    pix_s : numpy.ndarray
         HEALPix pixels containing sources.
-    n_pix_l : numpy.ndarray
+    n_pix_s : numpy.ndarray
         Number of sources in each HEALPix pixel.
     chord_sq_bins : numpy.ndarray
         Angular bins for all lenses defined via chord distances. Has length
@@ -62,8 +61,8 @@ def precompute_engine(
         surface density. A natural choice is -2 which minimizes shape noise.
     nside : int
         nside parameter used by HEALPix.
-    queue : queue.Queue or multiprocessing.Queue
-        Queue tracking which lens pixels remain to be processed.
+    counter : multiprocessing.Value
+        Shared counter used to track progress between processes.
     progress_bar : bool, optional
         Whether to show a progress bar tracking the processed lens pixels.
 
@@ -159,7 +158,7 @@ def precompute_engine(
     cdef double[::1] y_pix_s = np.ascontiguousarray(xyz_pix_s[:, 1])
     cdef double[::1] z_pix_s = np.ascontiguousarray(xyz_pix_s[:, 2])
 
-    cdef long long i_pix_l, i_l, i_l_min, i_l_max
+    cdef long long i_pix_l, i_pix_l_max = len(pix_l) - 1, i_l, i_l_min, i_l_max
     cdef long long i_pix_s, i_s, i_s_min, i_s_max
     cdef int i_bin, n_bins = len(chord_sq_bins) // len(table_l['z'])  - 1
     cdef long long offset_bin, offset_result
@@ -178,10 +177,12 @@ def precompute_engine(
 
     while True:
 
-        # Check whether there is still a lens pixel in the queue.
-        try:
-            i_pix_l = queue.get(timeout=0.5)
-        except Queue.Empty:
+        # Get the next lens pixel to process.
+        with counter.get_lock():
+            i_pix_l = counter.value
+            counter.value += 1
+
+        if i_pix_l > i_pix_l_max:
             break
 
         if i_pix_l == 0:

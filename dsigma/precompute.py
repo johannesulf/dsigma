@@ -1,7 +1,6 @@
 """Module for pre-computing lensing results."""
 
 import multiprocessing as mp
-import queue
 import warnings
 
 import numpy as np
@@ -393,13 +392,12 @@ def precompute(
                 table_engine[key] = get_raw_multiprocessing_array(
                     table_engine[key])
 
-    # Create a queue that holds all the pixels containing lenses.
-    q = queue.Queue() if n_jobs == 1 else mp.Queue()
-    for i in range(len(pix_l)):
-        q.put(i)
+    # Create a counter shared between processes.
+    counter = mp.Value('q', 0)
 
     args = (pix_l, n_pix_l, pix_s, n_pix_s, chord_sq_bins, table_engine_l,
-            table_engine_s, table_engine_r, comoving, weighting, nside, q)
+            table_engine_s, table_engine_r, comoving, weighting, nside,
+            counter)
 
     if n_jobs == 1:
         precompute_engine(*args, progress_bar=progress_bar)
