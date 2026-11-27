@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dsigma` is finally fully tested on and compatible with Windows.
 - `dsigma.jackknife.smooth_covariance` now fails gracefully when receiving a covariance matrix with NaNs or zero variances. Additionally, it should now be fast even for small smoothing scales.
 - The `tests` directory shipped on PyPI was missing an important fixture file, preventing users from running the tests. This has been fixed.
+- If a worker process fails for some reason, `dsigma.precompute.precompute` now throws an error instead of silently dropping lens-source pairs from a small number of lenses.
 
 ## [1.2.4] - 2026-11-23
 

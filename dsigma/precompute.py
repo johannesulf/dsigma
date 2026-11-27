@@ -15,7 +15,7 @@ from .helpers import in_degrees, interpolate_over_redshift
 from .physics import critical_surface_density, effective_critical_surface_density
 from .precompute_engine import precompute_engine
 
-__all__ = ['mean_photo_z_offset', 'photo_z_dilution_factor', 'precompute']
+__all__ = ['precompute']
 
 
 def photo_z_dilution_factor(z_l, table_c, cosmology=None, weighting=-2):
@@ -211,6 +211,8 @@ def precompute(
     ------
     ValueError
         If there are problems in the input.
+    RuntimeError
+        If a worker process issues a non-zero exit code.
 
     """
     cosmology = default_cosmology if cosmology is None else cosmology
@@ -409,7 +411,11 @@ def precompute(
                 kwargs={'progress_bar': progress_bar if i == 0 else False})
             process.start()
             processes.append(process)
-        for i in range(n_jobs):
+        for process in processes:
+            if process.exitcode:
+                msg = ("A worker process exited with non-zero code "
+                       f"{process.exitcode}.")
+                raise RuntimeError(msg)
             processes[i].join()
 
     if n_jobs > 1:

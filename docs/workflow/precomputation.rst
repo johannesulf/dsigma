@@ -5,6 +5,9 @@ We need to sum over all lens-source pairs when calculating the total galaxy-gala
 
 To run the precomputation, we must first make decisions regarding the radial binning, cosmology, and lens-source cuts. These choices are baked into the precomputed results and cannot be changed without rerunning the precomputation. The following example assumes Planck15 cosmology, radial bins going from :math:`0.1` to :math:`10 \, \mathrm{Mpc}/h` and we are using all lens-source pairs where :math:`z_l < z_s - 0.1`. ``dsigma`` supports running this expensive calculation on multiple CPU cores. Here we use four CPU cores.
 
+.. note::
+    On many modern Python installations, using more than one CPU core requires the call to :func:`dsigma.precompute.precompute` to be guarded by a ``if _name__ == "__main__":`` statement.
+
 .. code-block:: python
 
     import numpy as np
@@ -22,7 +25,7 @@ To run the precomputation, we must first make decisions regarding the radial bin
 
 After the precomputation, we can stack the signal around each lens to obtain the total lensing signal. Cuts on the lens sample can be applied later, immediately before stacking. Consequently, after performing the precomputation, we can easily derive lensing signals for arbitrary sub-samples of the lens catalog.
 
-Note that the radial bins in the precomputation can be specified using :py:mod:`astropy.units`. By default, units are assumed to be (comoving) physical distances in :math:`\mathrm{Mpc}/h`. However, the following are all valid options, including angular bins.
+Note that the radial bins in the precomputation can be specified using :mod:`astropy.units`. By default, units are assumed to be (comoving) physical distances in :math:`\mathrm{Mpc}/h`. However, the following are all valid options, including angular bins.
 
 .. code-block:: python
 
