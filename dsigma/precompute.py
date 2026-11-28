@@ -372,9 +372,10 @@ def precompute(
     try:
         theta_bins = np.tile(bins.to(u.rad).value, len(table_l))
     except UnitConversionError:
-        bins = bins.to(u.Mpc / cu.littleh, cu.with_H0(cosmology.H0))
-        theta_bins = (np.tile(bins.value, len(table_l)) /
-                      np.repeat(table_engine_l['d_com'], len(bins))).flatten()
+        theta_bins = (
+            np.tile(bins.to(u.Mpc / cu.littleh, cu.with_H0(
+                cosmology.H0)).value, len(table_l)) /
+            np.repeat(table_engine_l['d_com'], len(bins))).flatten()
         if not comoving:
             theta_bins *= (
                 1 + np.repeat(table_engine_l['z'], len(bins))).flatten()

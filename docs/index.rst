@@ -59,6 +59,7 @@ Authors
 
 * Johannes Lange
 * Song Huang
+* Alexie Leauthaud
 
 Documentation was edited with the assistance of Claude Sonnet 4.6.
 
