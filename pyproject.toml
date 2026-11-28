@@ -65,5 +65,5 @@ extra-compile-args = ["-O2"]
 include = ["dsigma*"]
 
 [tool.cibuildwheel]
-test-requires = ["pytest"]
+test-requires = ["camb", "pytest", "treecorr"]
 test-command = "pytest {project}/tests"
