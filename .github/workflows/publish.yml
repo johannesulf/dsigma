@@ -16,7 +16,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4
+        uses: pypa/cibuildwheel@v4.3.5
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
