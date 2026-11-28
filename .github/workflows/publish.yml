@@ -17,7 +17,32 @@ jobs:
           persist-credentials: false
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.3.5
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+  build_sdist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+      - name: Install dependencies
+        run: python -m pip install build twine
+      - name: Build sdist
+        run: |
+          python -m build --sdist
+          twine check dist/*.tar.gz
+          python -m pip wheel --no-deps dist/*.tar.gz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error

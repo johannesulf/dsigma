@@ -63,3 +63,7 @@ extra-compile-args = ["-O2"]
 
 [tool.setuptools.packages.find]
 include = ["dsigma*"]
+
+[tool.cibuildwheel]
+test-requires = ["pytest"]
+test-command = "pytest {project}/tests"
