@@ -67,4 +67,6 @@ include = ["dsigma*"]
 [tool.cibuildwheel]
 test-requires = ["camb", "pytest", "treecorr"]
 test-command = "pytest {project}/tests"
+
+[tool.cibuildwheel.windows]
 archs = ["AMD64"]
