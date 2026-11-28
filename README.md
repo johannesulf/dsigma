@@ -17,7 +17,7 @@
 
 ## Example
 
-This example code demonstrates the basic usage of ``dsigma``. Here, we measure the galaxy-galaxy lensing amplitude around 100,000 lenses using 10 million source galaxies.
+The example below shows the basic usage of ``dsigma``. It measures the galaxy-galaxy lensing signal around 100,000 lens galaxies using 10 million source galaxies.
 
 ```python
 import numpy as np
@@ -33,7 +33,6 @@ table_l = Table(dict(
     ra=rng.uniform(0, 360, n_l),
     dec=np.rad2deg(np.arcsin(rng.uniform(-1, 1, n_l))),
     z=np.full(n_l, 0.3), w_sys=np.ones(n_l)))
-
 
 n_s = 10_000_000
 sigma_e = 0.26
@@ -73,11 +72,9 @@ print(result)
 6.310e+00 1.000e+01             2.721e-01             3.673e-01
 ```
 
-In the above toy example, we do not expect any intrinsic signal. However, the plot below shows results from ``dsigma`` on real lensing data.
+The lenses and sources in this toy example have random positions and shapes, so the expected signal is zero. For a measurement on real lensing data, see the plot below.
 
 ![plot](https://raw.githubusercontent.com/johannesulf/dsigma/main/docs/plot.png)
-
-``dsigma`` focuses specifically on computing the excess surface density $\Delta\Sigma$ around a set of lens galaxies as a function of projected physical separation. In principle, the more general ``TreeCorr`` package can also be used to compute various two-point correlation functions, including galaxy-galaxy lensing. However, for galaxy-galaxy lensing, ``TreeCorr`` computes the tangential shear $\gamma_t$, not $\Delta\Sigma$. Furthermore, ``TreeCorr`` has a steeper learning curve and requires more care in implementing survey-specific correction terms.
 
 ## Authors
 
